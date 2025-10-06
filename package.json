@@ -1,0 +1,71 @@
+{
+    "name": "stackpage",
+    "version": "1.0.0",
+    "author": "jbcdev2019",
+    "license": "MIT",
+    "type": "module",
+    "main": "dist/lib/stackpage.umd.js",
+    "module": "dist/lib/stackpage.es.js",
+    "typings": "./dist/lib/index.d.ts",
+    "files": [
+        "LICENSE",
+        "README.md",
+        "dist/lib"
+    ],
+    "exports": {
+        ".": {
+            "import": "./dist/lib/stackpage.es.js",
+            "require": "./dist/lib/stackpage.umd.js",
+            "types": "./dist/lib/index.d.ts"
+        },
+        "./styles": {
+            "import": "./dist/lib/index.css",
+            "types": "./dist/lib/styles.d.ts"
+        }
+    },
+    "scripts": {
+        "dev": "vite",
+        "build": "yarn build:lib && yarn build:demo",
+        "build:lib": "tsc -p tsconfig.lib.json && NODE_OPTIONS='--no-warnings' vite build --config vite.config.lib.ts",
+        "build:demo": "NODE_OPTIONS='--no-warnings' vite build",
+        "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.9.0",
+        "@types/node": "^24.1.0",
+        "@types/react": "^18.3.3",
+        "@types/react-dom": "^18.3.0",
+        "@vitejs/plugin-react": "^4.1.0",
+        "@vitejs/plugin-react-swc": "^3.5.0",
+        "eslint": "^9.9.0",
+        "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+        "eslint-plugin-react-refresh": "^0.4.9",
+        "eslint-plugin-tailwindcss": "3.17.4",
+        "globals": "^15.9.0",
+        "typescript-eslint": "^8.0.1",
+        "vite": "^5.4.19"
+    },
+    "dependencies": {
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.1",
+        "@heroicons/react": "^2.2.0",
+        "@tailwindcss/postcss": "^4.1.11",
+        "@types/react-responsive": "^9.0.0",
+        "autoprefixer": "10.4.20",
+        "gridstack": "^12.2.1",
+        "install": "^0.13.0",
+        "js-base64": "^3.7.7",
+        "json-server": "^1.0.0-beta.3",
+        "postcss": "8.4.41",
+        "postcss-import": "16.1.0",
+        "react": "18",
+        "react-dom": "^18.3.1",
+        "react-fast-compare": "^3.2.2",
+        "react-router-dom": "^7.7.0",
+        "rollup-plugin-postcss": "^4.0.2",
+        "tailwindcss": "3.4.10",
+        "typescript": "5.9.3",
+        "uuid": "^11.1.0",
+        "vite-plugin-dts": "^4.5.4"
+    }
+}

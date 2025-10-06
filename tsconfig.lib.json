@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./.types",
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "dist/lib"
+  },
+  "include": ["src/lib/**/*", "vite-env.d.ts"],
+  "exclude": ["src/demo/**/*", "**/*.stories.tsx", "**/*.test.tsx"]
+}
+
