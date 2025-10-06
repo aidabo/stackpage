@@ -4,7 +4,15 @@ export interface ComponentDataType<T = object> {
     name: string;
     props: T;
 }
-export declare function GridStackRender({ componentMap, showMenubar, }: {
+interface GridStackRenderProps {
     componentMap: ComponentMap;
     showMenubar?: boolean;
-}): import("react/jsx-runtime").JSX.Element;
+    selectedWidgetId?: string | null;
+    onWidgetSelect?: (widgetData: {
+        id: string;
+        name: string;
+        props: object;
+    }) => void;
+}
+export declare function GridStackRender({ componentMap, showMenubar, selectedWidgetId, onWidgetSelect, }: GridStackRenderProps): import("react/jsx-runtime").JSX.Element;
+export {};

@@ -14,8 +14,6 @@ interface StackPageContextType {
     setSelectedComponent: (component: string | null) => void;
     selectedInstance: ComponentInstance | null;
     setSelectedInstance: (instance: ComponentInstance | null) => void;
-    componentInstances: ComponentInstance[];
-    setComponentInstances: (instances: ComponentInstance[]) => void;
     pageAttributes: {
         margin: string;
         padding: string;
@@ -23,12 +21,8 @@ interface StackPageContextType {
         gap: string;
     };
     setPageAttributes: (attributes: any) => void;
-    addComponentToLayout: (componentType: string, position: {
-        x: number;
-        y: number;
-    }) => void;
-    updateComponentProps: (componentId: string, props: Record<string, any>) => void;
-    removeComponent: (componentId: string) => void;
+    activeTab: "components" | "properties" | "page";
+    setActiveTab: (tab: "components" | "properties" | "page") => void;
 }
 export declare const useStackPage: () => StackPageContextType;
 export interface StackPageProps {

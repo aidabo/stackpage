@@ -61,8 +61,6 @@ interface StackPageContextType {
   setSelectedComponent: (component: string | null) => void;
   selectedInstance: ComponentInstance | null;
   setSelectedInstance: (instance: ComponentInstance | null) => void;
-  componentInstances: ComponentInstance[];
-  setComponentInstances: (instances: ComponentInstance[]) => void;
   pageAttributes: {
     margin: string;
     padding: string;
@@ -70,15 +68,8 @@ interface StackPageContextType {
     gap: string;
   };
   setPageAttributes: (attributes: any) => void;
-  addComponentToLayout: (
-    componentType: string,
-    position: { x: number; y: number }
-  ) => void;
-  updateComponentProps: (
-    componentId: string,
-    props: Record<string, any>
-  ) => void;
-  removeComponent: (componentId: string) => void;
+  activeTab: "components" | "properties" | "page";
+  setActiveTab: (tab: "components" | "properties" | "page") => void;
 }
 
 const StackPageContext = createContext<StackPageContextType | undefined>(
@@ -232,19 +223,27 @@ const StackPage = ({
   children,
 }: StackPageProps) => {
   // Simplified mode handling
-  const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(pageMode);
+  const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
+    pageMode
+  );
   const [showEditor, setShowEditor] = useState(true);
   //const [isResizing, setIsResizing] = useState(false);
   const [panelWidth /*setPanelWidth*/] = useState(400);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [activeTab, setActiveTab] = useState<"components" | "properties" | "page">("components");
+  const [activeTab, setActiveTab] = useState<
+    "components" | "properties" | "page"
+  >("components");
 
-  const [pageProps, setPageProps] = useState<PageProps>({...getDefaultPageProps(), id: pageid});
-  const [title, setTitle] = useState<string>()
+  const [pageProps, setPageProps] = useState<PageProps>({
+    ...getDefaultPageProps(),
+    id: pageid,
+  });
+  const [title, setTitle] = useState<string>();
   const [pageTitle, setPageTitle] = useState<string>();
 
   const [resetKey, setResetKey] = useState(0);
-  const [initialOptions, setInitialOptions] = useState<GridStackOptions>(gridOptions);
+  const [initialOptions, setInitialOptions] =
+    useState<GridStackOptions>(gridOptions);
   const stackActionsRef = useRef<StackActionsRef>(null);
 
   const [dropEvent, setDropEvent] = useState<GridStackDropEvent>();
@@ -252,9 +251,12 @@ const StackPage = ({
   const [showMenubar /*setShowMenubar*/] = useState(true);
 
   // Internal state management
-  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
-  const [selectedInstance, setSelectedInstance] = useState<ComponentInstance | null>(null);
-  const [componentInstances, setComponentInstances] = useState<ComponentInstance[]>([]);
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(
+    null
+  );
+  const [selectedInstance, setSelectedInstance] =
+    useState<ComponentInstance | null>(null);  
+
   const [pageAttributes, setPageAttributes] = useState({
     margin: "0",
     padding: "20px",
@@ -262,8 +264,6 @@ const StackPage = ({
     gap: "16px",
   });
 
-  //const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const nextComponentId = useRef(1);
   const isMobile = useMobile();
 
   // Update currentMode when pageMode prop changes
@@ -271,16 +271,19 @@ const StackPage = ({
     setCurrentMode(pageMode);
   }, [pageMode]);
 
-  const handleLoadLayout = useCallback(async (pageid: string): Promise<any> => {
-    const pageProps = (await onLoadLayout(pageid)) || getDefaultPageProps();
-    setPageProps(pageProps);
-    setTitle(pageProps.title);
-    setPageTitle(pageProps.title);
-    return pageProps.grids;
-  }, [onLoadLayout]);
+  const handleLoadLayout = useCallback(
+    async (pageid: string): Promise<any> => {
+      const pageProps = (await onLoadLayout(pageid)) || getDefaultPageProps();
+      setPageProps(pageProps);
+      setTitle(pageProps.title);
+      setPageTitle(pageProps.title);
+      return pageProps.grids;
+    },
+    [onLoadLayout]
+  );
 
   const handleReload = useCallback(async () => {
-    if (pageid) {      
+    if (pageid) {
       const gridOptions: any = await handleLoadLayout(pageid);
       setInitialOptions(gridOptions);
       // Force remount
@@ -288,7 +291,7 @@ const StackPage = ({
       clearSelectedData();
       console.log(`reload layout: pageid ${pageid}, props id ${pageProps?.id}`);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageid, handleLoadLayout]);
 
   // Load layout when component mounts or pageid changes
@@ -302,7 +305,7 @@ const StackPage = ({
         }
       }
     };
-    loadLayout()
+    loadLayout();
   }, [pageid, handleReload]);
 
   const handleGoBack = () => {
@@ -317,11 +320,13 @@ const StackPage = ({
       const layout = stackActionsRef.current?.saveLayout();
       if (layout) {
         const savedPageProps: PageProps = {
-          ...(pageProps || getDefaultPageProps()) ,
+          ...(pageProps || getDefaultPageProps()),
           grids: layout,
-          title: pageTitle as any
-        }
-        console.log(`Saving layout: pageid ${pageid}, props id ${savedPageProps.id}`);
+          title: pageTitle as any,
+        };
+        console.log(
+          `Saving layout: pageid ${pageid}, props id ${savedPageProps.id}`
+        );
         await onSaveLayout(pageid, savedPageProps);
       }
     }
@@ -349,7 +354,7 @@ const StackPage = ({
   };
 
   const handleTitleSave = () => {
-    setIsEditingTitle(false);    
+    setIsEditingTitle(false);
   };
 
   const handleTitleKeyDown = (e: React.KeyboardEvent) => {
@@ -366,79 +371,28 @@ const StackPage = ({
     e.dataTransfer.effectAllowed = "copy";
   };
 
-  // const handleDragOver = (e: React.DragEvent) => {
-  //   //e.preventDefault();
-  //   e.dataTransfer.dropEffect = "copy"; // allow ghost image to keep following
-  // };
-
   const handleDropEvent = (event: GridStackDropEvent) => {
     setDropEvent(event);
-  };
-
-  // Internal function to handle adding components to layout
-  const addComponentToLayout = (
-    componentType: string,
-    position: { x: number; y: number }
-  ) => {
-    const componentId = `comp-${nextComponentId.current++}`;
-    const defaultProps = getComponentProps(componentPropsProvider)[
-      componentType
-    ]; // enhancedComponentPropsProvider(componentType);
-
-    const newInstance: ComponentInstance = {
-      id: componentId,
-      type: componentType,
-      props: { ...defaultProps },
-      position,
-    };
-
-    setComponentInstances((prev) => [...prev, newInstance]);
-    setSelectedInstance(newInstance);
-    setSelectedComponent(componentType);
-    setActiveTab("properties"); // Switch to properties tab when component is added
-  };
-
-  // Update component properties
-  const updateComponentProps = (
-    componentId: string,
-    updatedProps: Record<string, any>
-  ) => {
-    setComponentInstances((prev) =>
-      prev.map((instance) =>
-        instance.id === componentId
-          ? { ...instance, props: { ...instance.props, ...updatedProps } }
-          : instance
-      )
-    );
-
-    // Update selected instance if it's the one being edited
-    if (selectedInstance && selectedInstance.id === componentId) {
-      setSelectedInstance((prev) =>
-        prev ? { ...prev, props: { ...prev.props, ...updatedProps } } : null
-      );
-    }
-  };
-
-  // Remove component
-  const removeComponent = (componentId: string) => {
-    setComponentInstances((prev) =>
-      prev.filter((instance) => instance.id !== componentId)
-    );
-    if (selectedInstance && selectedInstance.id === componentId) {
-      setSelectedInstance(null);
-      setSelectedComponent(null);
-    }
   };
 
   // Get components and props from enhanced providers
   const componentMap = getComponentMap(componentMapProvider);
 
-  // Handle component property changes from properties tab
-  const handlePropertyChange = (property: string, value: any) => {
-    if (selectedInstance) {
-      updateComponentProps(selectedInstance.id, { [property]: value });
-    }
-  };
+  // Add handler for widget selection from gridstack
+  const handleWidgetSelect = useCallback(
+    (widgetData: { id: string; name: string; props: object }) => {
+      const instance: ComponentInstance = {
+        id: widgetData.id,
+        type: widgetData.name,
+        props: widgetData.props,
+      };
+
+      setSelectedInstance(instance);
+      setSelectedComponent(widgetData.name);
+      setActiveTab("properties");
+    },
+    [setSelectedInstance, setSelectedComponent, setActiveTab]
+  );
 
   // Handle page attribute changes
   const handlePageAttributeChange = (attribute: string, value: string) => {
@@ -455,13 +409,10 @@ const StackPage = ({
     setSelectedComponent,
     selectedInstance,
     setSelectedInstance,
-    componentInstances,
-    setComponentInstances,
     pageAttributes,
     setPageAttributes,
-    addComponentToLayout,
-    updateComponentProps,
-    removeComponent,
+    activeTab,
+    setActiveTab,
   };
 
   // Panel styles for different screen sizes
@@ -503,264 +454,111 @@ const StackPage = ({
     }
   }, [dropEvent, componentPropsProvider]);
 
-  // Render Components Tab
-  // const renderComponentsTab = () => {
-  //   return (
-  //     <div className="p-4 space-y-4">
-  //       <h3 className="text-lg font-medium mb-3">Components</h3>
-  //       <p className="text-sm text-gray-600 mb-4">
-  //         Drag components to the main area or click to select them
-  //       </p>
-  //       <div
-  //         key="SubGrid"
-  //         gs-type="SubGrid"
-  //         data-gs-type="SubGrid"
-  //         className="grid-stack-item grid-stack-item-widget"
-  //         draggable="true"
-  //         onDragStart={(e) => handleDragStart(e, "SubGrid")}
-  //         onDragEnd={() => console.log("====SubGrid drag event end....")}
-  //         onClick={() => {
-  //           setSelectedComponent("SubGrid");
-  //           setSelectedInstance(null);
-  //         }}
-  //       >
-  //         {/* More prominent styling for SubGrid */}
-  //         <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 text-sm hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all duration-200 hover:shadow-lg text-center group">
-  //           <div className="font-semibold text-blue-700 mb-2 flex items-center justify-center">
-  //             <svg
-  //               className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform"
-  //               fill="none"
-  //               stroke="currentColor"
-  //               viewBox="0 0 24 24"
-  //             >
-  //               <path
-  //                 strokeLinecap="round"
-  //                 strokeLinejoin="round"
-  //                 strokeWidth={2}
-  //                 d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
-  //               />
-  //               <path
-  //                 strokeLinecap="round"
-  //                 strokeLinejoin="round"
-  //                 strokeWidth={2}
-  //                 d="M9 3v18M3 9h18"
-  //               />
-  //             </svg>
-  //             SubGrid
-  //           </div>
-  //           <div className="text-xs text-blue-600 font-medium">
-  //             Nested Grid Container
-  //           </div>
-  //           <div className="text-xs text-blue-500 mt-1">
-  //             Drag to create nested layout
-  //           </div>
-  //         </div>
-  //       </div>
-  //       <div className="grid grid-cols-2 gap-3">
-  //         {Object.entries(componentMap).map(([name /*Component*/]) => (
-  //           <div
-  //             key={name}
-  //             gs-type={name}
-  //             data-gs-type={name}
-  //             className="grid-stack-item grid-stack-item-widget"
-  //             draggable="true"
-  //             onDragStart={(e) => handleDragStart(e, name)}
-  //             onDragEnd={() => console.log("====drag event end....")} // onDragOver={handleDragOver}
-  //             onClick={() => {
-  //               setSelectedComponent(name);
-  //               setSelectedInstance(null);
-  //             }}
-  //           >
-  //             {/* Wrap the content in a separate div for styling */}
-  //             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
-  //               <div className="font-medium text-gray-800 mb-2">{name}</div>
-  //               <div className="text-xs text-gray-500">Drag to main area</div>
-  //             </div>
-  //           </div>
-  //         ))}
-  //       </div>
-  //       {componentInstances.length > 0 && (
-  //         <div className="mt-6 pt-4 border-t">
-  //           <h4 className="font-medium mb-3">
-  //             Placed Components ({componentInstances.length})
-  //           </h4>
-  //           <div className="space-y-2 max-h-40 overflow-y-auto">
-  //             {componentInstances.map((instance) => (
-  //               <div
-  //                 key={instance.id}
-  //                 className={`flex justify-between items-center p-2 rounded text-sm ${
-  //                   selectedInstance?.id === instance.id
-  //                     ? "bg-blue-100 border border-blue-300"
-  //                     : "bg-gray-100"
-  //                 }`}
-  //                 onClick={() => {
-  //                   setSelectedInstance(instance);
-  //                   setSelectedComponent(instance.type);
-  //                   setActiveTab("properties");
-  //                 }}
-  //               >
-  //                 <span className="truncate">{instance.type}</span>
-  //                 <button
-  //                   onClick={(e) => {
-  //                     e.stopPropagation();
-  //                     removeComponent(instance.id);
-  //                   }}
-  //                   className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded"
-  //                 >
-  //                   Remove
-  //                 </button>
-  //               </div>
-  //             ))}
-  //           </div>
-  //         </div>
-  //       )}
-  //     </div>
-  //   );
-  // };
-
-// Then in the renderComponentsTab function, add the DeleteDropZone at the top:
-const renderComponentsTab = () => {
-  return (
-    <div className="p-4 space-y-4">
-      <h3 className="text-lg font-medium mb-3">Components</h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Drag components to the main area or click to select them
-      </p>
-      
-      {/* Delete Drop Zone - Add this section */}
-      <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Delete Zone</h4>
-        <DeleteDropZone 
-          onDropDelete={() => {
-            console.log("Component deleted via drop zone");
-            // Clear selection after deletion
-            setSelectedComponent(null);
-            setSelectedInstance(null);
-          }} 
-        />
-        <p className="text-xs text-gray-500 mt-2 text-center">
-          Drag components here to delete them
+  // Then in the renderComponentsTab function, add the DeleteDropZone at the top:
+  const renderComponentsTab = () => {
+    return (
+      <div className="p-4 space-y-4">
+        <h3 className="text-lg font-medium mb-3">Components</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Drag components to the main area or click to select them
         </p>
-      </div>
 
-      {/* Rest of the existing components tab content */}
-      <div
-        key="SubGrid"
-        gs-type="SubGrid"
-        data-gs-type="SubGrid"
-        className="grid-stack-item grid-stack-item-widget"
-        draggable="true"
-        onDragStart={(e) => handleDragStart(e, "SubGrid")}
-        onDragEnd={() => console.log("====SubGrid drag event end....")}
-        onClick={() => {
-          setSelectedComponent("SubGrid");
-          setSelectedInstance(null);
-        }}
-      >
-        {/* More prominent styling for SubGrid */}
-        <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 text-sm hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all duration-200 hover:shadow-lg text-center group">
-          <div className="font-semibold text-blue-700 mb-2 flex items-center justify-center">
-            <svg
-              className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 3v18M3 9h18"
-              />
-            </svg>
-            SubGrid
-          </div>
-          <div className="text-xs text-blue-600 font-medium">
-            Nested Grid Container
-          </div>
-          <div className="text-xs text-blue-500 mt-1">
-            Drag to create nested layout
-          </div>
-        </div>
-      </div>
-      
-      {/* Rest of the component grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {Object.entries(componentMap).map(([name /*Component*/]) => (
-          <div
-            key={name}
-            gs-type={name}
-            data-gs-type={name}
-            className="grid-stack-item grid-stack-item-widget"
-            draggable="true"
-            onDragStart={(e) => handleDragStart(e, name)}
-            onDragEnd={() => console.log("====drag event end....")}
-            onClick={() => {
-              setSelectedComponent(name);
+        {/* Delete Drop Zone - Add this section */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">
+            Delete Zone
+          </h4>
+          <DeleteDropZone
+            onDropDelete={() => {
+              console.log("Component deleted via drop zone");
+              // Clear selection after deletion
+              setSelectedComponent(null);
               setSelectedInstance(null);
             }}
-          >
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
-              <div className="font-medium text-gray-800 mb-2">{name}</div>
-              <div className="text-xs text-gray-500">Drag to main area</div>
+          />
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Drag components here to delete them
+          </p>
+        </div>
+
+        {/* Rest of the existing components tab content */}
+        <div
+          key="SubGrid"
+          gs-type="SubGrid"
+          data-gs-type="SubGrid"
+          className="grid-stack-item grid-stack-item-widget"
+          draggable="true"
+          onDragStart={(e) => handleDragStart(e, "SubGrid")}
+          onDragEnd={() => console.log("====SubGrid drag event end....")}
+          onClick={() => {
+            setSelectedComponent("SubGrid");
+            setSelectedInstance(null);
+          }}
+        >
+          {/* More prominent styling for SubGrid */}
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 text-sm hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all duration-200 hover:shadow-lg text-center group">
+            <div className="font-semibold text-blue-700 mb-2 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 3v18M3 9h18"
+                />
+              </svg>
+              SubGrid
+            </div>
+            <div className="text-xs text-blue-600 font-medium">
+              Nested Grid Container
+            </div>
+            <div className="text-xs text-blue-500 mt-1">
+              Drag to create nested layout
             </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Rest of the existing component instances list */}
-      {componentInstances.length > 0 && (
-        <div className="mt-6 pt-4 border-t">
-          <h4 className="font-medium mb-3">
-            Placed Components ({componentInstances.length})
-          </h4>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {componentInstances.map((instance) => (
-              <div
-                key={instance.id}
-                className={`flex justify-between items-center p-2 rounded text-sm ${
-                  selectedInstance?.id === instance.id
-                    ? "bg-blue-100 border border-blue-300"
-                    : "bg-gray-100"
-                }`}
-                onClick={() => {
-                  setSelectedInstance(instance);
-                  setSelectedComponent(instance.type);
-                  setActiveTab("properties");
-                }}
-                draggable="true"
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", instance.id);
-                  e.dataTransfer.effectAllowed = "move";
-                }}
-              >
-                <span className="truncate">{instance.type}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeComponent(instance.id);
-                  }}
-                  className="text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
-    </div>
-  );
-};
 
+        {/* Rest of the component grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {Object.entries(componentMap).map(([name /*Component*/]) => (
+            <div
+              key={name}
+              gs-type={name}
+              data-gs-type={name}
+              className="grid-stack-item grid-stack-item-widget"
+              draggable="true"
+              onDragStart={(e) => handleDragStart(e, name)}
+              onDragEnd={() => console.log("====drag event end....")}
+              onClick={() => {
+                setSelectedComponent(name);
+                setSelectedInstance(null);
+              }}
+            >
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
+                <div className="font-medium text-gray-800 mb-2">{name}</div>
+                <div className="text-xs text-gray-500">Drag to main area</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
   // Render Properties Tab
   const renderPropertiesTab = () => {
+    const rawWidgetMetaMap: any = stackActionsRef.current?.rawWidgetMetaMap;
+
     if (!selectedInstance && !selectedComponent) {
       return (
         <div className="p-4 text-center text-gray-500">
@@ -774,9 +572,32 @@ const renderComponentsTab = () => {
     }
 
     const componentType = selectedInstance?.type || selectedComponent;
-    const currentProps =
-      selectedInstance?.props ||
-      getComponentProps(componentPropsProvider)[componentType || ""];
+
+    // Get current props from selected instance
+    const currentProps = selectedInstance?.props || {};
+
+    const handlePropertyChange = (property: string, value: any) => {
+      if (selectedInstance) {
+        // Update the selected instance locally for immediate UI feedback
+        setSelectedInstance((prev) =>
+          prev ? { ...prev, props: { ...prev.props, [property]: value } } : null
+        );
+
+        // Update the widget in gridstack context if it exists
+        if (rawWidgetMetaMap.value.has(selectedInstance.id)) {
+          const updatedProps = { ...currentProps, [property]: value };
+          const updatedContent = JSON.stringify({
+            name: componentType,
+            props: updatedProps,
+          });
+
+          // You'll need to add an updateWidget method to your gridstack context
+          // or use another method to update the widget content
+          console.log("Update widget:", selectedInstance.id, updatedContent);
+          // updateWidget(selectedInstance.id, { content: updatedContent });
+        }
+      }
+    };
 
     return (
       <div className="p-4 space-y-4">
@@ -834,11 +655,18 @@ const renderComponentsTab = () => {
 
         {selectedInstance && (
           <div className="mt-6 pt-4 border-t">
+            <p className="text-sm text-gray-600 mb-3">
+              This is a GridStack widget. Property changes will update the
+              widget in real-time.
+            </p>
             <button
-              onClick={() => removeComponent(selectedInstance.id)}
-              className="w-full py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
+              onClick={() => {
+                setSelectedInstance(null);
+                setSelectedComponent(null);
+              }}
+              className="w-full py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-medium"
             >
-              Remove This Component
+              Clear Selection
             </button>
           </div>
         )}
@@ -964,7 +792,6 @@ const renderComponentsTab = () => {
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
       <StackPageContext.Provider value={contextValue}>
         <div className="min-h-screen bg-white text-black flex flex-col">
-
           {/* Toolbar - Only show in edit mode */}
           {currentMode === "edit" && (
             <header className="p-4 bg-white shadow relative">
@@ -998,7 +825,6 @@ const renderComponentsTab = () => {
                       </div>
                     )}
                   </div>
-
                 </div>
 
                 {/* Button Group - Right side */}
@@ -1077,7 +903,6 @@ const renderComponentsTab = () => {
 
           {/* Main Content Area */}
           <div className="flex flex-1 overflow-hidden relative">
-
             {/* Main Content */}
             <div
               className={`flex-1 transition-all duration-200 ${
@@ -1100,16 +925,17 @@ const renderComponentsTab = () => {
                       <GridStackRender
                         componentMap={getComponentMap(componentMapProvider)}
                         showMenubar={showMenubar}
+                        onWidgetSelect={handleWidgetSelect}
+                        selectedWidgetId={selectedInstance?.id} 
                       />
                     </GridStackRenderProvider>
 
                     {/* Custom children content */}
                     {children}
-
                   </div>
                 </div>
               </div>
-            </div>            
+            </div>
             {/* Main Content End*/}
 
             {/* Editor Panel - Only show in edit mode when enabled */}

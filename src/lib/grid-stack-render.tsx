@@ -36,13 +36,23 @@ function parseWidgetMeta(
   return { name, props, error };
 }
 
+interface GridStackRenderProps {
+  componentMap: ComponentMap;
+  showMenubar?: boolean;
+  selectedWidgetId?: string | null;
+  onWidgetSelect?: (widgetData: {
+    id: string;
+    name: string;
+    props: object;
+  }) => void;
+}
+
 export function GridStackRender({
   componentMap,
   showMenubar = false,
-}: {
-  componentMap: ComponentMap;
-  showMenubar?: boolean;
-}) {
+  selectedWidgetId,
+  onWidgetSelect,
+}: GridStackRenderProps) {
   const { _rawWidgetMetaMap } = useGridStackContext();
   const { getWidgetContainer } = useGridStackRenderContext();
 
@@ -75,6 +85,8 @@ export function GridStackRender({
             WidgetComponent={WidgetComponent}
             widgetContainer={widgetContainer}
             showMenubar={showMenubar}
+            isSelected={id === selectedWidgetId}
+            onWidgetSelect={onWidgetSelect}
           />
         );
       })}

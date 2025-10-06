@@ -1,11 +1,11 @@
-import * as i from "react";
-import tt, { createContext as H, useContext as se, useState as f, useCallback as E, useRef as P, useLayoutEffect as pe, useMemo as rt, useEffect as G, forwardRef as nt, useImperativeHandle as st } from "react";
+import * as l from "react";
+import Ye, { createContext as F, useContext as te, useState as f, useCallback as C, useRef as B, useLayoutEffect as ue, useMemo as Xe, useEffect as z, forwardRef as Qe, useImperativeHandle as et } from "react";
 import { GridStack as $ } from "gridstack";
-import { createPortal as ot } from "react-dom";
-function at(t) {
+import { createPortal as tt } from "react-dom";
+function rt(t) {
   return t && t.__esModule && Object.prototype.hasOwnProperty.call(t, "default") ? t.default : t;
 }
-var ke = { exports: {} }, U = {};
+var we = { exports: {} }, H = {};
 /**
  * @license React
  * react-jsx-runtime.production.min.js
@@ -15,135 +15,135 @@ var ke = { exports: {} }, U = {};
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-var it = tt, lt = Symbol.for("react.element"), ct = Symbol.for("react.fragment"), dt = Object.prototype.hasOwnProperty, ut = it.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner, mt = { key: !0, ref: !0, __self: !0, __source: !0 };
-function Ne(t, r, n) {
-  var s, a = {}, c = null, d = null;
-  n !== void 0 && (c = "" + n), r.key !== void 0 && (c = "" + r.key), r.ref !== void 0 && (d = r.ref);
-  for (s in r) dt.call(r, s) && !mt.hasOwnProperty(s) && (a[s] = r[s]);
-  if (t && t.defaultProps) for (s in r = t.defaultProps, r) a[s] === void 0 && (a[s] = r[s]);
-  return { $$typeof: lt, type: t, key: c, ref: d, props: a, _owner: ut.current };
+var nt = Ye, st = Symbol.for("react.element"), ot = Symbol.for("react.fragment"), at = Object.prototype.hasOwnProperty, it = nt.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner, lt = { key: !0, ref: !0, __self: !0, __source: !0 };
+function ye(t, r, n) {
+  var s, o = {}, d = null, c = null;
+  n !== void 0 && (d = "" + n), r.key !== void 0 && (d = "" + r.key), r.ref !== void 0 && (c = r.ref);
+  for (s in r) at.call(r, s) && !lt.hasOwnProperty(s) && (o[s] = r[s]);
+  if (t && t.defaultProps) for (s in r = t.defaultProps, r) o[s] === void 0 && (o[s] = r[s]);
+  return { $$typeof: st, type: t, key: d, ref: c, props: o, _owner: it.current };
 }
-U.Fragment = ct;
-U.jsx = Ne;
-U.jsxs = Ne;
-ke.exports = U;
-var e = ke.exports;
-const Ce = H(null);
-function _() {
-  const t = se(Ce);
+H.Fragment = ot;
+H.jsx = ye;
+H.jsxs = ye;
+we.exports = H;
+var e = we.exports;
+const je = F(null);
+function A() {
+  const t = te(je);
   if (!t)
     throw new Error(
       "useGridStackContext must be used within a GridStackProvider"
     );
   return t;
 }
-function gt({
+function ct({
   children: t,
   initialOptions: r
 }) {
-  const [n, s] = f(null), [a, c] = f(() => {
-    var N;
-    const l = /* @__PURE__ */ new Map(), g = (v) => {
-      var w;
-      v.id && v.content && l.set(v.id, v), (w = v.subGridOpts) != null && w.children && v.subGridOpts.children.forEach((j) => {
-        g(j);
+  const [n, s] = f(null), [o, d] = f(() => {
+    var j;
+    const i = /* @__PURE__ */ new Map(), m = (x) => {
+      var v;
+      x.id && x.content && i.set(x.id, x), (v = x.subGridOpts) != null && v.children && x.subGridOpts.children.forEach((b) => {
+        m(b);
       });
     };
-    return (N = r.children) == null || N.forEach((v) => {
-      g(v);
-    }), l;
-  }), d = E(
-    (l) => {
-      const g = `widget-${Math.random().toString(36).substring(2, 15)}`, N = l(g);
-      n == null || n.addWidget({ ...N, id: g }), c((v) => {
-        const w = new Map(v);
-        return w.set(g, N), w;
+    return (j = r.children) == null || j.forEach((x) => {
+      m(x);
+    }), i;
+  }), c = C(
+    (i) => {
+      const m = `widget-${Math.random().toString(36).substring(2, 15)}`, j = i(m);
+      n == null || n.addWidget({ ...j, id: m }), d((x) => {
+        const v = new Map(x);
+        return v.set(m, j), v;
       });
     },
     [n]
-  ), p = E(
-    (l) => {
-      const g = `sub-grid-${Math.random().toString(36).substring(2, 15)}`, N = /* @__PURE__ */ new Map(), v = l(g, (w) => {
-        const j = `widget-${Math.random().toString(36).substring(2, 15)}`;
-        return N.set(j, w), { ...w, id: j };
+  ), g = C(
+    (i) => {
+      const m = `sub-grid-${Math.random().toString(36).substring(2, 15)}`, j = /* @__PURE__ */ new Map(), x = i(m, (v) => {
+        const b = `widget-${Math.random().toString(36).substring(2, 15)}`;
+        return j.set(b, v), { ...v, id: b };
       });
-      n == null || n.addWidget({ ...v, id: g }), c((w) => {
-        const j = new Map(w);
-        return N.forEach((R, O) => {
-          j.set(O, R);
-        }), j;
-      });
-    },
-    [n]
-  ), u = E(
-    (l) => {
-      n == null || n.removeWidget(l), c((g) => {
-        const N = new Map(g);
-        return N.delete(l), N;
+      n == null || n.addWidget({ ...x, id: m }), d((v) => {
+        const b = new Map(v);
+        return j.forEach((M, W) => {
+          b.set(W, M);
+        }), b;
       });
     },
     [n]
-  ), h = E(() => n == null ? void 0 : n.save(!0, !0, (l, g) => g), [n]);
+  ), u = C(
+    (i) => {
+      n == null || n.removeWidget(i), d((m) => {
+        const j = new Map(m);
+        return j.delete(i), j;
+      });
+    },
+    [n]
+  ), p = C(() => n == null ? void 0 : n.save(!0, !0, (i, m) => m), [n]);
   return /* @__PURE__ */ e.jsx(
-    Ce.Provider,
+    je.Provider,
     {
       value: {
         initialOptions: r,
         gridStack: n,
-        addWidget: d,
+        addWidget: c,
         removeWidget: u,
-        addSubGrid: p,
-        saveOptions: h,
+        addSubGrid: g,
+        saveOptions: p,
         _gridStack: {
           value: n,
           set: s
         },
         _rawWidgetMetaMap: {
-          value: a,
-          set: c
+          value: o,
+          set: d
         }
       },
       children: t
     }
   );
 }
-const Se = H(null);
-function pt() {
-  const t = se(Se);
+const ke = F(null);
+function dt() {
+  const t = te(ke);
   if (!t)
     throw new Error(
       "useGridStackRenderContext must be used within a GridStackProvider"
     );
   return t;
 }
-var ht = typeof Element < "u", ft = typeof Map == "function", xt = typeof Set == "function", bt = typeof ArrayBuffer == "function" && !!ArrayBuffer.isView;
-function F(t, r) {
+var ut = typeof Element < "u", mt = typeof Map == "function", gt = typeof Set == "function", pt = typeof ArrayBuffer == "function" && !!ArrayBuffer.isView;
+function I(t, r) {
   if (t === r) return !0;
   if (t && r && typeof t == "object" && typeof r == "object") {
     if (t.constructor !== r.constructor) return !1;
-    var n, s, a;
+    var n, s, o;
     if (Array.isArray(t)) {
       if (n = t.length, n != r.length) return !1;
       for (s = n; s-- !== 0; )
-        if (!F(t[s], r[s])) return !1;
+        if (!I(t[s], r[s])) return !1;
       return !0;
     }
-    var c;
-    if (ft && t instanceof Map && r instanceof Map) {
+    var d;
+    if (mt && t instanceof Map && r instanceof Map) {
       if (t.size !== r.size) return !1;
-      for (c = t.entries(); !(s = c.next()).done; )
+      for (d = t.entries(); !(s = d.next()).done; )
         if (!r.has(s.value[0])) return !1;
-      for (c = t.entries(); !(s = c.next()).done; )
-        if (!F(s.value[1], r.get(s.value[0]))) return !1;
+      for (d = t.entries(); !(s = d.next()).done; )
+        if (!I(s.value[1], r.get(s.value[0]))) return !1;
       return !0;
     }
-    if (xt && t instanceof Set && r instanceof Set) {
+    if (gt && t instanceof Set && r instanceof Set) {
       if (t.size !== r.size) return !1;
-      for (c = t.entries(); !(s = c.next()).done; )
+      for (d = t.entries(); !(s = d.next()).done; )
         if (!r.has(s.value[0])) return !1;
       return !0;
     }
-    if (bt && ArrayBuffer.isView(t) && ArrayBuffer.isView(r)) {
+    if (pt && ArrayBuffer.isView(t) && ArrayBuffer.isView(r)) {
       if (n = t.length, n != r.length) return !1;
       for (s = n; s-- !== 0; )
         if (t[s] !== r[s]) return !1;
@@ -152,75 +152,75 @@ function F(t, r) {
     if (t.constructor === RegExp) return t.source === r.source && t.flags === r.flags;
     if (t.valueOf !== Object.prototype.valueOf && typeof t.valueOf == "function" && typeof r.valueOf == "function") return t.valueOf() === r.valueOf();
     if (t.toString !== Object.prototype.toString && typeof t.toString == "function" && typeof r.toString == "function") return t.toString() === r.toString();
-    if (a = Object.keys(t), n = a.length, n !== Object.keys(r).length) return !1;
+    if (o = Object.keys(t), n = o.length, n !== Object.keys(r).length) return !1;
     for (s = n; s-- !== 0; )
-      if (!Object.prototype.hasOwnProperty.call(r, a[s])) return !1;
-    if (ht && t instanceof Element) return !1;
+      if (!Object.prototype.hasOwnProperty.call(r, o[s])) return !1;
+    if (ut && t instanceof Element) return !1;
     for (s = n; s-- !== 0; )
-      if (!((a[s] === "_owner" || a[s] === "__v" || a[s] === "__o") && t.$$typeof) && !F(t[a[s]], r[a[s]]))
+      if (!((o[s] === "_owner" || o[s] === "__v" || o[s] === "__o") && t.$$typeof) && !I(t[o[s]], r[o[s]]))
         return !1;
     return !0;
   }
   return t !== t && r !== r;
 }
-var vt = function(r, n) {
+var ht = function(r, n) {
   try {
-    return F(r, n);
+    return I(r, n);
   } catch (s) {
     if ((s.message || "").match(/stack|recursion/i))
       return console.warn("react-fast-compare cannot handle circular refs"), !1;
     throw s;
   }
 };
-const wt = /* @__PURE__ */ at(vt), y = [];
+const ft = /* @__PURE__ */ rt(ht), y = [];
 for (let t = 0; t < 256; ++t)
   y.push((t + 256).toString(16).slice(1));
-function jt(t, r = 0) {
+function xt(t, r = 0) {
   return (y[t[r + 0]] + y[t[r + 1]] + y[t[r + 2]] + y[t[r + 3]] + "-" + y[t[r + 4]] + y[t[r + 5]] + "-" + y[t[r + 6]] + y[t[r + 7]] + "-" + y[t[r + 8]] + y[t[r + 9]] + "-" + y[t[r + 10]] + y[t[r + 11]] + y[t[r + 12]] + y[t[r + 13]] + y[t[r + 14]] + y[t[r + 15]]).toLowerCase();
 }
-let X;
-const yt = new Uint8Array(16);
-function kt() {
-  if (!X) {
+let K;
+const bt = new Uint8Array(16);
+function vt() {
+  if (!K) {
     if (typeof crypto > "u" || !crypto.getRandomValues)
       throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-    X = crypto.getRandomValues.bind(crypto);
+    K = crypto.getRandomValues.bind(crypto);
   }
-  return X(yt);
+  return K(bt);
 }
-const Nt = typeof crypto < "u" && crypto.randomUUID && crypto.randomUUID.bind(crypto), he = { randomUUID: Nt };
-function Ee(t, r, n) {
-  var a;
-  if (he.randomUUID && !t)
-    return he.randomUUID();
+const wt = typeof crypto < "u" && crypto.randomUUID && crypto.randomUUID.bind(crypto), me = { randomUUID: wt };
+function Ne(t, r, n) {
+  var o;
+  if (me.randomUUID && !t)
+    return me.randomUUID();
   t = t || {};
-  const s = t.random ?? ((a = t.rng) == null ? void 0 : a.call(t)) ?? kt();
+  const s = t.random ?? ((o = t.rng) == null ? void 0 : o.call(t)) ?? vt();
   if (s.length < 16)
     throw new Error("Random bytes length must be >= 16");
-  return s[6] = s[6] & 15 | 64, s[8] = s[8] & 63 | 128, jt(s);
+  return s[6] = s[6] & 15 | 64, s[8] = s[8] & 63 | 128, xt(s);
 }
-const Ct = $.prototype.resizeToContent;
+const yt = $.prototype.resizeToContent;
 $.prototype.resizeToContent = function(t) {
   const r = t.querySelector(".grid-stack-item-content");
   if (r != null && r.firstElementChild)
-    return Ct.call(this, t);
+    return yt.call(this, t);
 };
-function St({
+function jt({
   children: t,
   onGridStackDropEvent: r
 }) {
   const {
     _gridStack: { value: n, set: s },
-    initialOptions: a
-  } = _(), c = P(/* @__PURE__ */ new Map()), d = P(null), p = P(a), u = E(
-    (l, g) => {
-      g.id && c.current.set(g.id, l);
+    initialOptions: o
+  } = A(), d = B(/* @__PURE__ */ new Map()), c = B(null), g = B(o), u = C(
+    (i, m) => {
+      m.id && d.current.set(m.id, i);
     },
     []
-  ), h = E(() => {
-    if (d.current) {
+  ), p = C(() => {
+    if (c.current) {
       $.renderCB = u;
-      const l = $.init(p.current, d.current);
+      const i = $.init(g.current, c.current);
       return $.setupDragIn(
         ".grid-stack-item-widget",
         {
@@ -228,91 +228,91 @@ function St({
           helper: "clone",
           scroll: !1
         }
-      ), l.on("dropped", function(g, N, v) {
-        if (console.log("dropped....", v), v) {
-          const w = v.el, j = w.dataset.gsType;
-          if (j && r) {
-            const R = {
-              name: j,
-              id: Ee(),
-              x: v.x || 0,
-              y: v.y || 0,
-              w: j === "SubGrid" ? 12 : 4,
+      ), i.on("dropped", function(m, j, x) {
+        if (console.log("dropped....", x), x) {
+          const v = x.el, b = v.dataset.gsType;
+          if (b && r) {
+            const M = {
+              name: b,
+              id: Ne(),
+              x: x.x || 0,
+              y: x.y || 0,
+              w: b === "SubGrid" ? 12 : 4,
               // SubGrid takes full width
-              h: j === "SubGrid" ? 6 : 4
+              h: b === "SubGrid" ? 6 : 4
               // SubGrid is taller              
             };
-            r(R), l.removeWidget(w, !0);
+            r(M), i.removeWidget(v, !0);
           }
         }
-      }), l;
+      }), i;
     }
     return null;
   }, [u, r]);
-  return pe(() => {
-    if (!wt(a, p.current) && n)
+  return ue(() => {
+    if (!ft(o, g.current) && n)
       try {
-        n.removeAll(!1), n.destroy(!1), c.current.clear(), p.current = a, s(h());
-      } catch (l) {
-        console.error("Error reinitializing gridstack", l);
+        n.removeAll(!1), n.destroy(!1), d.current.clear(), g.current = o, s(p());
+      } catch (i) {
+        console.error("Error reinitializing gridstack", i);
       }
-  }, [a, n, h, s]), pe(() => {
+  }, [o, n, p, s]), ue(() => {
     if (!n)
       try {
-        s(h());
-      } catch (l) {
-        console.error("Error initializing gridstack", l);
+        s(p());
+      } catch (i) {
+        console.error("Error initializing gridstack", i);
       }
-  }, [n, h, s]), /* @__PURE__ */ e.jsx(
-    Se.Provider,
+  }, [n, p, s]), /* @__PURE__ */ e.jsx(
+    ke.Provider,
     {
-      value: rt(
+      value: Xe(
         () => ({
-          getWidgetContainer: (l) => c.current.get(l) || null
+          getWidgetContainer: (i) => d.current.get(i) || null
         }),
         // ! gridStack is required to reinitialize the grid when the options change
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [n]
       ),
-      children: /* @__PURE__ */ e.jsx("div", { ref: d, children: n ? t : null })
+      children: /* @__PURE__ */ e.jsx("div", { ref: c, children: n ? t : null })
     }
   );
 }
-const Me = H(null);
-function ar() {
-  const t = se(Me);
+const Ce = F(null);
+function nr() {
+  const t = te(Ce);
   if (!t)
     throw new Error(
       "useGridStackWidgetContext must be used within a GridStackWidgetProvider"
     );
   return t;
 }
-function Et({
+function kt({
   widgetId: t
 }) {
-  const { removeWidget: r } = _(), [n, s] = i.useState(!1), [a, c] = i.useState({ top: 0, left: 0 }), d = i.useRef(null), p = (l) => {
-    if (l.stopPropagation(), d.current) {
-      const g = d.current.getBoundingClientRect();
-      c({
-        top: g.bottom + window.scrollY,
-        left: g.left + window.scrollX
+  const { removeWidget: r } = A(), [n, s] = l.useState(!1), [o, d] = l.useState({ top: 0, left: 0 }), c = l.useRef(null), g = (i) => {
+    if (i.stopPropagation(), c.current) {
+      const m = c.current.getBoundingClientRect();
+      d({
+        top: m.bottom + window.scrollY,
+        left: m.left + window.scrollX
       });
     }
     s(!n);
   }, u = () => {
     s(!1);
-  }, h = () => {
-    var g;
+  }, p = () => {
+    var m;
     r(t);
-    const l = document.querySelector(`[gs-id="${t}"]`);
-    l && ((g = l.gridstackNode) != null && g.grid) && l.gridstackNode.grid.removeWidget(l, !0, !0), u();
+    const i = document.querySelector(`[gs-id="${t}"]`);
+    i && ((m = i.gridstackNode) != null && m.grid) && i.gridstackNode.grid.removeWidget(i, !0, !0), u();
   };
-  return i.useEffect(() => {
-    const l = (g) => {
+  return l.useEffect(() => {
+    const i = (m) => {
       n && s(!1);
     };
-    return document.addEventListener("click", l), () => {
-      document.removeEventListener("click", l);
+    return document.addEventListener("click", i), () => {
+      document.removeEventListener("click", i);
     };
   }, [n]), /* @__PURE__ */ e.jsxs("div", { className: "flex justify-end size-4", children: [
     /* @__PURE__ */ e.jsx("button", { className: "p-1 hover:bg-gray-200 rounded transition-colors", children: /* @__PURE__ */ e.jsxs(
@@ -347,8 +347,8 @@ function Et({
     /* @__PURE__ */ e.jsx(
       "button",
       {
-        ref: d,
-        onClick: p,
+        ref: c,
+        onClick: g,
         className: "p-1 hover:bg-gray-200 rounded transition-colors",
         "aria-haspopup": "true",
         "aria-expanded": n,
@@ -377,15 +377,15 @@ function Et({
       {
         className: "fixed z-50 mt-1 w-32 bg-white rounded-md shadow-lg border border-gray-200 py-1",
         style: {
-          top: `${a.top}px`,
-          left: `${a.left}px`,
+          top: `${o.top}px`,
+          left: `${o.left}px`,
           transform: "translateX(-100%)"
         },
-        onClick: (l) => l.stopPropagation(),
+        onClick: (i) => i.stopPropagation(),
         children: /* @__PURE__ */ e.jsxs(
           "button",
           {
-            onClick: h,
+            onClick: p,
             className: "flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100 transition-colors",
             children: [
               /* @__PURE__ */ e.jsx(
@@ -414,20 +414,20 @@ function Et({
     )
   ] });
 }
-function Mt({ widgetId: t, children: r }) {
-  const n = P(null);
-  return G(() => {
-    var p;
+function Nt({ widgetId: t, children: r }) {
+  const n = B(null);
+  return z(() => {
+    var g;
     const s = n.current;
     if (!s) return;
-    const a = s.closest(".grid-stack-item");
-    if (!a || !((p = a.gridstackNode) != null && p.grid)) return;
-    const c = () => {
-      var h, l;
-      const u = a.querySelector(".grid-stack-item-content");
-      u != null && u.firstElementChild && a.gridstackNode && a.gridstackNode.grid && ((l = (h = a.gridstackNode) == null ? void 0 : h.grid) == null || l.resizeToContent(a));
-    }, d = new ResizeObserver(() => c());
-    return d.observe(s), c(), () => d.disconnect();
+    const o = s.closest(".grid-stack-item");
+    if (!o || !((g = o.gridstackNode) != null && g.grid)) return;
+    const d = () => {
+      var p, i;
+      const u = o.querySelector(".grid-stack-item-content");
+      u != null && u.firstElementChild && o.gridstackNode && o.gridstackNode.grid && ((i = (p = o.gridstackNode) == null ? void 0 : p.grid) == null || i.resizeToContent(o));
+    }, c = new ResizeObserver(() => d());
+    return c.observe(s), d(), () => c.disconnect();
   }, [t]), /* @__PURE__ */ e.jsx(
     "div",
     {
@@ -438,80 +438,105 @@ function Mt({ widgetId: t, children: r }) {
     }
   );
 }
-function Lt(t) {
+function Ct(t) {
   let r = null, n = "", s = {};
   try {
     if (t.content) {
-      const a = JSON.parse(t.content);
-      n = a.name, s = a.props;
+      const o = JSON.parse(t.content);
+      n = o.name, s = o.props;
     }
-  } catch (a) {
-    r = a;
+  } catch (o) {
+    r = o;
   }
   return { name: n, props: s, error: r };
 }
-function Rt({
+function St({
   id: t,
   meta: r,
   WidgetComponent: n,
   widgetContainer: s,
-  showMenubar: a
+  showMenubar: o,
+  isSelected: d = !1,
+  onWidgetSelect: c
 }) {
-  var u;
-  const c = Lt(r), d = ((u = c.props) == null ? void 0 : u.title) || `Widget ${t.slice(0, 4)}`, p = /* @__PURE__ */ e.jsxs(Mt, { widgetId: t, children: [
-    a && /* @__PURE__ */ e.jsxs("div", { className: "widget-header flex items-center justify-between bg-gray-100 border-b px-2 min-h-[36px]", children: [
-      /* @__PURE__ */ e.jsx("div", { className: "font-medium truncate text-sm px-1", children: d }),
-      /* @__PURE__ */ e.jsx(Et, { widgetId: t })
-    ] }),
-    /* @__PURE__ */ e.jsx("div", { className: "widget-body flex-1 min-h-[40px]", children: /* @__PURE__ */ e.jsx(n, { ...c.props }) })
-  ] });
-  return /* @__PURE__ */ e.jsx(Me.Provider, { value: { widget: { id: t } }, children: ot(p, s) });
+  var m;
+  const g = Ct(r), u = ((m = g.props) == null ? void 0 : m.title) || `Widget ${t.slice(0, 4)}`, p = (j) => {
+    c && c({
+      id: t,
+      name: g.name,
+      props: g.props
+    });
+  }, i = /* @__PURE__ */ e.jsx(Nt, { widgetId: t, children: /* @__PURE__ */ e.jsxs(
+    "div",
+    {
+      className: `h-full w-full ${d ? "border-2 border-blue-400 rounded-sm" : ""}`,
+      onClick: p,
+      children: [
+        o && /* @__PURE__ */ e.jsxs("div", { className: "widget-header flex items-center justify-between bg-gray-100 border-b px-2 min-h-[36px]", children: [
+          /* @__PURE__ */ e.jsx("div", { className: "font-medium truncate text-sm px-1", children: u }),
+          /* @__PURE__ */ e.jsx(kt, { widgetId: t })
+        ] }),
+        /* @__PURE__ */ e.jsx(
+          "div",
+          {
+            className: "widget-body flex-1 min-h-[40px] cursor-pointer",
+            children: /* @__PURE__ */ e.jsx(n, { ...g.props })
+          }
+        )
+      ]
+    }
+  ) });
+  return /* @__PURE__ */ e.jsx(Ce.Provider, { value: { widget: { id: t } }, children: tt(i, s) });
 }
-function Ot(t) {
+function Et(t) {
   let r = null, n = "", s = {};
   try {
     if (t.content) {
-      const a = JSON.parse(t.content);
-      n = a.name, s = a.props;
+      const o = JSON.parse(t.content);
+      n = o.name, s = o.props;
     }
-  } catch (a) {
-    r = a;
+  } catch (o) {
+    r = o;
   }
   return { name: n, props: s, error: r };
 }
-function Wt({
+function Mt({
   componentMap: t,
-  showMenubar: r = !1
+  showMenubar: r = !1,
+  selectedWidgetId: n,
+  onWidgetSelect: s
 }) {
-  const { _rawWidgetMetaMap: n } = _(), { getWidgetContainer: s } = pt();
+  const { _rawWidgetMetaMap: o } = A(), { getWidgetContainer: d } = dt();
   return /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
-    Array.from(n.value.entries()).length === 0 && /* @__PURE__ */ e.jsxs("div", { className: "flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 p-8 text-center", children: [
+    Array.from(o.value.entries()).length === 0 && /* @__PURE__ */ e.jsxs("div", { className: "flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 p-8 text-center", children: [
       /* @__PURE__ */ e.jsx("div", { className: "text-4xl mb-4", children: "📦" }),
       /* @__PURE__ */ e.jsx("h3", { className: "text-lg font-medium mb-2", children: "Drag Components Here" }),
       /* @__PURE__ */ e.jsx("p", { className: "text-sm", children: "Drag components from the Components tab in the right panel to start building your layout" })
     ] }),
-    Array.from(n.value.entries()).map(([a, c]) => {
-      const { name: d } = Ot(c), p = t[d], u = s(a);
-      return !p || !u ? null : /* @__PURE__ */ e.jsx(
-        Rt,
+    Array.from(o.value.entries()).map(([c, g]) => {
+      const { name: u } = Et(g), p = t[u], i = d(c);
+      return !p || !i ? null : /* @__PURE__ */ e.jsx(
+        St,
         {
-          id: a,
-          meta: c,
+          id: c,
+          meta: g,
           WidgetComponent: p,
-          widgetContainer: u,
-          showMenubar: r
+          widgetContainer: i,
+          showMenubar: r,
+          isSelected: c === n,
+          onWidgetSelect: s
         },
-        a
+        c
       );
     })
   ] });
 }
-function Tt({
+function Lt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -521,21 +546,21 @@ function Tt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "m11.25 9-3 3m0 0 3 3m-3-3h7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
   }));
 }
-const fe = /* @__PURE__ */ i.forwardRef(Tt);
-function Dt({
+const ge = /* @__PURE__ */ l.forwardRef(Lt);
+function Rt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -545,21 +570,21 @@ function Dt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
   }));
 }
-const Pt = /* @__PURE__ */ i.forwardRef(Dt);
-function Gt({
+const Wt = /* @__PURE__ */ l.forwardRef(Rt);
+function Ot({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -569,21 +594,21 @@ function Gt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
   }));
 }
-const Le = /* @__PURE__ */ i.forwardRef(Gt);
-function zt({
+const Se = /* @__PURE__ */ l.forwardRef(Ot);
+function Tt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -593,21 +618,21 @@ function zt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M15.75 19.5 8.25 12l7.5-7.5"
   }));
 }
-const xe = /* @__PURE__ */ i.forwardRef(zt);
-function Bt({
+const pe = /* @__PURE__ */ l.forwardRef(Tt);
+function Pt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -617,21 +642,21 @@ function Bt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "m8.25 4.5 7.5 7.5-7.5 7.5"
   }));
 }
-const be = /* @__PURE__ */ i.forwardRef(Bt);
-function $t({
+const he = /* @__PURE__ */ l.forwardRef(Pt);
+function Gt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -641,21 +666,21 @@ function $t({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M12 9.75v6.75m0 0-3-3m3 3 3-3m-8.25 6a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
   }));
 }
-const _t = /* @__PURE__ */ i.forwardRef($t);
-function At({
+const zt = /* @__PURE__ */ l.forwardRef(Gt);
+function Dt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -665,25 +690,25 @@ function At({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
-  }), /* @__PURE__ */ i.createElement("path", {
+  }), /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
   }));
 }
-const It = /* @__PURE__ */ i.forwardRef(At);
-function Ft({
+const _t = /* @__PURE__ */ l.forwardRef(Dt);
+function Bt({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -693,21 +718,21 @@ function Ft({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
   }));
 }
-const Ht = /* @__PURE__ */ i.forwardRef(Ft);
-function Ut({
+const $t = /* @__PURE__ */ l.forwardRef(Bt);
+function At({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -717,21 +742,21 @@ function Ut({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125"
   }));
 }
-const Vt = /* @__PURE__ */ i.forwardRef(Ut);
-function Zt({
+const It = /* @__PURE__ */ l.forwardRef(At);
+function Ft({
   title: t,
   titleId: r,
   ...n
 }, s) {
-  return /* @__PURE__ */ i.createElement("svg", Object.assign({
+  return /* @__PURE__ */ l.createElement("svg", Object.assign({
     xmlns: "http://www.w3.org/2000/svg",
     fill: "none",
     viewBox: "0 0 24 24",
@@ -741,19 +766,19 @@ function Zt({
     "data-slot": "icon",
     ref: s,
     "aria-labelledby": r
-  }, n), t ? /* @__PURE__ */ i.createElement("title", {
+  }, n), t ? /* @__PURE__ */ l.createElement("title", {
     id: r
-  }, t) : null, /* @__PURE__ */ i.createElement("path", {
+  }, t) : null, /* @__PURE__ */ l.createElement("path", {
     strokeLinecap: "round",
     strokeLinejoin: "round",
     d: "m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
   }));
 }
-const qt = /* @__PURE__ */ i.forwardRef(Zt);
-function Jt({ content: t }) {
+const Ht = /* @__PURE__ */ l.forwardRef(Ft);
+function Ut({ content: t }) {
   return /* @__PURE__ */ e.jsx("div", { className: "flex items-start p-2 bg-white border rounded shadow-sm text-left", children: /* @__PURE__ */ e.jsx("div", { children: /* @__PURE__ */ e.jsx("p", { className: "text-sm", children: t }) }) });
 }
-const te = "1rem", re = [
+const X = "1rem", Q = [
   //{ c: 1, w: 300 },   // 1 column on screens < 300px
   { c: 1, w: 500 },
   // 2 columns between 300px - 500px
@@ -762,7 +787,7 @@ const te = "1rem", re = [
   { c: 6, w: 1024 }
   // 6 columns between 800px - 1024px
   //{ c: 8, w: 1200 },  // 8 columns on screens > 1200px
-], ne = {
+], ee = {
   acceptWidgets: !0,
   removable: "#trash",
   sizeToContent: !0,
@@ -770,27 +795,27 @@ const te = "1rem", re = [
   minRow: 10,
   columnOpts: {
     breakpointForWindow: !0,
-    breakpoints: re,
+    breakpoints: Q,
     layout: "moveScale",
     columnMax: 12
   },
   margin: 5,
-  cellHeight: te,
+  cellHeight: X,
   subGridOpts: {
     acceptWidgets: !0,
     removable: "#trash",
     resizable: { handles: "se" },
     sizeToContent: !0,
     columnOpts: {
-      breakpoints: re,
+      breakpoints: Q,
       layout: "moveScale"
     },
     margin: 5,
     minRow: 1,
-    cellHeight: te
+    cellHeight: X
   },
   children: []
-}, Kt = {
+}, Vt = {
   acceptWidgets: !0,
   removable: "#trash",
   resizable: { handles: "se" },
@@ -801,49 +826,50 @@ const te = "1rem", re = [
     resizable: { handles: "se" },
     sizeToContent: !0,
     columnOpts: {
-      breakpoints: re,
+      breakpoints: Q,
       layout: "moveScale"
     },
     margin: 5,
     minRow: 6,
-    cellHeight: te,
+    cellHeight: X,
     children: []
   },
   children: []
-}, Q = () => ({
-  id: `${Ee()}`,
+}, Y = () => ({
+  id: `${Ne()}`,
   title: "untitled page",
-  grids: ne
-}), ve = {
+  grids: ee
+}), fe = {
   Text: {
     content: "Any content other than text are what we call cards. Cards can be accessed by clicking the ➕ button or typing / at the beginning of a paragraph.\nEven better, continue typing to find the card you're looking for, hit enter, and avoid dragging your mouse altogether.\nSome cards have a handy little shortcut, to keep you on track and in flow. Use --- to divide your paragraphs with a line, or ``` to add a code block. You can also drag and drop images directly into the editor to bypass the menu. \nAny content other than text are what we call cards. Cards can be accessed by clicking the ➕ button or typing / at the beginning of a paragraph.",
     title: "This is text card"
   }
-}, we = {
-  Text: Jt
-}, je = (t) => {
+}, xe = {
+  Text: Ut
+}, be = (t) => {
   if (t) {
     const r = t();
-    return { ...we, ...r };
+    return { ...xe, ...r };
   }
-  return we;
-}, ee = (t) => {
+  return xe;
+}, Zt = (t) => {
   if (t) {
     const r = t();
-    return { ...ve, ...r };
+    return { ...fe, ...r };
   }
-  return ve;
-}, Yt = nt((t, r) => {
-  const { addWidget: n, addSubGrid: s, saveOptions: a } = _();
-  return st(r, () => ({
-    saveLayout: () => a(),
+  return fe;
+}, qt = Qe((t, r) => {
+  const { addWidget: n, addSubGrid: s, saveOptions: o, _rawWidgetMetaMap: d } = A();
+  return et(r, () => ({
+    saveLayout: () => o(),
     addWidget: n,
-    addSubGrid: s
+    addSubGrid: s,
+    rawWidgetMetaMap: d
   })), null;
 });
-function Xt({ pageInfo: t }) {
+function Jt({ pageInfo: t }) {
   const [r, n] = f(void 0);
-  return G(() => {
+  return z(() => {
     t && n(t);
   }, [t]), /* @__PURE__ */ e.jsx("div", { children: /* @__PURE__ */ e.jsx(
     "div",
@@ -868,31 +894,31 @@ function Xt({ pageInfo: t }) {
     }
   ) });
 }
-function Qt({
+function Kt({
   isOpen: t,
   pageInfo: r,
   resetOpenInfo: n
 }) {
-  const [s, a] = i.useState(!1);
-  i.useEffect(() => {
+  const [s, o] = l.useState(!1);
+  l.useEffect(() => {
   }, [t, r]);
-  const c = () => {
+  const d = () => {
     n(!1);
-  }, d = () => {
+  }, c = () => {
     var u;
     navigator.clipboard.writeText(
       ((u = document.getElementById("pageinfo")) == null ? void 0 : u.innerText) || ""
-    ), a(!0), setTimeout(() => {
-      a(!1);
+    ), o(!0), setTimeout(() => {
+      o(!1);
     }, 3e3);
-  }, p = (u) => {
-    u.target === u.currentTarget && c();
+  }, g = (u) => {
+    u.target === u.currentTarget && d();
   };
   return t ? /* @__PURE__ */ e.jsx(
     "div",
     {
       className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4",
-      onClick: p,
+      onClick: g,
       children: /* @__PURE__ */ e.jsxs("div", { className: "bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col", children: [
         /* @__PURE__ */ e.jsxs("div", { className: "flex items-center justify-between p-4 border-b flex-shrink-0", children: [
           /* @__PURE__ */ e.jsx("h2", { className: "text-lg font-semibold truncate mr-2", children: "Page Information" }),
@@ -900,7 +926,7 @@ function Qt({
             /* @__PURE__ */ e.jsxs(
               "button",
               {
-                onClick: d,
+                onClick: c,
                 className: "p-2 hover:bg-gray-100 rounded-full transition-colors flex items-center relative",
                 "aria-label": "Copy page info",
                 children: [
@@ -929,7 +955,7 @@ function Qt({
             /* @__PURE__ */ e.jsx(
               "button",
               {
-                onClick: c,
+                onClick: d,
                 className: "p-2 hover:bg-gray-100 rounded-full transition-colors",
                 "aria-label": "Close",
                 children: /* @__PURE__ */ e.jsx(
@@ -954,11 +980,11 @@ function Qt({
             )
           ] })
         ] }),
-        /* @__PURE__ */ e.jsx("div", { className: "p-4 overflow-y-auto flex-1", children: /* @__PURE__ */ e.jsx(Xt, { pageInfo: r }) }),
+        /* @__PURE__ */ e.jsx("div", { className: "p-4 overflow-y-auto flex-1", children: /* @__PURE__ */ e.jsx(Jt, { pageInfo: r }) }),
         /* @__PURE__ */ e.jsx("div", { className: "flex justify-end p-4 border-t flex-shrink-0", children: /* @__PURE__ */ e.jsx(
           "button",
           {
-            onClick: c,
+            onClick: d,
             className: "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors w-full sm:w-auto",
             autoFocus: !0,
             children: "Close"
@@ -968,22 +994,22 @@ function Qt({
     }
   ) : null;
 }
-function er({ onDropDelete: t }) {
-  const { removeWidget: r } = _(), n = E((d) => {
+function Yt({ onDropDelete: t }) {
+  const { removeWidget: r } = A(), n = C((c) => {
     var u;
-    d.preventDefault();
-    const p = d.dataTransfer.getData("text/plain");
-    if (p) {
-      const h = document.querySelector(`[gs-id="${p}"]`);
-      h && ((u = h.gridstackNode) != null && u.grid) && h.gridstackNode.grid.removeWidget(h, !0, !0), r(p);
+    c.preventDefault();
+    const g = c.dataTransfer.getData("text/plain");
+    if (g) {
+      const p = document.querySelector(`[gs-id="${g}"]`);
+      p && ((u = p.gridstackNode) != null && u.grid) && p.gridstackNode.grid.removeWidget(p, !0, !0), r(g);
     }
     t();
-  }, [t, r]), s = (d) => {
-    d.preventDefault(), d.dataTransfer.dropEffect = "move";
-  }, a = (d) => {
-    d.preventDefault(), d.currentTarget.classList.add("bg-red-200", "border-red-400");
-  }, c = (d) => {
-    d.preventDefault(), d.currentTarget.classList.remove("bg-red-200", "border-red-400");
+  }, [t, r]), s = (c) => {
+    c.preventDefault(), c.dataTransfer.dropEffect = "move";
+  }, o = (c) => {
+    c.preventDefault(), c.currentTarget.classList.add("bg-red-200", "border-red-400");
+  }, d = (c) => {
+    c.preventDefault(), c.currentTarget.classList.remove("bg-red-200", "border-red-400");
   };
   return /* @__PURE__ */ e.jsx(
     "div",
@@ -991,8 +1017,8 @@ function er({ onDropDelete: t }) {
       id: "trash",
       onDrop: n,
       onDragOver: s,
-      onDragEnter: a,
-      onDragLeave: c,
+      onDragEnter: o,
+      onDragLeave: d,
       className: "bg-red-50 min-h-14 h-18 flex items-center justify-center p-0 border-2 border-dashed border-red-200 rounded-lg transition-all duration-200 hover:bg-red-100 cursor-pointer group",
       children: /* @__PURE__ */ e.jsx("div", { className: "w-full h-full flex flex-col items-center justify-center m-3", children: /* @__PURE__ */ e.jsx(
         "svg",
@@ -1015,10 +1041,10 @@ function er({ onDropDelete: t }) {
     }
   );
 }
-const tr = H(
+const Xt = F(
   void 0
 );
-function B({
+function _({
   onClick: t,
   icon: r,
   tooltip: n,
@@ -1039,49 +1065,49 @@ function B({
     ] })
   ] });
 }
-function ye({
+function ve({
   onClick: t,
   icon: r,
   label: n,
   className: s = "",
-  successMessage: a = "Success",
-  errorMessage: c = "Error"
+  successMessage: o = "Success",
+  errorMessage: d = "Error"
 }) {
-  const [d, p] = f(null), [u, h] = f(!1), l = async () => {
-    h(!0), p(null);
+  const [c, g] = f(null), [u, p] = f(!1), i = async () => {
+    p(!0), g(null);
     try {
-      await t(), p({ message: a, type: "success" });
+      await t(), g({ message: o, type: "success" });
     } catch {
-      p({ message: c, type: "error" });
+      g({ message: d, type: "error" });
     } finally {
-      h(!1), setTimeout(() => p(null), 3e3);
+      p(!1), setTimeout(() => g(null), 3e3);
     }
   };
   return /* @__PURE__ */ e.jsxs("div", { className: "relative z-30", children: [
     /* @__PURE__ */ e.jsx(
       "button",
       {
-        onClick: l,
+        onClick: i,
         disabled: u,
         className: `p-2 rounded-lg transition flex items-center ${s} ${u ? "opacity-70" : ""}`,
-        children: u ? /* @__PURE__ */ e.jsx(Le, { className: "h-5 w-5 animate-spin" }) : /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
+        children: u ? /* @__PURE__ */ e.jsx(Se, { className: "h-5 w-5 animate-spin" }) : /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
           r,
           /* @__PURE__ */ e.jsx("span", { className: "ml-1 hidden sm:inline", children: n })
         ] })
       }
     ),
-    d && /* @__PURE__ */ e.jsx(
+    c && /* @__PURE__ */ e.jsx(
       "div",
       {
-        className: `absolute top-full left-0 mt-1 w-full text-center px-2 py-1 rounded-md text-xs font-medium animate-fadeIn ${d.type === "success" ? "bg-blue-500 text-white" : "bg-red-100 text-red-800"}`,
-        children: d.message
+        className: `absolute top-full left-0 mt-1 w-full text-center px-2 py-1 rounded-md text-xs font-medium animate-fadeIn ${c.type === "success" ? "bg-blue-500 text-white" : "bg-red-100 text-red-800"}`,
+        children: c.message
       }
     )
   ] });
 }
-const rr = () => {
+const Qt = () => {
   const [t, r] = f(!1);
-  return G(() => {
+  return z(() => {
     const n = () => {
       r(window.innerWidth <= 768);
     };
@@ -1089,153 +1115,150 @@ const rr = () => {
       window.removeEventListener("resize", n);
     };
   }, []), t;
-}, ir = ({
+}, sr = ({
   pageid: t,
   pageMode: r,
   onSaveLayout: n,
   onLoadLayout: s,
-  componentMapProvider: a,
-  componentPropsProvider: c,
-  gobackList: d,
-  children: p
+  componentMapProvider: o,
+  componentPropsProvider: d,
+  gobackList: c,
+  children: g
 }) => {
-  const [u, h] = f(r), [l, g] = f(!0), [
-    N
+  const [u, p] = f(
+    r
+  ), [i, m] = f(!0), [
+    j
     /*setPanelWidth*/
-  ] = f(400), [v, w] = f(!1), [j, R] = f("components"), [O, Re] = f({ ...Q(), id: t }), [Oe, We] = f(), [V, Z] = f(), [Te, oe] = f(0), [De, ae] = f(ne), T = P(null), [W, Pe] = f(), [Ge, ie] = f(!1), [
-    ze
+  ] = f(400), [x, v] = f(!1), [b, M] = f("components"), [W, Ee] = f({
+    ...Y(),
+    id: t
+  }), [Me, Le] = f(), [U, V] = f(), [Re, re] = f(0), [We, ne] = f(ee), O = B(null), [T, Oe] = f(), [Te, se] = f(!1), [
+    Pe
     /*setShowMenubar*/
-  ] = f(!0), [q, M] = f(null), [x, S] = f(null), [A, I] = f([]), [k, le] = f({
+  ] = f(!0), [Z, L] = f(
+    null
+  ), [w, S] = f(null), [k, oe] = f({
     margin: "0",
     padding: "20px",
     background: "#ffffff",
     gap: "16px"
-  }), Be = P(1), D = rr();
-  G(() => {
-    h(r);
+  }), G = Qt();
+  z(() => {
+    p(r);
   }, [r]);
-  const ce = E(async (o) => {
-    const m = await s(o) || Q();
-    return Re(m), We(m.title), Z(m.title), m.grids;
-  }, [s]), J = E(async () => {
+  const ae = C(
+    async (a) => {
+      const h = await s(a) || Y();
+      return Ee(h), Le(h.title), V(h.title), h.grids;
+    },
+    [s]
+  ), q = C(async () => {
     if (t) {
-      const o = await ce(t);
-      ae(o), oe((m) => m + 1), de(), console.log(`reload layout: pageid ${t}, props id ${O == null ? void 0 : O.id}`);
+      const a = await ae(t);
+      ne(a), re((h) => h + 1), ie(), console.log(`reload layout: pageid ${t}, props id ${W == null ? void 0 : W.id}`);
     }
-  }, [t, ce]);
-  G(() => {
+  }, [t, ae]);
+  z(() => {
     (async () => {
       if (t)
         try {
-          await J();
-        } catch (m) {
-          console.error("Failed to load layout:", m);
+          await q();
+        } catch (h) {
+          console.error("Failed to load layout:", h);
         }
     })();
-  }, [t, J]);
-  const $e = () => {
-    d && d();
-  }, _e = async () => {
-    var o;
+  }, [t, q]);
+  const Ge = () => {
+    c && c();
+  }, ze = async () => {
+    var a;
     if (n) {
-      const m = (o = T.current) == null ? void 0 : o.saveLayout();
-      if (m) {
-        const b = {
-          ...O || Q(),
-          grids: m,
-          title: V
+      const h = (a = O.current) == null ? void 0 : a.saveLayout();
+      if (h) {
+        const P = {
+          ...W || Y(),
+          grids: h,
+          title: U
         };
-        console.log(`Saving layout: pageid ${t}, props id ${b.id}`), await n(t, b);
+        console.log(
+          `Saving layout: pageid ${t}, props id ${P.id}`
+        ), await n(t, P);
       }
     }
-  }, de = () => {
-    M(null), S(null);
-  }, Ae = () => {
-    confirm("Are you sure you want to clear all data? This cannot be undone.") && (ae(ne), oe((o) => o + 1), de());
-  }, Ie = () => {
-    w(!0);
-  }, ue = () => {
-    w(!1);
-  }, Fe = (o) => {
-    o.key === "Enter" ? ue() : o.key === "Escape" && (Z(Oe), w(!1));
-  }, me = (o, m) => {
-    o.dataTransfer.setData("text/plain", m), o.dataTransfer.effectAllowed = "copy";
-  }, He = (o) => {
-    Pe(o);
-  }, Ue = (o, m) => {
-    const b = `comp-${Be.current++}`, C = ee(c)[o], L = {
-      id: b,
-      type: o,
-      props: { ...C },
-      position: m
-    };
-    I((et) => [...et, L]), S(L), M(o), R("properties");
-  }, ge = (o, m) => {
-    I(
-      (b) => b.map(
-        (C) => C.id === o ? { ...C, props: { ...C.props, ...m } } : C
-      )
-    ), x && x.id === o && S(
-      (b) => b ? { ...b, props: { ...b.props, ...m } } : null
-    );
-  }, K = (o) => {
-    I(
-      (m) => m.filter((b) => b.id !== o)
-    ), x && x.id === o && (S(null), M(null));
-  }, Ve = je(a), Y = (o, m) => {
-    x && ge(x.id, { [o]: m });
-  }, z = (o, m) => {
-    const b = {
+  }, ie = () => {
+    L(null), S(null);
+  }, De = () => {
+    confirm("Are you sure you want to clear all data? This cannot be undone.") && (ne(ee), re((a) => a + 1), ie());
+  }, _e = () => {
+    v(!0);
+  }, le = () => {
+    v(!1);
+  }, Be = (a) => {
+    a.key === "Enter" ? le() : a.key === "Escape" && (V(Me), v(!1));
+  }, ce = (a, h) => {
+    a.dataTransfer.setData("text/plain", h), a.dataTransfer.effectAllowed = "copy";
+  }, $e = (a) => {
+    Oe(a);
+  }, Ae = be(o), Ie = C(
+    (a) => {
+      const h = {
+        id: a.id,
+        type: a.name,
+        props: a.props
+      };
+      S(h), L(a.name), M("properties");
+    },
+    [S, L, M]
+  ), D = (a, h) => {
+    const P = {
       ...k,
-      [o]: m
+      [a]: h
     };
-    le(b);
-  }, Ze = {
-    selectedComponent: q,
-    setSelectedComponent: M,
-    selectedInstance: x,
+    oe(P);
+  }, Fe = {
+    selectedComponent: Z,
+    setSelectedComponent: L,
+    selectedInstance: w,
     setSelectedInstance: S,
-    componentInstances: A,
-    setComponentInstances: I,
     pageAttributes: k,
-    setPageAttributes: le,
-    addComponentToLayout: Ue,
-    updateComponentProps: ge,
-    removeComponent: K
-  }, qe = D ? { width: "100vw", minWidth: "100vw", height: "100vh" } : { width: `${N}px`, minWidth: "300px", height: "100%" }, Je = {
+    setPageAttributes: oe,
+    activeTab: b,
+    setActiveTab: M
+  }, He = G ? { width: "100vw", minWidth: "100vw", height: "100vh" } : { width: `${j}px`, minWidth: "300px", height: "100%" }, Ue = {
     margin: k.margin,
     padding: k.padding,
     backgroundColor: k.background,
     gap: k.gap
-  }, Ke = () => {
-    var m;
-    const o = JSON.parse(JSON.stringify(O));
-    return o.grids = (m = T.current) == null ? void 0 : m.saveLayout(), o;
+  }, Ve = () => {
+    var h;
+    const a = JSON.parse(JSON.stringify(W));
+    return a.grids = (h = O.current) == null ? void 0 : h.saveLayout(), a;
   };
-  G(() => {
-    W && T.current && (W.name !== "SubGrid" ? T.current.addWidget((o) => ({
-      ...W,
+  z(() => {
+    T && O.current && (T.name !== "SubGrid" ? O.current.addWidget((a) => ({
+      ...T,
       sizeToContent: !0,
       // Ensure the widget is sized to its content
       content: JSON.stringify({
-        name: W.name,
-        props: ee(c)[W.name]
+        name: T.name,
+        props: Zt(d)[T.name]
       })
-    })) : T.current.addSubGrid((o) => ({
-      ...W,
-      ...Kt
+    })) : O.current.addSubGrid((a) => ({
+      ...T,
+      ...Vt
     })));
-  }, [W, c]);
-  const Ye = () => /* @__PURE__ */ e.jsxs("div", { className: "p-4 space-y-4", children: [
+  }, [T, d]);
+  const Ze = () => /* @__PURE__ */ e.jsxs("div", { className: "p-4 space-y-4", children: [
     /* @__PURE__ */ e.jsx("h3", { className: "text-lg font-medium mb-3", children: "Components" }),
     /* @__PURE__ */ e.jsx("p", { className: "text-sm text-gray-600 mb-4", children: "Drag components to the main area or click to select them" }),
     /* @__PURE__ */ e.jsxs("div", { className: "mb-4", children: [
       /* @__PURE__ */ e.jsx("h4", { className: "text-sm font-medium text-gray-700 mb-2", children: "Delete Zone" }),
       /* @__PURE__ */ e.jsx(
-        er,
+        Yt,
         {
           onDropDelete: () => {
-            console.log("Component deleted via drop zone"), M(null), S(null);
+            console.log("Component deleted via drop zone"), L(null), S(null);
           }
         }
       ),
@@ -1248,10 +1271,10 @@ const rr = () => {
         "data-gs-type": "SubGrid",
         className: "grid-stack-item grid-stack-item-widget",
         draggable: "true",
-        onDragStart: (o) => me(o, "SubGrid"),
+        onDragStart: (a) => ce(a, "SubGrid"),
         onDragEnd: () => console.log("====SubGrid drag event end...."),
         onClick: () => {
-          M("SubGrid"), S(null);
+          L("SubGrid"), S(null);
         },
         children: /* @__PURE__ */ e.jsxs("div", { className: "p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 text-sm hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all duration-200 hover:shadow-lg text-center group", children: [
           /* @__PURE__ */ e.jsxs("div", { className: "font-semibold text-blue-700 mb-2 flex items-center justify-center", children: [
@@ -1292,128 +1315,111 @@ const rr = () => {
       },
       "SubGrid"
     ),
-    /* @__PURE__ */ e.jsx("div", { className: "grid grid-cols-2 gap-3", children: Object.entries(Ve).map(([
-      o
+    /* @__PURE__ */ e.jsx("div", { className: "grid grid-cols-2 gap-3", children: Object.entries(Ae).map(([
+      a
       /*Component*/
     ]) => /* @__PURE__ */ e.jsx(
       "div",
       {
-        "gs-type": o,
-        "data-gs-type": o,
+        "gs-type": a,
+        "data-gs-type": a,
         className: "grid-stack-item grid-stack-item-widget",
         draggable: "true",
-        onDragStart: (m) => me(m, o),
+        onDragStart: (h) => ce(h, a),
         onDragEnd: () => console.log("====drag event end...."),
         onClick: () => {
-          M(o), S(null);
+          L(a), S(null);
         },
         children: /* @__PURE__ */ e.jsxs("div", { className: "p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center", children: [
-          /* @__PURE__ */ e.jsx("div", { className: "font-medium text-gray-800 mb-2", children: o }),
+          /* @__PURE__ */ e.jsx("div", { className: "font-medium text-gray-800 mb-2", children: a }),
           /* @__PURE__ */ e.jsx("div", { className: "text-xs text-gray-500", children: "Drag to main area" })
         ] })
       },
-      o
-    )) }),
-    A.length > 0 && /* @__PURE__ */ e.jsxs("div", { className: "mt-6 pt-4 border-t", children: [
-      /* @__PURE__ */ e.jsxs("h4", { className: "font-medium mb-3", children: [
-        "Placed Components (",
-        A.length,
-        ")"
-      ] }),
-      /* @__PURE__ */ e.jsx("div", { className: "space-y-2 max-h-40 overflow-y-auto", children: A.map((o) => /* @__PURE__ */ e.jsxs(
-        "div",
-        {
-          className: `flex justify-between items-center p-2 rounded text-sm ${(x == null ? void 0 : x.id) === o.id ? "bg-blue-100 border border-blue-300" : "bg-gray-100"}`,
-          onClick: () => {
-            S(o), M(o.type), R("properties");
-          },
-          draggable: "true",
-          onDragStart: (m) => {
-            m.dataTransfer.setData("text/plain", o.id), m.dataTransfer.effectAllowed = "move";
-          },
-          children: [
-            /* @__PURE__ */ e.jsx("span", { className: "truncate", children: o.type }),
-            /* @__PURE__ */ e.jsx(
-              "button",
-              {
-                onClick: (m) => {
-                  m.stopPropagation(), K(o.id);
-                },
-                className: "text-red-600 hover:text-red-800 text-xs px-2 py-1 rounded",
-                children: "Remove"
-              }
-            )
-          ]
-        },
-        o.id
-      )) })
-    ] })
-  ] }), Xe = () => {
-    if (!x && !q)
+      a
+    )) })
+  ] }), qe = () => {
+    var de;
+    const a = (de = O.current) == null ? void 0 : de.rawWidgetMetaMap;
+    if (!w && !Z)
       return /* @__PURE__ */ e.jsxs("div", { className: "p-4 text-center text-gray-500", children: [
         /* @__PURE__ */ e.jsx("div", { className: "mb-2", children: "👈" }),
         /* @__PURE__ */ e.jsx("p", { children: "Select a component from the Components tab or click on a placed component to edit its properties" })
       ] });
-    const o = (x == null ? void 0 : x.type) || q, m = (x == null ? void 0 : x.props) || ee(c)[o || ""];
+    const h = (w == null ? void 0 : w.type) || Z, P = (w == null ? void 0 : w.props) || {}, J = (E, R) => {
+      if (w && (S(
+        (N) => N ? { ...N, props: { ...N.props, [E]: R } } : null
+      ), a.value.has(w.id))) {
+        const N = { ...P, [E]: R }, Ke = JSON.stringify({
+          name: h,
+          props: N
+        });
+        console.log("Update widget:", w.id, Ke);
+      }
+    };
     return /* @__PURE__ */ e.jsxs("div", { className: "p-4 space-y-4", children: [
       /* @__PURE__ */ e.jsxs("h3", { className: "text-lg font-medium mb-3", children: [
         "Properties - ",
-        o,
-        x && /* @__PURE__ */ e.jsxs("span", { className: "text-sm text-gray-500 ml-2", children: [
+        h,
+        w && /* @__PURE__ */ e.jsxs("span", { className: "text-sm text-gray-500 ml-2", children: [
           "(ID: ",
-          x.id,
+          w.id,
           ")"
         ] })
       ] }),
-      /* @__PURE__ */ e.jsx("div", { className: "space-y-4", children: Object.entries(m).map(([b, C]) => /* @__PURE__ */ e.jsxs(
+      /* @__PURE__ */ e.jsx("div", { className: "space-y-4", children: Object.entries(P).map(([E, R]) => /* @__PURE__ */ e.jsxs(
         "div",
         {
           className: "border-b border-gray-100 pb-3 last:border-b-0",
           children: [
-            /* @__PURE__ */ e.jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2 capitalize", children: b.replace(/([A-Z])/g, " $1").trim() }),
-            typeof C == "boolean" ? /* @__PURE__ */ e.jsxs("div", { className: "flex items-center", children: [
+            /* @__PURE__ */ e.jsx("label", { className: "block text-sm font-medium text-gray-700 mb-2 capitalize", children: E.replace(/([A-Z])/g, " $1").trim() }),
+            typeof R == "boolean" ? /* @__PURE__ */ e.jsxs("div", { className: "flex items-center", children: [
               /* @__PURE__ */ e.jsx(
                 "input",
                 {
                   type: "checkbox",
-                  checked: C,
-                  onChange: (L) => Y(b, L.target.checked),
+                  checked: R,
+                  onChange: (N) => J(E, N.target.checked),
                   className: "w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                 }
               ),
               /* @__PURE__ */ e.jsx("span", { className: "ml-2 text-sm text-gray-600", children: "Enabled" })
-            ] }) : typeof C == "number" ? /* @__PURE__ */ e.jsx(
+            ] }) : typeof R == "number" ? /* @__PURE__ */ e.jsx(
               "input",
               {
                 type: "number",
-                value: C,
-                onChange: (L) => Y(b, Number(L.target.value)),
+                value: R,
+                onChange: (N) => J(E, Number(N.target.value)),
                 className: "w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               }
             ) : /* @__PURE__ */ e.jsx(
               "input",
               {
                 type: "text",
-                value: C,
-                onChange: (L) => Y(b, L.target.value),
+                value: R,
+                onChange: (N) => J(E, N.target.value),
                 className: "w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-                placeholder: `Enter ${b}`
+                placeholder: `Enter ${E}`
               }
             )
           ]
         },
-        b
+        E
       )) }),
-      x && /* @__PURE__ */ e.jsx("div", { className: "mt-6 pt-4 border-t", children: /* @__PURE__ */ e.jsx(
-        "button",
-        {
-          onClick: () => K(x.id),
-          className: "w-full py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium",
-          children: "Remove This Component"
-        }
-      ) })
+      w && /* @__PURE__ */ e.jsxs("div", { className: "mt-6 pt-4 border-t", children: [
+        /* @__PURE__ */ e.jsx("p", { className: "text-sm text-gray-600 mb-3", children: "This is a GridStack widget. Property changes will update the widget in real-time." }),
+        /* @__PURE__ */ e.jsx(
+          "button",
+          {
+            onClick: () => {
+              S(null), L(null);
+            },
+            className: "w-full py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-medium",
+            children: "Clear Selection"
+          }
+        )
+      ] })
     ] });
-  }, Qe = () => /* @__PURE__ */ e.jsxs("div", { className: "p-4 space-y-4", children: [
+  }, Je = () => /* @__PURE__ */ e.jsxs("div", { className: "p-4 space-y-4", children: [
     /* @__PURE__ */ e.jsx("h3", { className: "text-lg font-medium mb-3", children: "Page Settings" }),
     /* @__PURE__ */ e.jsx("p", { className: "text-sm text-gray-600 mb-4", children: "Configure the overall page layout and appearance" }),
     /* @__PURE__ */ e.jsxs("div", { className: "space-y-4", children: [
@@ -1424,7 +1430,7 @@ const rr = () => {
           {
             type: "text",
             value: k.margin,
-            onChange: (o) => z("margin", o.target.value),
+            onChange: (a) => D("margin", a.target.value),
             className: "w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
             placeholder: "e.g., 0, 10px, 1rem"
           }
@@ -1438,7 +1444,7 @@ const rr = () => {
           {
             type: "text",
             value: k.padding,
-            onChange: (o) => z("padding", o.target.value),
+            onChange: (a) => D("padding", a.target.value),
             className: "w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
             placeholder: "e.g., 20px, 2rem"
           }
@@ -1453,7 +1459,7 @@ const rr = () => {
             {
               type: "color",
               value: k.background,
-              onChange: (o) => z("background", o.target.value),
+              onChange: (a) => D("background", a.target.value),
               className: "w-12 h-12 border border-gray-300 rounded cursor-pointer"
             }
           ),
@@ -1462,7 +1468,7 @@ const rr = () => {
             {
               type: "text",
               value: k.background,
-              onChange: (o) => z("background", o.target.value),
+              onChange: (a) => D("background", a.target.value),
               className: "flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
               placeholder: "#ffffff, rgb(255,255,255), etc."
             }
@@ -1477,7 +1483,7 @@ const rr = () => {
           {
             type: "text",
             value: k.gap,
-            onChange: (o) => z("gap", o.target.value),
+            onChange: (a) => D("gap", a.target.value),
             className: "w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
             placeholder: "e.g., 16px, 1rem"
           }
@@ -1507,54 +1513,54 @@ const rr = () => {
       ] })
     ] })
   ] });
-  return /* @__PURE__ */ e.jsx(gt, { initialOptions: De, children: /* @__PURE__ */ e.jsx(tr.Provider, { value: Ze, children: /* @__PURE__ */ e.jsxs("div", { className: "min-h-screen bg-white text-black flex flex-col", children: [
+  return /* @__PURE__ */ e.jsx(ct, { initialOptions: We, children: /* @__PURE__ */ e.jsx(Xt.Provider, { value: Fe, children: /* @__PURE__ */ e.jsxs("div", { className: "min-h-screen bg-white text-black flex flex-col", children: [
     u === "edit" && /* @__PURE__ */ e.jsx("header", { className: "p-4 bg-white shadow relative", children: /* @__PURE__ */ e.jsxs("div", { className: "flex flex-col sm:flex-row sm:items-center", children: [
-      /* @__PURE__ */ e.jsx("div", { className: "flex-1 mb-3 sm:mb-0 min-w-0", children: /* @__PURE__ */ e.jsx("div", { className: "flex items-center gap-2", children: v ? /* @__PURE__ */ e.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ e.jsx(
+      /* @__PURE__ */ e.jsx("div", { className: "flex-1 mb-3 sm:mb-0 min-w-0", children: /* @__PURE__ */ e.jsx("div", { className: "flex items-center gap-2", children: x ? /* @__PURE__ */ e.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ e.jsx(
         "input",
         {
           type: "text",
-          value: V,
-          onChange: (o) => Z(o.target.value),
-          onKeyDown: Fe,
-          onBlur: ue,
+          value: U,
+          onChange: (a) => V(a.target.value),
+          onKeyDown: Be,
+          onBlur: le,
           className: "text-2xl font-bold border-b-2 border-blue-500 bg-transparent outline-none px-1",
           autoFocus: !0
         }
       ) }) : /* @__PURE__ */ e.jsxs("div", { className: "flex items-center gap-2 group", children: [
-        /* @__PURE__ */ e.jsx("h1", { className: "text-2xl font-bold truncate", children: V }),
+        /* @__PURE__ */ e.jsx("h1", { className: "text-2xl font-bold truncate", children: U }),
         /* @__PURE__ */ e.jsx(
           "button",
           {
-            onClick: Ie,
+            onClick: _e,
             className: "p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity",
-            children: /* @__PURE__ */ e.jsx(Vt, { className: "h-4 w-4" })
+            children: /* @__PURE__ */ e.jsx(It, { className: "h-4 w-4" })
           }
         )
       ] }) }) }),
       /* @__PURE__ */ e.jsxs("div", { className: "flex flex-wrap gap-1 justify-end", children: [
         /* @__PURE__ */ e.jsx(
-          B,
+          _,
           {
-            onClick: $e,
-            icon: /* @__PURE__ */ e.jsx(Pt, { className: "h-5 w-5" }),
+            onClick: Ge,
+            icon: /* @__PURE__ */ e.jsx(Wt, { className: "h-5 w-5" }),
             tooltip: "Back to list",
             className: "bg-gray-200 hover:bg-gray-300"
           }
         ),
         /* @__PURE__ */ e.jsx(
-          B,
+          _,
           {
-            onClick: () => h("preview"),
-            icon: /* @__PURE__ */ e.jsx(It, { className: "h-5 w-5" }),
+            onClick: () => p("preview"),
+            icon: /* @__PURE__ */ e.jsx(_t, { className: "h-5 w-5" }),
             tooltip: "Preview",
             className: "bg-purple-600 hover:bg-purple-700 text-white"
           }
         ),
         /* @__PURE__ */ e.jsx(
-          ye,
+          ve,
           {
-            onClick: _e,
-            icon: /* @__PURE__ */ e.jsx(_t, { className: "h-5 w-5" }),
+            onClick: ze,
+            icon: /* @__PURE__ */ e.jsx(zt, { className: "h-5 w-5" }),
             label: "Save",
             className: "bg-green-600 hover:bg-green-700 text-white",
             successMessage: "Saved successfully!",
@@ -1562,10 +1568,10 @@ const rr = () => {
           }
         ),
         /* @__PURE__ */ e.jsx(
-          ye,
+          ve,
           {
-            onClick: J,
-            icon: /* @__PURE__ */ e.jsx(Le, { className: "h-5 w-5" }),
+            onClick: q,
+            icon: /* @__PURE__ */ e.jsx(Se, { className: "h-5 w-5" }),
             label: "Reload",
             className: "bg-green-600 hover:bg-green-700 text-white",
             successMessage: "Reloaded successfully",
@@ -1573,29 +1579,29 @@ const rr = () => {
           }
         ),
         /* @__PURE__ */ e.jsx(
-          B,
+          _,
           {
-            onClick: Ae,
-            icon: /* @__PURE__ */ e.jsx(qt, { className: "h-5 w-5" }),
+            onClick: De,
+            icon: /* @__PURE__ */ e.jsx(Ht, { className: "h-5 w-5" }),
             tooltip: "Clear all data",
             className: "bg-red-600 hover:bg-red-700 text-white"
           }
         ),
         /* @__PURE__ */ e.jsx(
-          B,
+          _,
           {
-            onClick: () => ie(!0),
-            icon: /* @__PURE__ */ e.jsx(Ht, { className: "h-5 w-5" }),
+            onClick: () => se(!0),
+            icon: /* @__PURE__ */ e.jsx($t, { className: "h-5 w-5" }),
             tooltip: "Page Info & Settings",
             className: "bg-indigo-600 hover:bg-indigo-700 text-white"
           }
         ),
-        !D && /* @__PURE__ */ e.jsx(
-          B,
+        !G && /* @__PURE__ */ e.jsx(
+          _,
           {
-            onClick: () => g(!l),
-            icon: l ? /* @__PURE__ */ e.jsx(be, { className: "h-5 w-5" }) : /* @__PURE__ */ e.jsx(xe, { className: "h-5 w-5" }),
-            tooltip: l ? "Hide Editor" : "Show Editor",
+            onClick: () => m(!i),
+            icon: i ? /* @__PURE__ */ e.jsx(he, { className: "h-5 w-5" }) : /* @__PURE__ */ e.jsx(pe, { className: "h-5 w-5" }),
+            tooltip: i ? "Hide Editor" : "Show Editor",
             className: "bg-gray-200 hover:bg-gray-300"
           }
         )
@@ -1605,92 +1611,94 @@ const rr = () => {
       /* @__PURE__ */ e.jsx(
         "div",
         {
-          className: `flex-1 transition-all duration-200 ${l && u === "edit" ? "overflow-auto" : "overflow-hidden"}`,
-          style: Je,
+          className: `flex-1 transition-all duration-200 ${i && u === "edit" ? "overflow-auto" : "overflow-hidden"}`,
+          style: Ue,
           children: /* @__PURE__ */ e.jsx("div", { className: "h-full", children: /* @__PURE__ */ e.jsx("div", { className: "bg-white rounded-lg shadow h-full flex flex-col", children: /* @__PURE__ */ e.jsxs(
             "div",
             {
               className: `flex-1 relative p-0 grid-stack-mode-${u}`,
               children: [
-                /* @__PURE__ */ e.jsx(Yt, { ref: T }),
+                /* @__PURE__ */ e.jsx(qt, { ref: O }),
                 /* @__PURE__ */ e.jsx(
-                  St,
+                  jt,
                   {
-                    onGridStackDropEvent: He,
+                    onGridStackDropEvent: $e,
                     children: /* @__PURE__ */ e.jsx(
-                      Wt,
+                      Mt,
                       {
-                        componentMap: je(a),
-                        showMenubar: ze
+                        componentMap: be(o),
+                        showMenubar: Pe,
+                        onWidgetSelect: Ie,
+                        selectedWidgetId: w == null ? void 0 : w.id
                       }
                     )
                   }
                 ),
-                p
+                g
               ]
             }
           ) }) })
         }
       ),
-      u === "edit" && l && /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
-        D && /* @__PURE__ */ e.jsx(
+      u === "edit" && i && /* @__PURE__ */ e.jsxs(e.Fragment, { children: [
+        G && /* @__PURE__ */ e.jsx(
           "div",
           {
             className: "fixed inset-0 bg-black bg-opacity-50 z-40",
-            onClick: () => g(!1)
+            onClick: () => m(!1)
           }
         ),
         /* @__PURE__ */ e.jsxs(
           "div",
           {
-            className: `flex flex-col bg-white shadow-lg border-l border-gray-200 ${D ? "fixed right-0 top-0 bottom-0 z-50 transform transition-transform duration-300" : "relative"}`,
-            style: qe,
+            className: `flex flex-col bg-white shadow-lg border-l border-gray-200 ${G ? "fixed right-0 top-0 bottom-0 z-50 transform transition-transform duration-300" : "relative"}`,
+            style: He,
             children: [
-              D && /* @__PURE__ */ e.jsx("div", { className: "absolute top-4 right-4 z-10", children: /* @__PURE__ */ e.jsx(
+              G && /* @__PURE__ */ e.jsx("div", { className: "absolute top-4 right-4 z-10", children: /* @__PURE__ */ e.jsx(
                 "button",
                 {
-                  onClick: () => g(!1),
+                  onClick: () => m(!1),
                   className: "p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors",
-                  children: /* @__PURE__ */ e.jsx(be, { className: "h-5 w-5" })
+                  children: /* @__PURE__ */ e.jsx(he, { className: "h-5 w-5" })
                 }
               ) }),
               /* @__PURE__ */ e.jsx("div", { className: "flex border-b border-gray-200 pt-4", children: ["components", "properties", "page"].map(
-                (o) => /* @__PURE__ */ e.jsx(
+                (a) => /* @__PURE__ */ e.jsx(
                   "button",
                   {
-                    className: `flex-1 py-3 px-4 text-sm font-medium capitalize transition-colors ${j === o ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`,
-                    onClick: () => R(o),
-                    children: o
+                    className: `flex-1 py-3 px-4 text-sm font-medium capitalize transition-colors ${b === a ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`,
+                    onClick: () => M(a),
+                    children: a
                   },
-                  o
+                  a
                 )
               ) }),
               /* @__PURE__ */ e.jsxs("div", { className: "flex-1 overflow-y-auto pb-4", children: [
-                j === "components" && Ye(),
-                j === "properties" && Xe(),
-                j === "page" && Qe()
+                b === "components" && Ze(),
+                b === "properties" && qe(),
+                b === "page" && Je()
               ] })
             ]
           }
         )
       ] })
     ] }),
-    u === "edit" && D && !l && /* @__PURE__ */ e.jsx("div", { className: "fixed bottom-4 right-4 z-30", children: /* @__PURE__ */ e.jsx(
+    u === "edit" && G && !i && /* @__PURE__ */ e.jsx("div", { className: "fixed bottom-4 right-4 z-30", children: /* @__PURE__ */ e.jsx(
       "button",
       {
-        onClick: () => g(!0),
+        onClick: () => m(!0),
         className: "p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors",
-        children: /* @__PURE__ */ e.jsx(xe, { className: "h-6 w-6" })
+        children: /* @__PURE__ */ e.jsx(pe, { className: "h-6 w-6" })
       }
     ) }),
     u === "preview" && /* @__PURE__ */ e.jsx("div", { className: "fixed inset-0 pointer-events-none z-50", children: /* @__PURE__ */ e.jsx("div", { className: "absolute bottom-8 right-8 pointer-events-auto", children: /* @__PURE__ */ e.jsxs(
       "button",
       {
-        onClick: () => h("edit"),
+        onClick: () => p("edit"),
         className: "flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group",
         title: "Return to Edit Mode",
         children: [
-          /* @__PURE__ */ e.jsx(fe, { className: "h-6 w-6 group-hover:animate-bounce" }),
+          /* @__PURE__ */ e.jsx(ge, { className: "h-6 w-6 group-hover:animate-bounce" }),
           /* @__PURE__ */ e.jsx("span", { className: "text-sm font-medium", children: "Edit Mode" })
         ]
       }
@@ -1698,31 +1706,31 @@ const rr = () => {
     u === "view" && /* @__PURE__ */ e.jsx("div", { className: "fixed inset-0 pointer-events-none z-50", children: /* @__PURE__ */ e.jsx("div", { className: "absolute bottom-8 right-8 pointer-events-auto", children: /* @__PURE__ */ e.jsxs(
       "button",
       {
-        onClick: d,
+        onClick: c,
         className: "flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group",
         title: "Back to List",
         children: [
-          /* @__PURE__ */ e.jsx(fe, { className: "h-6 w-6 group-hover:animate-bounce" }),
+          /* @__PURE__ */ e.jsx(ge, { className: "h-6 w-6 group-hover:animate-bounce" }),
           /* @__PURE__ */ e.jsx("span", { className: "text-sm font-medium", children: "Back to List" })
         ]
       }
     ) }) }),
     /* @__PURE__ */ e.jsx(
-      Qt,
+      Kt,
       {
-        isOpen: Ge,
-        pageInfo: Ke(),
-        resetOpenInfo: ie
+        isOpen: Te,
+        pageInfo: Ve(),
+        resetOpenInfo: se
       }
     )
-  ] }) }) }, Te);
+  ] }) }) }, Re);
 };
 export {
-  gt as GridStackProvider,
-  Wt as GridStackRender,
-  St as GridStackRenderProvider,
-  ir as StackPage,
-  _ as useGridStackContext,
-  ar as useGridStackWidgetContext
+  ct as GridStackProvider,
+  Mt as GridStackRender,
+  jt as GridStackRenderProvider,
+  sr as StackPage,
+  A as useGridStackContext,
+  nr as useGridStackWidgetContext
 };
 //# sourceMappingURL=stackpage.es.js.map
