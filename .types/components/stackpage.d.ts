@@ -19,7 +19,6 @@ interface StackPageContextType {
         margin: string;
         padding: string;
         background: string;
-        gap: string;
     };
     setPageAttributes: (attributes: any) => void;
     activeTab: "components" | "properties" | "page";

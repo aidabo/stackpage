@@ -75,7 +75,7 @@ export function GridStackWidgetRenderer({
 
   const content = (
     <GridStackAutoResizer widgetId={id}>
-      <div className={`h-full w-full ${isSelected ? 'border-2 border-blue-400 rounded-sm' : ''}`} 
+      <div className={`h-full w-full ${isSelected ? 'outline outline-2 outline-blue-400 outline-offset-1' : ''}`} 
         onClick={handleWidgetClick}>
         {showMenubar && (
           <div className="widget-header flex items-center justify-between bg-gray-100 border-b px-2 min-h-[36px]">

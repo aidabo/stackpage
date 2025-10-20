@@ -65,7 +65,6 @@ interface StackPageContextType {
     margin: string;
     padding: string;
     background: string;
-    gap: string;
   };
   setPageAttributes: (attributes: any) => void;
   activeTab: "components" | "properties" | "page";
@@ -248,7 +247,7 @@ const StackPage = ({
 
   const [dropEvent, setDropEvent] = useState<GridStackDropEvent>();
   const [showGridInfo, setShowGridInfo] = useState(false);
-  const [showMenubar /*setShowMenubar*/] = useState(true);
+  const [showMenubar, setShowMenubar] = useState(true);
 
   // Internal state management
   const [selectedComponent, setSelectedComponent] = useState<string | null>(
@@ -258,10 +257,9 @@ const StackPage = ({
     useState<ComponentInstance | null>(null);  
 
   const [pageAttributes, setPageAttributes] = useState({
-    margin: "0",
-    padding: "20px",
+    margin: "5",
+    padding: "10px",
     background: "#ffffff",
-    gap: "16px",
   });
 
   const isMobile = useMobile();
@@ -425,7 +423,6 @@ const StackPage = ({
     margin: pageAttributes.margin,
     padding: pageAttributes.padding,
     backgroundColor: pageAttributes.background,
-    gap: pageAttributes.gap,
   };
 
   const getPageInfo = () => {
@@ -684,6 +681,28 @@ const StackPage = ({
         </p>
 
         <div className="space-y-4">
+                {/* Add Show Menu Checkbox at the top */}
+      <div className="border-b border-gray-100 pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Show Component Menu
+            </label>
+            <p className="text-xs text-gray-500">
+              Display the menu bar with delete button on each component
+            </p>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showMenubar}
+              onChange={(e) => setShowMenubar(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Margin
@@ -748,21 +767,7 @@ const StackPage = ({
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Component Gap
-            </label>
-            <input
-              type="text"
-              value={pageAttributes.gap}
-              onChange={(e) => handlePageAttributeChange("gap", e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 16px, 1rem"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Space between components in the main area
-            </p>
-          </div>
+
         </div>
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -771,6 +776,9 @@ const StackPage = ({
           </h4>
           <div className="text-sm text-blue-700 grid grid-cols-2 gap-2">
             <div>
+            Menu Bar: <code>{showMenubar ? "Visible" : "Hidden"}</code>
+          </div>
+            <div>
               Margin: <code>{pageAttributes.margin}</code>
             </div>
             <div>
@@ -778,9 +786,6 @@ const StackPage = ({
             </div>
             <div>
               Background: <code>{pageAttributes.background}</code>
-            </div>
-            <div>
-              Gap: <code>{pageAttributes.gap}</code>
             </div>
           </div>
         </div>
