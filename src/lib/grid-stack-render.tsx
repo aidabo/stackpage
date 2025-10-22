@@ -3,6 +3,7 @@ import { useGridStackRenderContext } from "./grid-stack-render-context";
 import { GridStackWidget } from "gridstack";
 import { ComponentType } from "react";
 import { GridStackWidgetRenderer } from "./grid-stack-widget-render";
+import { useStackPageWidgetProps, useStackPage } from "@/lib/components/StackPageContext"; // Add this import
 
 // Type for component registration
 export type ComponentMap = Record<string, ComponentType<any>>;
@@ -50,11 +51,12 @@ interface GridStackRenderProps {
 export function GridStackRender({
   componentMap,
   showMenubar = false,
-  selectedWidgetId,
   onWidgetSelect,
 }: GridStackRenderProps) {
   const { _rawWidgetMetaMap } = useGridStackContext();
   const { getWidgetContainer } = useGridStackRenderContext();
+  const { widgetProps } = useStackPageWidgetProps(); // Get widget props from StackPageContext
+  const { selectedInstance } = useStackPage();
 
   return (
     <>
@@ -71,9 +73,12 @@ export function GridStackRender({
       )}
 
       {Array.from(_rawWidgetMetaMap.value.entries()).map(([id, meta]) => {
-        const { name } = parseWidgetMeta(meta);
+        const { name, props: metaProps } = parseWidgetMeta(meta);
         const WidgetComponent = componentMap[name];
         const widgetContainer = getWidgetContainer(id);
+
+        // Use updated props from StackPageContext if available, otherwise use meta props
+        const props = widgetProps.get(id) || metaProps;
 
         if (!WidgetComponent || !widgetContainer) return null;
 
@@ -85,8 +90,9 @@ export function GridStackRender({
             WidgetComponent={WidgetComponent}
             widgetContainer={widgetContainer}
             showMenubar={showMenubar}
-            isSelected={id === selectedWidgetId}
+            isSelected={id === (selectedInstance as any)?.id}
             onWidgetSelect={onWidgetSelect}
+            componentProps={props} // Pass the resolved props
           />
         );
       })}

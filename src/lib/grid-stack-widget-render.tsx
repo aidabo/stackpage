@@ -43,6 +43,7 @@ interface GridStackWidgetRendererProps {
     name: string;
     props: object;
   }) => void;
+  componentProps?: object; // Add this prop
 }
 
 export function GridStackWidgetRenderer({
@@ -53,22 +54,20 @@ export function GridStackWidgetRenderer({
   showMenubar,
   isSelected = false,
   onWidgetSelect,
+  componentProps, // Add this
 }: GridStackWidgetRendererProps) {
   const componentData = parseWidgetMeta(meta);
-  const title = (componentData.props as any)?.title || `Widget ${id.slice(0, 4)}`;
+  
+  // Use the passed componentProps if available, otherwise use parsed props
+  const props = componentProps || componentData.props;
+  const title = (props as any)?.title || `Widget ${id.slice(0, 4)}`;
 
   const handleWidgetClick = (_e: React.MouseEvent) => {
-    // Don't trigger selection if clicking on the menu or its buttons
-    // if ((e.target as HTMLElement).closest('.widget-header, [aria-label]')) {
-    //   return;
-    // }
-
-    // Call the callback with widget data
     if (onWidgetSelect) {
       onWidgetSelect({
         id,
         name: componentData.name,
-        props: componentData.props,
+        props: props, // Use the resolved props
       });
     }
   };
@@ -83,9 +82,8 @@ export function GridStackWidgetRenderer({
             <GridStackItemMenu widgetId={id} />
           </div>
         )}
-        <div 
-          className="widget-body flex-1 min-h-[40px] cursor-pointer">
-          <WidgetComponent {...componentData.props} />
+        <div className="widget-body flex-1 min-h-[40px] cursor-pointer">
+          <WidgetComponent {...props} /> {/* Use the resolved props */}
         </div>
       </div>
     </GridStackAutoResizer>

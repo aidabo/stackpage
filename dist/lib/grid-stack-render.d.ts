@@ -14,5 +14,5 @@ interface GridStackRenderProps {
         props: object;
     }) => void;
 }
-export declare function GridStackRender({ componentMap, showMenubar, selectedWidgetId, onWidgetSelect, }: GridStackRenderProps): import("react/jsx-runtime").JSX.Element;
+export declare function GridStackRender({ componentMap, showMenubar, onWidgetSelect, }: GridStackRenderProps): import("react/jsx-runtime").JSX.Element;
 export {};

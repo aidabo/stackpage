@@ -7,9 +7,9 @@ const CELL_HEIGHT = "1rem"; //16px;
 
 const BREAKPOINTS = [
   //{ c: 1, w: 300 },   // 1 column on screens < 300px
-  { c: 1, w: 500 },     // 2 columns between 300px - 500px
-  { c: 3, w: 800 },     // 4 columns between 500px - 800px
-  { c: 6, w: 1024 },    // 6 columns between 800px - 1024px
+  { c: 1, w: 500 }, // 2 columns between 300px - 500px
+  { c: 3, w: 800 }, // 4 columns between 500px - 800px
+  { c: 6, w: 1024 }, // 6 columns between 800px - 1024px
   //{ c: 8, w: 1200 },  // 8 columns on screens > 1200px
 ];
 
@@ -21,7 +21,7 @@ export const gridOptions: GridStackOptions = {
   acceptWidgets: true,
   removable: "#trash",
   sizeToContent: true,
-  resizable: { handles: 'se'}, 
+  resizable: { handles: "se" },
   minRow: 10,
   columnOpts: {
     breakpointForWindow: true,
@@ -30,12 +30,12 @@ export const gridOptions: GridStackOptions = {
     columnMax: 12,
   },
   margin: 5,
-  cellHeight: CELL_HEIGHT,  
-  
+  cellHeight: CELL_HEIGHT,
+
   subGridOpts: {
     acceptWidgets: true,
     removable: "#trash",
-    resizable: { handles: 'se'}, 
+    resizable: { handles: "se" },
     sizeToContent: true,
     columnOpts: {
       breakpoints: BREAKPOINTS,
@@ -55,12 +55,12 @@ export const gridOptions: GridStackOptions = {
 export const subGridOptions: GridStackOptions = {
   acceptWidgets: true,
   removable: "#trash",
-  resizable: { handles: 'se'},  
-  sizeToContent: true,  
+  resizable: { handles: "se" },
+  sizeToContent: true,
   subGridOpts: {
     acceptWidgets: true,
     removable: "#trash",
-    resizable: { handles: 'se'},  
+    resizable: { handles: "se" },
     sizeToContent: true,
     columnOpts: {
       breakpoints: BREAKPOINTS,
@@ -84,7 +84,7 @@ export interface PageProps {
   image?: string;
   tag?: string;
   status?: string;
-  pageOptions?: any;
+  pageAttributes?: any;
   grids: GridStackOptions | GridStackWidget[] | undefined;
 }
 
@@ -140,7 +140,7 @@ export type ComponentPropsProvider = () => Record<string, any>;
 /**
  * getComponentMap - Returns the default component map or merges with custom components if provided.
  * @param fn a function that returns a custom component map
- * @returns 
+ * @returns
  */
 export const getComponentMap = (fn?: ComponentMapProvider): ComponentMap => {
   if (fn) {
@@ -154,7 +154,7 @@ export const getComponentMap = (fn?: ComponentMapProvider): ComponentMap => {
 /**
  * getComponentProps - Returns the default component properties or merges with custom properties if provided.
  * @param fn - A function that returns custom component properties
- * @returns 
+ * @returns
  */
 export const getComponentProps = (
   fn?: ComponentPropsProvider
@@ -169,12 +169,47 @@ export const getComponentProps = (
 
 /**
  * Save page layout, if pageid is not the same as pageProps.id, it will as created a new page
- * @param pageid - The ID of the page to save 
+ * @param pageid - The ID of the page to save
  * @param pageProps - The properties of the page to save
  */
 export type SaveLayoutFn = (
   pageid: string,
   pageProps: PageProps
 ) => Promise<void>;
+
+
+/**
+ * Load page layout function
+ */
 export type LoadLayoutFn = (pageid: string) => Promise<PageProps>;
+
+/**
+ * Provide goback page navigation
+ */
 export type GoBackListFn = () => void;
+
+/**
+ * Image, video, audio, file uploaded callback for server upload
+ */
+export type FileUploadFn = (file: File) => Promise<string>;
+
+/**
+ * Get tags for system to set for page
+ */
+export type GetTagsFn = () => Promise<Array<string>>;
+
+/**
+ * If component field name  include "/api", use this callback to get data
+ */
+export type ApiCallFn = (endpoint: string, value?: any) => Promise<any>;
+
+/**
+ * if component field name include "action", call this function
+ */
+export type CustomActionFn = (action: string, data: any) => Promise<any>;
+
+/**
+ * New callback for dynamic select options
+ */
+export type GetSelectOptionsFn = (propertyName: string, componentType: string) => Promise<string[]>;
+  

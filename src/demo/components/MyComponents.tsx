@@ -86,7 +86,7 @@ export const componentMapProvider = () => ({
 
   // VideoCard component
   VideoCard: ({
-    src = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    src = "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
     title = "Sample Video",
     description = "This is a sample video description",
     width = "100%",
@@ -108,13 +108,13 @@ export const componentMapProvider = () => ({
         </div>
 
         {/* If we had a real video element, it would look like this: */}
-        {/* <video 
+        <video 
         src={src}
         poster={poster}
         autoPlay={autoPlay}
         controls={controls}
         className="w-full h-full object-cover"
-      /> */}
+      />
       </div>
       <div className="p-3 bg-white">
         <h4 className="font-medium text-gray-800 text-sm">{title}</h4>
@@ -267,7 +267,7 @@ export const componentPropsProvider = () => {
       height: "auto",
     },
     VideoCard: {
-      src: "https://www.sample-videos.com/mp4/720/big_buck_bunny_720p_1mb.mp4",
+      src: "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
       title: "Sample Video",
       description: "This is a sample video card",
       width: "100%",

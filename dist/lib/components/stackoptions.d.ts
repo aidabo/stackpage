@@ -20,7 +20,7 @@ export interface PageProps {
     image?: string;
     tag?: string;
     status?: string;
-    pageOptions?: any;
+    pageAttributes?: any;
     grids: GridStackOptions | GridStackWidget[] | undefined;
 }
 /**
@@ -62,5 +62,31 @@ export declare const getComponentProps: (fn?: ComponentPropsProvider) => Compone
  * @param pageProps - The properties of the page to save
  */
 export type SaveLayoutFn = (pageid: string, pageProps: PageProps) => Promise<void>;
+/**
+ * Load page layout function
+ */
 export type LoadLayoutFn = (pageid: string) => Promise<PageProps>;
+/**
+ * Provide goback page navigation
+ */
 export type GoBackListFn = () => void;
+/**
+ * Image, video, audio, file uploaded callback for server upload
+ */
+export type FileUploadFn = (file: File) => Promise<string>;
+/**
+ * Get tags for system to set for page
+ */
+export type GetTagsFn = () => Promise<Array<string>>;
+/**
+ * If component field name  include "/api", use this callback to get data
+ */
+export type ApiCallFn = (endpoint: string, value?: any) => Promise<any>;
+/**
+ * if component field name include "action", call this function
+ */
+export type CustomActionFn = (action: string, data: any) => Promise<any>;
+/**
+ * New callback for dynamic select options
+ */
+export type GetSelectOptionsFn = (propertyName: string, componentType: string) => Promise<string[]>;

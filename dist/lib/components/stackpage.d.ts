@@ -1,38 +1,19 @@
 import { ReactNode } from 'react';
-import { ComponentMapProvider, ComponentPropsProvider, GoBackListFn, LoadLayoutFn, SaveLayoutFn } from './stackoptions';
-export interface ComponentInstance {
-    id: string;
-    type: string;
-    props: Record<string, any>;
-    position?: {
-        x: number;
-        y: number;
-    };
-}
-interface StackPageContextType {
-    selectedComponent: string | null;
-    setSelectedComponent: (component: string | null) => void;
-    selectedInstance: ComponentInstance | null;
-    setSelectedInstance: (instance: ComponentInstance | null) => void;
-    pageAttributes: {
-        margin: string;
-        padding: string;
-        background: string;
-    };
-    setPageAttributes: (attributes: any) => void;
-    activeTab: "components" | "properties" | "page";
-    setActiveTab: (tab: "components" | "properties" | "page") => void;
-}
-export declare const useStackPage: () => StackPageContextType;
+import { ComponentMapProvider, ComponentPropsProvider, GoBackListFn, LoadLayoutFn, SaveLayoutFn, FileUploadFn, GetTagsFn, ApiCallFn, CustomActionFn, GetSelectOptionsFn } from './stackoptions';
 export interface StackPageProps {
     pageid: string;
     pageMode: "edit" | "preview" | "view";
     onLoadLayout: LoadLayoutFn;
-    onSaveLayout?: SaveLayoutFn;
+    onSaveLayout: SaveLayoutFn;
+    gobackList: GoBackListFn;
     componentMapProvider?: ComponentMapProvider;
     componentPropsProvider?: ComponentPropsProvider;
-    gobackList: GoBackListFn;
+    onFileUpload?: FileUploadFn;
+    onGetTags?: GetTagsFn;
+    onApiCall?: ApiCallFn;
+    onCustomAction?: CustomActionFn;
+    onGetSelectOptions?: GetSelectOptionsFn;
     children?: ReactNode;
 }
-declare const StackPage: ({ pageid, pageMode, onSaveLayout, onLoadLayout, componentMapProvider, componentPropsProvider, gobackList, children, }: StackPageProps) => import("react/jsx-runtime").JSX.Element;
+declare const StackPage: (props: StackPageProps) => import("react/jsx-runtime").JSX.Element;
 export default StackPage;

@@ -23,6 +23,7 @@ export interface GridStackDropEvent {
   y: number;
   w: number;
   h: number;
+  gridId?: string; // Add gridId to identify which grid received the drop
 }
 
 export type GridStackDropEventCallback = (event: GridStackDropEvent) => void;

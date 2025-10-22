@@ -1,12 +1,4 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  ReactNode,
-  createContext,
-  useContext,
-  useCallback,
-} from "react";
+import { useState, useRef, useEffect, ReactNode, useCallback } from "react";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -25,7 +17,7 @@ import {
   GridStackRender,
   GridStackRenderProvider,
 } from "..";
-import { GridStackOptions } from "gridstack";
+import { GridStackOptions, GridStackWidget } from "gridstack";
 import {
   gridOptions,
   subGridOptions,
@@ -38,157 +30,42 @@ import {
   GoBackListFn,
   LoadLayoutFn,
   SaveLayoutFn,
+  FileUploadFn,
+  GetTagsFn,
+  ApiCallFn,
+  CustomActionFn,
+  GetSelectOptionsFn,
 } from "./stackoptions";
 
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../grid-stack-render-provider";
 import PageInfoDialogs from "./pageinfodialog";
-import DeleteDropZone from "./deletedropzone";
+// Import the new context
+import { StackPageProvider } from "./StackPageProvider";
+import { useStackPage } from "./StackPageContext";
+import { PropertiesTab } from "./PropertiesTab";
+import { ComponentsTab } from "./ComponentsTab";
+import { PageTab } from "./PageTab";
+import { StatusButton } from "./StatusButton";
+import { TooltipButton } from "./TooltipButton";
+import { LocaleProvider } from "./LocaleContext.tsx";
 
 import "../styles/index.css";
-
-// Types for components in the layout
-export interface ComponentInstance {
-  id: string;
-  type: string;
-  props: Record<string, any>;
-  position?: { x: number; y: number };
-}
-
-// Create context for internal state management
-interface StackPageContextType {
-  selectedComponent: string | null;
-  setSelectedComponent: (component: string | null) => void;
-  selectedInstance: ComponentInstance | null;
-  setSelectedInstance: (instance: ComponentInstance | null) => void;
-  pageAttributes: {
-    margin: string;
-    padding: string;
-    background: string;
-  };
-  setPageAttributes: (attributes: any) => void;
-  activeTab: "components" | "properties" | "page";
-  setActiveTab: (tab: "components" | "properties" | "page") => void;
-}
-
-const StackPageContext = createContext<StackPageContextType | undefined>(
-  undefined
-);
-
-export const useStackPage = () => {
-  const context = useContext(StackPageContext);
-  if (!context) {
-    throw new Error("useStackPage must be used within a StackPage");
-  }
-  return context;
-};
 
 export interface StackPageProps {
   pageid: string;
   pageMode: "edit" | "preview" | "view";
-  onLoadLayout: LoadLayoutFn; //(pageid: string) => Promise<PageProps>;
-  onSaveLayout?: SaveLayoutFn; //(pageid: string, pageProps: PageProps) => void;
+  onLoadLayout: LoadLayoutFn;
+  onSaveLayout: SaveLayoutFn;
+  gobackList: GoBackListFn;
   componentMapProvider?: ComponentMapProvider;
   componentPropsProvider?: ComponentPropsProvider;
-  gobackList: GoBackListFn; //() => void
+  onFileUpload?: FileUploadFn;
+  onGetTags?: GetTagsFn;
+  onApiCall?: ApiCallFn;
+  onCustomAction?: CustomActionFn;
+  onGetSelectOptions?: GetSelectOptionsFn;
   children?: ReactNode;
-}
-
-// TooltipButton component
-function TooltipButton({
-  onClick,
-  icon,
-  tooltip,
-  className = "",
-}: {
-  onClick: () => void;
-  icon: React.ReactNode;
-  tooltip: string;
-  className?: string;
-}) {
-  return (
-    <div className="relative group">
-      <button
-        onClick={onClick}
-        className={`p-2 rounded-lg transition ${className}`}
-      >
-        {icon}
-      </button>
-      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 hidden group-hover:block bg-black text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10">
-        {tooltip}
-        <div className="absolute bottom-full left-1/2 w-2 h-2 bg-black transform -translate-x-1/2 rotate-45 -mb-1"></div>
-      </div>
-    </div>
-  );
-}
-
-// StatusButton component
-function StatusButton({
-  onClick,
-  icon,
-  label,
-  className = "",
-  successMessage = "Success",
-  errorMessage = "Error",
-}: {
-  onClick: () => Promise<void>;
-  icon: React.ReactNode;
-  label: string;
-  className?: string;
-  successMessage?: string;
-  errorMessage?: string;
-}) {
-  const [status, setStatus] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleClick = async () => {
-    setIsLoading(true);
-    setStatus(null);
-    try {
-      await onClick();
-      setStatus({ message: successMessage, type: "success" });
-    } catch (error) {
-      setStatus({ message: errorMessage, type: "error" });
-    } finally {
-      setIsLoading(false);
-      setTimeout(() => setStatus(null), 3000);
-    }
-  };
-
-  return (
-    <div className="relative z-30">
-      <button
-        onClick={handleClick}
-        disabled={isLoading}
-        className={`p-2 rounded-lg transition flex items-center ${className} ${
-          isLoading ? "opacity-70" : ""
-        }`}
-      >
-        {isLoading ? (
-          <ArrowPathIcon className="h-5 w-5 animate-spin" />
-        ) : (
-          <>
-            {icon}
-            <span className="ml-1 hidden sm:inline">{label}</span>
-          </>
-        )}
-      </button>
-      {status && (
-        <div
-          className={`absolute top-full left-0 mt-1 w-full text-center px-2 py-1 rounded-md text-xs font-medium animate-fadeIn ${
-            status.type === "success"
-              ? "bg-blue-500 text-white"
-              : "bg-red-100 text-red-800"
-          }`}
-        >
-          {status.message}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // Mobile detection hook
@@ -211,7 +88,8 @@ const useMobile = () => {
   return isMobile;
 };
 
-const StackPage = ({
+// Main StackPage Content Component
+const StackPageContent = ({
   pageid,
   pageMode,
   onSaveLayout,
@@ -219,19 +97,28 @@ const StackPage = ({
   componentMapProvider,
   componentPropsProvider,
   gobackList,
+  onFileUpload,
+  onGetTags,
+  onApiCall,
+  onCustomAction,
+  onGetSelectOptions,
   children,
 }: StackPageProps) => {
-  // Simplified mode handling
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
     pageMode
   );
   const [showEditor, setShowEditor] = useState(true);
-  //const [isResizing, setIsResizing] = useState(false);
-  const [panelWidth /*setPanelWidth*/] = useState(400);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "components" | "properties" | "page"
-  >("components");
+
+  const {
+    activeTab,
+    setActiveTab,
+    pageAttributes,
+    setPageAttributes,
+    setSelectedInstance,
+    setSelectedComponent,
+    widgetProps, // Add this to get widgetProps from context
+  } = useStackPage();
 
   const [pageProps, setPageProps] = useState<PageProps>({
     ...getDefaultPageProps(),
@@ -247,20 +134,6 @@ const StackPage = ({
 
   const [dropEvent, setDropEvent] = useState<GridStackDropEvent>();
   const [showGridInfo, setShowGridInfo] = useState(false);
-  const [showMenubar, setShowMenubar] = useState(true);
-
-  // Internal state management
-  const [selectedComponent, setSelectedComponent] = useState<string | null>(
-    null
-  );
-  const [selectedInstance, setSelectedInstance] =
-    useState<ComponentInstance | null>(null);  
-
-  const [pageAttributes, setPageAttributes] = useState({
-    margin: "5",
-    padding: "10px",
-    background: "#ffffff",
-  });
 
   const isMobile = useMobile();
 
@@ -275,6 +148,7 @@ const StackPage = ({
       setPageProps(pageProps);
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
+      setPageAttributes(pageProps.pageAttributes || pageAttributes);
       return pageProps.grids;
     },
     [onLoadLayout]
@@ -312,15 +186,77 @@ const StackPage = ({
     }
   };
 
+  // Function to update layout with new props from context
+  const updateLayoutWithNewProps = (
+    layout: GridStackOptions | GridStackWidget[],
+    widgetProps: Map<string, object>
+  ): GridStackOptions | GridStackWidget[] => {
+    if (!layout) return layout;
+
+    // Handle both GridStackOptions (with children) and GridStackWidget[] array
+    const children = Array.isArray(layout)
+      ? layout
+      : (layout as GridStackOptions).children;
+
+    if (!children) return layout;
+
+    const updatedChildren = children.map((child: GridStackWidget) => {
+      // If this widget has updated props in context, update its content
+      if (child.id && widgetProps.has(child.id)) {
+        const updatedProps = widgetProps.get(child.id);
+
+        try {
+          // Parse the existing content to preserve the component name
+          let contentObj = { name: "", props: {} };
+          if (child.content) {
+            contentObj = JSON.parse(child.content);
+          }
+
+          // Merge the updated props
+          contentObj.props = { ...contentObj.props, ...updatedProps };
+
+          // Update the content with new props
+          return {
+            ...child,
+            content: JSON.stringify(contentObj),
+          };
+        } catch (error) {
+          console.error(`Error updating props for widget ${child.id}:`, error);
+          return child;
+        }
+      }
+
+      return child;
+    });
+
+    // Return the updated layout with the same structure
+    if (Array.isArray(layout)) {
+      return updatedChildren;
+    } else {
+      return {
+        ...layout,
+        children: updatedChildren,
+      };
+    }
+  };
+
   // Default handlers
   const handleSave = async () => {
     if (onSaveLayout) {
-      const layout = stackActionsRef.current?.saveLayout();
+      let layout = stackActionsRef.current?.saveLayout();
+      console.log("****grid stack layout: ", layout);
+
       if (layout) {
+        // Update the layout with the latest props from context
+        layout = updateLayoutWithNewProps(layout, widgetProps);
+
         const savedPageProps: PageProps = {
           ...(pageProps || getDefaultPageProps()),
           grids: layout,
           title: pageTitle as any,
+          tag: pageAttributes.tag,
+          status: pageAttributes.status,
+          pageAttributes: pageAttributes,
         };
         console.log(
           `Saving layout: pageid ${pageid}, props id ${savedPageProps.id}`
@@ -373,13 +309,10 @@ const StackPage = ({
     setDropEvent(event);
   };
 
-  // Get components and props from enhanced providers
-  const componentMap = getComponentMap(componentMapProvider);
-
   // Add handler for widget selection from gridstack
   const handleWidgetSelect = useCallback(
     (widgetData: { id: string; name: string; props: object }) => {
-      const instance: ComponentInstance = {
+      const instance = {
         id: widgetData.id,
         type: widgetData.name,
         props: widgetData.props,
@@ -392,39 +325,6 @@ const StackPage = ({
     [setSelectedInstance, setSelectedComponent, setActiveTab]
   );
 
-  // Handle page attribute changes
-  const handlePageAttributeChange = (attribute: string, value: string) => {
-    const newAttributes = {
-      ...pageAttributes,
-      [attribute]: value,
-    };
-    setPageAttributes(newAttributes);
-  };
-
-  // Context value
-  const contextValue: StackPageContextType = {
-    selectedComponent,
-    setSelectedComponent,
-    selectedInstance,
-    setSelectedInstance,
-    pageAttributes,
-    setPageAttributes,
-    activeTab,
-    setActiveTab,
-  };
-
-  // Panel styles for different screen sizes
-  const panelStyle = isMobile
-    ? { width: "100vw", minWidth: "100vw", height: "100vh" }
-    : { width: `${panelWidth}px`, minWidth: "300px", height: "100%" };
-
-  // Main content style
-  const mainContentStyle = {
-    margin: pageAttributes.margin,
-    padding: pageAttributes.padding,
-    backgroundColor: pageAttributes.background,
-  };
-
   const getPageInfo = () => {
     const pageInfo: PageProps = JSON.parse(JSON.stringify(pageProps));
     pageInfo.grids = stackActionsRef.current?.saveLayout();
@@ -436,14 +336,14 @@ const StackPage = ({
       if (dropEvent.name !== "SubGrid") {
         stackActionsRef.current.addWidget((_id) => ({
           ...dropEvent,
-          sizeToContent: true, // Ensure the widget is sized to its content
+          sizeToContent: true,
           content: JSON.stringify({
             name: dropEvent.name,
             props: getComponentProps(componentPropsProvider)[dropEvent.name],
           }),
         }));
       } else {
-        stackActionsRef.current.addSubGrid((_id /*, withWidget: any*/) => ({
+        stackActionsRef.current.addSubGrid((_id) => ({
           ...dropEvent,
           ...subGridOptions,
         }));
@@ -451,614 +351,309 @@ const StackPage = ({
     }
   }, [dropEvent, componentPropsProvider]);
 
-  // Then in the renderComponentsTab function, add the DeleteDropZone at the top:
-  const renderComponentsTab = () => {
-    return (
-      <div className="p-4 space-y-4">
-        <h3 className="text-lg font-medium mb-3">Components</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Drag components to the main area or click to select them
-        </p>
+  // Panel styles for different screen sizes
+  const panelStyle = isMobile
+    ? { width: "100vw", minWidth: "100vw", height: "100vh" }
+    : { width: `400px`, minWidth: "300px", height: "100%" };
 
-        {/* Delete Drop Zone - Add this section */}
-        <div className="mb-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            Delete Zone
-          </h4>
-          <DeleteDropZone
-            onDropDelete={() => {
-              console.log("Component deleted via drop zone");
-              // Clear selection after deletion
-              setSelectedComponent(null);
-              setSelectedInstance(null);
-            }}
-          />
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Drag components here to delete them
-          </p>
-        </div>
-
-        {/* Rest of the existing components tab content */}
-        <div
-          key="SubGrid"
-          gs-type="SubGrid"
-          data-gs-type="SubGrid"
-          className="grid-stack-item grid-stack-item-widget"
-          draggable="true"
-          onDragStart={(e) => handleDragStart(e, "SubGrid")}
-          onDragEnd={() => console.log("====SubGrid drag event end....")}
-          onClick={() => {
-            setSelectedComponent("SubGrid");
-            setSelectedInstance(null);
-          }}
-        >
-          {/* More prominent styling for SubGrid */}
-          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-dashed border-blue-300 text-sm hover:from-blue-100 hover:to-indigo-100 cursor-pointer transition-all duration-200 hover:shadow-lg text-center group">
-            <div className="font-semibold text-blue-700 mb-2 flex items-center justify-center">
-              <svg
-                className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 3v18M3 9h18"
-                />
-              </svg>
-              SubGrid
-            </div>
-            <div className="text-xs text-blue-600 font-medium">
-              Nested Grid Container
-            </div>
-            <div className="text-xs text-blue-500 mt-1">
-              Drag to create nested layout
-            </div>
-          </div>
-        </div>
-
-        {/* Rest of the component grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {Object.entries(componentMap).map(([name /*Component*/]) => (
-            <div
-              key={name}
-              gs-type={name}
-              data-gs-type={name}
-              className="grid-stack-item grid-stack-item-widget"
-              draggable="true"
-              onDragStart={(e) => handleDragStart(e, name)}
-              onDragEnd={() => console.log("====drag event end....")}
-              onClick={() => {
-                setSelectedComponent(name);
-                setSelectedInstance(null);
-              }}
-            >
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
-                <div className="font-medium text-gray-800 mb-2">{name}</div>
-                <div className="text-xs text-gray-500">Drag to main area</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-  
-  // Render Properties Tab
-  const renderPropertiesTab = () => {
-    const rawWidgetMetaMap: any = stackActionsRef.current?.rawWidgetMetaMap;
-
-    if (!selectedInstance && !selectedComponent) {
-      return (
-        <div className="p-4 text-center text-gray-500">
-          <div className="mb-2">👈</div>
-          <p>
-            Select a component from the Components tab or click on a placed
-            component to edit its properties
-          </p>
-        </div>
-      );
-    }
-
-    const componentType = selectedInstance?.type || selectedComponent;
-
-    // Get current props from selected instance
-    const currentProps = selectedInstance?.props || {};
-
-    const handlePropertyChange = (property: string, value: any) => {
-      if (selectedInstance) {
-        // Update the selected instance locally for immediate UI feedback
-        setSelectedInstance((prev) =>
-          prev ? { ...prev, props: { ...prev.props, [property]: value } } : null
-        );
-
-        // Update the widget in gridstack context if it exists
-        if (rawWidgetMetaMap.value.has(selectedInstance.id)) {
-          const updatedProps = { ...currentProps, [property]: value };
-          const updatedContent = JSON.stringify({
-            name: componentType,
-            props: updatedProps,
-          });
-
-          // You'll need to add an updateWidget method to your gridstack context
-          // or use another method to update the widget content
-          console.log("Update widget:", selectedInstance.id, updatedContent);
-          // updateWidget(selectedInstance.id, { content: updatedContent });
-        }
-      }
-    };
-
-    return (
-      <div className="p-4 space-y-4">
-        <h3 className="text-lg font-medium mb-3">
-          Properties - {componentType}
-          {selectedInstance && (
-            <span className="text-sm text-gray-500 ml-2">
-              (ID: {selectedInstance.id})
-            </span>
-          )}
-        </h3>
-
-        <div className="space-y-4">
-          {Object.entries(currentProps).map(([key, value]) => (
-            <div
-              key={key}
-              className="border-b border-gray-100 pb-3 last:border-b-0"
-            >
-              <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                {key.replace(/([A-Z])/g, " $1").trim()}
-              </label>
-              {typeof value === "boolean" ? (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={value as boolean}
-                    onChange={(e) =>
-                      handlePropertyChange(key, e.target.checked)
-                    }
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-600">Enabled</span>
-                </div>
-              ) : typeof value === "number" ? (
-                <input
-                  type="number"
-                  value={value as number}
-                  onChange={(e) =>
-                    handlePropertyChange(key, Number(e.target.value))
-                  }
-                  className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={value as string}
-                  onChange={(e) => handlePropertyChange(key, e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder={`Enter ${key}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {selectedInstance && (
-          <div className="mt-6 pt-4 border-t">
-            <p className="text-sm text-gray-600 mb-3">
-              This is a GridStack widget. Property changes will update the
-              widget in real-time.
-            </p>
-            <button
-              onClick={() => {
-                setSelectedInstance(null);
-                setSelectedComponent(null);
-              }}
-              className="w-full py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-medium"
-            >
-              Clear Selection
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Render Page Tab
-  const renderPageTab = () => {
-    return (
-      <div className="p-4 space-y-4">
-        <h3 className="text-lg font-medium mb-3">Page Settings</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Configure the overall page layout and appearance
-        </p>
-
-        <div className="space-y-4">
-                {/* Add Show Menu Checkbox at the top */}
-      <div className="border-b border-gray-100 pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Show Component Menu
-            </label>
-            <p className="text-xs text-gray-500">
-              Display the menu bar with delete button on each component
-            </p>
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={showMenubar}
-              onChange={(e) => setShowMenubar(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Margin
-            </label>
-            <input
-              type="text"
-              value={pageAttributes.margin}
-              onChange={(e) =>
-                handlePageAttributeChange("margin", e.target.value)
-              }
-              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 0, 10px, 1rem"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Space around the entire page content
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Padding
-            </label>
-            <input
-              type="text"
-              value={pageAttributes.padding}
-              onChange={(e) =>
-                handlePageAttributeChange("padding", e.target.value)
-              }
-              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 20px, 2rem"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Space inside the page container
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Background Color
-            </label>
-            <div className="flex gap-3 items-center">
-              <input
-                type="color"
-                value={pageAttributes.background}
-                onChange={(e) =>
-                  handlePageAttributeChange("background", e.target.value)
-                }
-                className="w-12 h-12 border border-gray-300 rounded cursor-pointer"
-              />
-              <input
-                type="text"
-                value={pageAttributes.background}
-                onChange={(e) =>
-                  handlePageAttributeChange("background", e.target.value)
-                }
-                className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="#ffffff, rgb(255,255,255), etc."
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Background color for the main content area
-            </p>
-          </div>
-
-
-        </div>
-
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">
-            Current Page Settings
-          </h4>
-          <div className="text-sm text-blue-700 grid grid-cols-2 gap-2">
-            <div>
-            Menu Bar: <code>{showMenubar ? "Visible" : "Hidden"}</code>
-          </div>
-            <div>
-              Margin: <code>{pageAttributes.margin}</code>
-            </div>
-            <div>
-              Padding: <code>{pageAttributes.padding}</code>
-            </div>
-            <div>
-              Background: <code>{pageAttributes.background}</code>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  // Main content style
+  const mainContentStyle = {
+    margin: pageAttributes.margin,
+    padding: pageAttributes.padding,
+    backgroundColor: pageAttributes.background,
   };
 
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
-      <StackPageContext.Provider value={contextValue}>
-        <div className="min-h-screen bg-white text-black flex flex-col">
-          {/* Toolbar - Only show in edit mode */}
-          {currentMode === "edit" && (
-            <header className="p-4 bg-white shadow relative">
-              <div className="flex flex-col sm:flex-row sm:items-center">
-                {/* Title and Description - Left side */}
-                <div className="flex-1 mb-3 sm:mb-0 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {isEditingTitle ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={pageTitle}
-                          onChange={(e) => setPageTitle(e.target.value)}
-                          onKeyDown={handleTitleKeyDown}
-                          onBlur={handleTitleSave}
-                          className="text-2xl font-bold border-b-2 border-blue-500 bg-transparent outline-none px-1"
-                          autoFocus
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 group">
-                        <h1 className="text-2xl font-bold truncate">
-                          {pageTitle}
-                        </h1>
-                        <button
-                          onClick={handleTitleEdit}
-                          className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Button Group - Right side */}
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {/* Back to List */}
-                  <TooltipButton
-                    onClick={handleGoBack}
-                    icon={<ArrowLeftIcon className="h-5 w-5" />}
-                    tooltip="Back to list"
-                    className="bg-gray-200 hover:bg-gray-300"
-                  />
-
-                  {/* Preview */}
-                  <TooltipButton
-                    onClick={() => setCurrentMode("preview")}
-                    icon={<EyeIcon className="h-5 w-5" />}
-                    tooltip="Preview"
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
-                  />
-
-                  {/* Save */}
-                  <StatusButton
-                    onClick={handleSave}
-                    icon={<CloudArrowDownIcon className="h-5 w-5" />}
-                    label="Save"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    successMessage="Saved successfully!"
-                    errorMessage="Save failed"
-                  />
-
-                  {/* Reload */}
-                  <StatusButton
-                    onClick={handleReload}
-                    icon={<ArrowPathIcon className="h-5 w-5" />}
-                    label="Reload"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                    successMessage="Reloaded successfully"
-                    errorMessage="Failed to reload"
-                  />
-
-                  {/* Clear */}
-                  <TooltipButton
-                    onClick={handleClear}
-                    icon={<TrashIcon className="h-5 w-5" />}
-                    tooltip="Clear all data"
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  />
-
-                  {/* Page Info */}
-                  <TooltipButton
-                    onClick={() => setShowGridInfo(true)}
-                    icon={<InformationCircleIcon className="h-5 w-5" />}
-                    tooltip="Page Info & Settings"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  />
-
-                  {/* Toggle Editor - Hide on mobile when panel is open */}
-                  {!isMobile && (
-                    <TooltipButton
-                      onClick={() => setShowEditor(!showEditor)}
-                      icon={
-                        showEditor ? (
-                          <ChevronRightIcon className="h-5 w-5" />
-                        ) : (
-                          <ChevronLeftIcon className="h-5 w-5" />
-                        )
-                      }
-                      tooltip={showEditor ? "Hide Editor" : "Show Editor"}
-                      className="bg-gray-200 hover:bg-gray-300"
-                    />
-                  )}
-                </div>
-              </div>
-            </header>
-          )}
-
-          {/* Main Content Area */}
-          <div className="flex flex-1 overflow-hidden relative">
-            {/* Main Content */}
-            <div
-              className={`flex-1 transition-all duration-200 ${
-                showEditor && currentMode === "edit"
-                  ? "overflow-auto"
-                  : "overflow-hidden"
-              }`}
-              style={mainContentStyle}
-            >
-              <div className="h-full">
-                <div className="bg-white rounded-lg shadow h-full flex flex-col">
-                  <div
-                    className={`flex-1 relative p-0 grid-stack-mode-${currentMode}`}
-                  >
-                    {/* Render existing component instances */}
-                    <StackActions ref={stackActionsRef} />
-                    <GridStackRenderProvider
-                      onGridStackDropEvent={handleDropEvent}
-                    >
-                      <GridStackRender
-                        componentMap={getComponentMap(componentMapProvider)}
-                        showMenubar={showMenubar}
-                        onWidgetSelect={handleWidgetSelect}
-                        selectedWidgetId={selectedInstance?.id} 
+      <div className="min-h-screen bg-white text-black flex flex-col">
+        {/* Toolbar - Only show in edit mode */}
+        {currentMode === "edit" && (
+          <header className="mx-2 p-4 bg-white shadow relative">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              {/* Title and Description - Left side */}
+              <div className="flex-1 mb-3 sm:mb-0 min-w-0">
+                <div className="flex items-center gap-2">
+                  {isEditingTitle ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={pageTitle}
+                        onChange={(e) => setPageTitle(e.target.value)}
+                        onKeyDown={handleTitleKeyDown}
+                        onBlur={handleTitleSave}
+                        className="text-2xl font-bold border-b-2 border-blue-500 bg-transparent outline-none px-1"
+                        autoFocus
                       />
-                    </GridStackRenderProvider>
-
-                    {/* Custom children content */}
-                    {children}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Main Content End*/}
-
-            {/* Editor Panel - Only show in edit mode when enabled */}
-            {currentMode === "edit" && showEditor && (
-              <>
-                {/* Mobile Overlay */}
-                {isMobile && (
-                  <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40"
-                    onClick={() => setShowEditor(false)}
-                  />
-                )}
-
-                {/* Panel */}
-                <div
-                  className={`flex flex-col bg-white shadow-lg border-l border-gray-200 ${
-                    isMobile
-                      ? "fixed right-0 top-0 bottom-0 z-50 transform transition-transform duration-300"
-                      : "relative"
-                  }`}
-                  style={panelStyle}
-                >
-                  {/* Close button for mobile */}
-                  {isMobile && (
-                    <div className="absolute top-4 right-4 z-10">
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group">
+                      <h1 className="text-2xl font-bold truncate">
+                        {pageTitle}
+                      </h1>
                       <button
-                        onClick={() => setShowEditor(false)}
-                        className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                        onClick={handleTitleEdit}
+                        className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <ChevronRightIcon className="h-5 w-5" />
+                        <PencilIcon className="h-4 w-4" />
                       </button>
                     </div>
                   )}
-
-                  {/* Tab Header */}
-                  <div className="flex border-b border-gray-200 pt-4">
-                    {(["components", "properties", "page"] as const).map(
-                      (tab) => (
-                        <button
-                          key={tab}
-                          className={`flex-1 py-3 px-4 text-sm font-medium capitalize transition-colors ${
-                            activeTab === tab
-                              ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                          }`}
-                          onClick={() => setActiveTab(tab)}
-                        >
-                          {tab}
-                        </button>
-                      )
-                    )}
-                  </div>
-
-                  {/* Tab Content */}
-                  <div className="flex-1 overflow-y-auto pb-4">
-                    {activeTab === "components" && renderComponentsTab()}
-                    {activeTab === "properties" && renderPropertiesTab()}
-                    {activeTab === "page" && renderPageTab()}
-                  </div>
                 </div>
-              </>
-            )}
-          </div>
-          {/* Main Content Area End*/}
+              </div>
 
-          {/* Mobile toggle button */}
-          {currentMode === "edit" && isMobile && !showEditor && (
-            <div className="fixed bottom-4 right-4 z-30">
-              <button
-                onClick={() => setShowEditor(true)}
-                className="p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+              {/* Button Group - Right side */}
+              <div className="flex flex-wrap gap-1 justify-end">
+                {/* Back to List */}
+                <TooltipButton
+                  onClick={handleGoBack}
+                  icon={<ArrowLeftIcon className="h-5 w-5" />}
+                  tooltip="Back to list"
+                  className="bg-gray-200 hover:bg-gray-300"
+                />
+
+                {/* Preview */}
+                <TooltipButton
+                  onClick={() => setCurrentMode("preview")}
+                  icon={<EyeIcon className="h-5 w-5" />}
+                  tooltip="Preview"
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                />
+
+                {/* Save */}
+                <StatusButton
+                  onClick={handleSave}
+                  icon={<CloudArrowDownIcon className="h-5 w-5" />}
+                  label="Save"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  successMessage="Saved successfully!"
+                  errorMessage="Save failed"
+                />
+
+                {/* Reload */}
+                <StatusButton
+                  onClick={handleReload}
+                  icon={<ArrowPathIcon className="h-5 w-5" />}
+                  label="Reload"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  successMessage="Reloaded successfully"
+                  errorMessage="Failed to reload"
+                />
+
+                {/* Clear */}
+                <TooltipButton
+                  onClick={handleClear}
+                  icon={<TrashIcon className="h-5 w-5" />}
+                  tooltip="Clear all data"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                />
+
+                {/* Page Info */}
+                <TooltipButton
+                  onClick={() => setShowGridInfo(true)}
+                  icon={<InformationCircleIcon className="h-5 w-5" />}
+                  tooltip="Page Info & Settings"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                />
+
+                {/* Toggle Editor - Hide on mobile when panel is open */}
+                {!isMobile && (
+                  <TooltipButton
+                    onClick={() => setShowEditor(!showEditor)}
+                    icon={
+                      showEditor ? (
+                        <ChevronRightIcon className="h-5 w-5" />
+                      ) : (
+                        <ChevronLeftIcon className="h-5 w-5" />
+                      )
+                    }
+                    tooltip={showEditor ? "Hide Editor" : "Show Editor"}
+                    className="bg-gray-200 hover:bg-gray-300"
+                  />
+                )}
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex flex-1 overflow-hidden relative">
+          {/* Main Content */}
+          <div
+            className={`flex-1 transition-all duration-200 ${
+              showEditor && currentMode === "edit"
+                ? "overflow-auto"
+                : "overflow-hidden"
+            }`}
+            style={mainContentStyle}
+          >
+            <div className="h-full">
+              <div className="bg-white rounded-lg shadow h-full flex flex-col">
+                <div
+                  className={`flex-1 relative p-0 grid-stack-mode-${currentMode}`}
+                >
+                  {/* Render existing component instances */}
+                  <StackActions ref={stackActionsRef} />
+                  <GridStackRenderProvider
+                    onGridStackDropEvent={handleDropEvent}
+                  >
+                    <GridStackRender
+                      componentMap={getComponentMap(componentMapProvider)}
+                      showMenubar={pageAttributes.showMenubar}
+                      onWidgetSelect={handleWidgetSelect}
+                    />
+                  </GridStackRenderProvider>
+
+                  {/* Custom children content */}
+                  {children}
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Main Content End*/}
+
+          {/* Editor Panel - Only show in edit mode when enabled */}
+          {currentMode === "edit" && showEditor && (
+            <>
+              {/* Mobile Overlay */}
+              {isMobile && (
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                  onClick={() => setShowEditor(false)}
+                />
+              )}
+
+              {/* Panel */}
+              <div
+                className={`flex flex-col bg-white shadow-lg border-l border-gray-200 ${
+                  isMobile
+                    ? "fixed right-0 top-0 bottom-0 z-50 transform transition-transform duration-300"
+                    : "relative"
+                }`}
+                style={panelStyle}
               >
-                <ChevronLeftIcon className="h-6 w-6" />
+                {/* Close button for mobile */}
+                {isMobile && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={() => setShowEditor(false)}
+                      className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                    >
+                      <ChevronRightIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Tab Header */}
+                <div className="flex border-b border-gray-200 pt-4">
+                  {(["components", "properties", "page"] as const).map(
+                    (tab) => (
+                      <button
+                        key={tab}
+                        className={`flex-1 py-3 px-4 text-sm font-medium capitalize transition-colors ${
+                          activeTab === tab
+                            ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                        }`}
+                        onClick={() => setActiveTab(tab)}
+                      >
+                        {tab}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {/* Tab Content */}
+<div className="flex-1 overflow-y-auto pb-4">
+  <div style={{ display: activeTab === "components" ? "block" : "none" }}>
+    <ComponentsTab
+      componentMapProvider={componentMapProvider}
+      onDragStart={handleDragStart}
+    />
+  </div>
+  <div style={{ display: activeTab === "properties" ? "block" : "none" }}>
+    <PropertiesTab
+      onFileUpload={onFileUpload}
+      onApiCall={onApiCall}
+      onCustomAction={onCustomAction}
+      onGetSelectOptions={onGetSelectOptions}
+    />
+  </div>
+  <div style={{ display: activeTab === "page" ? "block" : "none" }}>
+    <PageTab
+      onFileUpload={onFileUpload}
+      onGetTags={onGetTags}
+    />
+  </div>
+</div>
+              </div>
+            </>
+          )}
+        </div>
+        {/* Main Content Area End*/}
+
+        {/* Mobile toggle button */}
+        {currentMode === "edit" && isMobile && !showEditor && (
+          <div className="fixed bottom-4 right-4 z-30">
+            <button
+              onClick={() => setShowEditor(true)}
+              className="p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+            >
+              <ChevronLeftIcon className="h-6 w-6" />
+            </button>
+          </div>
+        )}
+
+        {/* Floating Return Button - Show immediately in preview mode */}
+        {currentMode === "preview" && (
+          <div className="fixed inset-0 pointer-events-none z-50">
+            <div className="absolute bottom-8 right-8 pointer-events-auto">
+              <button
+                onClick={() => setCurrentMode("edit")}
+                className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
+                title="Return to Edit Mode"
+              >
+                <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
+                <span className="text-sm font-medium">Edit Mode</span>
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Floating Return Button - Show immediately in preview mode */}
-          {currentMode === "preview" && (
-            <div className="fixed inset-0 pointer-events-none z-50">
-              <div className="absolute bottom-8 right-8 pointer-events-auto">
-                <button
-                  onClick={() => setCurrentMode("edit")}
-                  className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                  title="Return to Edit Mode"
-                >
-                  <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
-                  <span className="text-sm font-medium">Edit Mode</span>
-                </button>
-              </div>
+        {/* Floating Return Button - For view mode (external) */}
+        {currentMode === "view" && (
+          <div className="fixed inset-0 pointer-events-none z-50">
+            <div className="absolute bottom-8 right-8 pointer-events-auto">
+              <button
+                onClick={gobackList}
+                className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
+                title="Back to List"
+              >
+                <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
+                <span className="text-sm font-medium">Back to List</span>
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Floating Return Button - For view mode (external) */}
-          {currentMode === "view" && (
-            <div className="fixed inset-0 pointer-events-none z-50">
-              <div className="absolute bottom-8 right-8 pointer-events-auto">
-                <button
-                  onClick={gobackList}
-                  className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                  title="Back to List"
-                >
-                  <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
-                  <span className="text-sm font-medium">Back to List</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* show page info */}
-          <PageInfoDialogs
-            isOpen={showGridInfo}
-            pageInfo={getPageInfo()}
-            resetOpenInfo={setShowGridInfo}
-          />
-        </div>
-      </StackPageContext.Provider>
+        {/* show page info */}
+        <PageInfoDialogs
+          isOpen={showGridInfo}
+          pageInfo={getPageInfo()}
+          resetOpenInfo={setShowGridInfo}
+        />
+      </div>
     </GridStackProvider>
+  );
+};
+
+// Main exported component with StackPageProvider
+const StackPage = (props: StackPageProps) => {
+  return (
+    <LocaleProvider defaultLocale="ja-JP">
+      <StackPageProvider>
+        <StackPageContent {...props} />
+      </StackPageProvider>
+    </LocaleProvider>
   );
 };
 

@@ -6,6 +6,7 @@ export interface GridStackDropEvent {
     y: number;
     w: number;
     h: number;
+    gridId?: string;
 }
 export type GridStackDropEventCallback = (event: GridStackDropEvent) => void;
 export declare function GridStackRenderProvider({ children, onGridStackDropEvent, }: PropsWithChildren<{
