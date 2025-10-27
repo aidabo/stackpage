@@ -95,3 +95,16 @@
   min-height: 40px;
   padding: 0px;
 }
+
+.stack-btn-icon {
+  width: 16px;
+  height: 16px;
+}
+
+:root {
+  --stackpage-top-spacing: 60px;
+}
+
+.stack-page-container {
+  --stackpage-top-spacing: 60px; /* Default value */
+}

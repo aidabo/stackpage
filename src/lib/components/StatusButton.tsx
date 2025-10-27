@@ -47,11 +47,11 @@ export function StatusButton({
         }`}
       >
         {isLoading ? (
-          <ArrowPathIcon className="h-5 w-5 animate-spin" />
+          <ArrowPathIcon className="stack-btn-icon animate-spin" />
         ) : (
           <>
             {icon}
-            <span className="ml-1 hidden sm:inline">{label}</span>
+            <span className="ml-1 text-sm sm:inline">{label}</span>
           </>
         )}
       </button>

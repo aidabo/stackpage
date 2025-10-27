@@ -71,7 +71,7 @@ export const PropertyField = ({
       "timestamp",
       "published",
       "due",
-      "at",
+      "_at",
     ];
     const isDateLikeName = dateLikeNames.some((dateName) =>
       lowerName.includes(dateName)

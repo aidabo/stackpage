@@ -7,6 +7,7 @@ import {
 } from "./grid-stack-render";
 import { useGridStackContext } from "./grid-stack-context";
 import { useGridStackWidgetContext } from "./grid-stack-widget-context";
+import { LocaleProvider, useLocale } from "./components/LocaleContext";
 
 export {
   GridStackProvider,
@@ -18,28 +19,45 @@ export {
   useGridStackWidgetContext,
 };
 
-import StackPage from "./components/stackpage"
-import {    
+import StackPage from "./components/stackpage";
+import {StackPageProps, StackPageOptions} from "./components/stackpage";
+import {
   ComponentProps,
   PageProps,
-  ComponentMapProvider, 
+  ComponentMapProvider,
   ComponentPropsProvider,
   GoBackListFn,
   LoadLayoutFn,
-  SaveLayoutFn
+  SaveLayoutFn,
+  getDefaultPageProps,
+  FileUploadFn,
+  GetTagsFn,
+  ApiCallFn,
+  CustomActionFn,
+  GetSelectOptionsFn,
 } from "./components/stackoptions";
 
-import './styles/index.css';
+import "./styles/index.css";
 
 export {
-    StackPage,
-    type PageProps,
-    type ComponentProps,
-    type ComponentMapProvider,
-    type ComponentPropsProvider,
-    type GoBackListFn,
-    type LoadLayoutFn,
-    type SaveLayoutFn
+  StackPage,
+  getDefaultPageProps,
+  useLocale,
+  LocaleProvider,
+  type StackPageProps,
+  type StackPageOptions,
+  type PageProps,
+  type ComponentProps,
+  type ComponentMapProvider,
+  type ComponentPropsProvider,
+  type GoBackListFn,
+  type LoadLayoutFn,
+  type SaveLayoutFn,
+  type FileUploadFn,
+  type GetTagsFn,
+  type ApiCallFn,
+  type CustomActionFn,
+  type GetSelectOptionsFn,
 };
 
 //export { default as styles } from './styles/index.css';

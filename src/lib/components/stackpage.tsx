@@ -40,7 +40,6 @@ import {
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../grid-stack-render-provider";
 import PageInfoDialogs from "./pageinfodialog";
-// Import the new context
 import { StackPageProvider } from "./StackPageProvider";
 import { useStackPage } from "./StackPageContext";
 import { PropertiesTab } from "./PropertiesTab";
@@ -48,9 +47,12 @@ import { ComponentsTab } from "./ComponentsTab";
 import { PageTab } from "./PageTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
-import { LocaleProvider } from "./LocaleContext.tsx";
 
 import "../styles/index.css";
+
+export interface StackPageOptions {
+  options: any; // Define any specific options for the StackPage here
+}
 
 export interface StackPageProps {
   pageid: string;
@@ -65,6 +67,7 @@ export interface StackPageProps {
   onApiCall?: ApiCallFn;
   onCustomAction?: CustomActionFn;
   onGetSelectOptions?: GetSelectOptionsFn;
+  options?: StackPageOptions;
   children?: ReactNode;
 }
 
@@ -107,8 +110,10 @@ const StackPageContent = ({
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
     pageMode
   );
-  const [showEditor, setShowEditor] = useState(true);
+  const isMobile = useMobile();
+  const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const initialLoadRef = useRef(true);
 
   const {
     activeTab,
@@ -135,12 +140,37 @@ const StackPageContent = ({
   const [dropEvent, setDropEvent] = useState<GridStackDropEvent>();
   const [showGridInfo, setShowGridInfo] = useState(false);
 
-  const isMobile = useMobile();
-
   // Update currentMode when pageMode prop changes
   useEffect(() => {
     setCurrentMode(pageMode);
   }, [pageMode]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      if (initialLoadRef.current && isMobile) {
+        initialLoadRef.current = false;
+        // Only set on initial load, not on subsequent resizes
+        setShowEditor(!isMobile);
+      }
+    }, 100);
+  }, [isMobile]);
+
+  // Handle mode changes and update showMenubar accordingly
+  useEffect(() => {  
+    if (currentMode === "preview" || currentMode === "view") {
+      // When switching to preview or view mode, hide menubar
+      setPageAttributes((prev:any) => ({
+        ...prev,
+        showMenubar: false
+      }));
+    } else if (currentMode === "edit") {
+      // When switching back to edit mode, show menubar
+      setPageAttributes((prev:any) => ({
+        ...prev,
+        showMenubar: true
+      }));
+    }
+  }, [currentMode, setPageAttributes]);
 
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
@@ -353,8 +383,19 @@ const StackPageContent = ({
 
   // Panel styles for different screen sizes
   const panelStyle = isMobile
-    ? { width: "100vw", minWidth: "100vw", height: "100vh" }
-    : { width: `400px`, minWidth: "300px", height: "100%" };
+    ? {
+        width: "100vw",
+        minWidth: "100vw",
+        height: "calc(100% - var(--stackpage-top-spacing, 60px))",
+        top: "var(--stackpage-top-spacing, 60px)",
+        zIndex: 101 /** just greater than grid-stack */,
+      }
+    : {
+        width: `400px`,
+        minWidth: "300px",
+        height: "calc(100% - var(--stackpage-top-spacing, 60px))",
+        top: "var(--stackpage-top-spacing, 60px)",
+      };
 
   // Main content style
   const mainContentStyle = {
@@ -369,7 +410,7 @@ const StackPageContent = ({
         {/* Toolbar - Only show in edit mode */}
         {currentMode === "edit" && (
           <header className="mx-2 p-4 bg-white shadow relative">
-            <div className="flex flex-col sm:flex-row sm:items-center">
+            <div className="flex flex-col md:flex-row md:items-center text-lg">
               {/* Title and Description - Left side */}
               <div className="flex-1 mb-3 sm:mb-0 min-w-0">
                 <div className="flex items-center gap-2">
@@ -381,6 +422,7 @@ const StackPageContent = ({
                         onChange={(e) => setPageTitle(e.target.value)}
                         onKeyDown={handleTitleKeyDown}
                         onBlur={handleTitleSave}
+                        maxLength={100}
                         className="text-2xl font-bold border-b-2 border-blue-500 bg-transparent outline-none px-1"
                         autoFocus
                       />
@@ -392,9 +434,9 @@ const StackPageContent = ({
                       </h1>
                       <button
                         onClick={handleTitleEdit}
-                        className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-1 text-gray-400 hover:text-gray-600 group-hover:opacity-100 transition-opacity"
                       >
-                        <PencilIcon className="h-4 w-4" />
+                        <PencilIcon className="stack-btn-icon" />
                       </button>
                     </div>
                   )}
@@ -406,7 +448,7 @@ const StackPageContent = ({
                 {/* Back to List */}
                 <TooltipButton
                   onClick={handleGoBack}
-                  icon={<ArrowLeftIcon className="h-5 w-5" />}
+                  icon={<ArrowLeftIcon className="stack-btn-icon" />}
                   tooltip="Back to list"
                   className="bg-gray-200 hover:bg-gray-300"
                 />
@@ -414,7 +456,7 @@ const StackPageContent = ({
                 {/* Preview */}
                 <TooltipButton
                   onClick={() => setCurrentMode("preview")}
-                  icon={<EyeIcon className="h-5 w-5" />}
+                  icon={<EyeIcon className="stack-btn-icon" />}
                   tooltip="Preview"
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 />
@@ -422,7 +464,7 @@ const StackPageContent = ({
                 {/* Save */}
                 <StatusButton
                   onClick={handleSave}
-                  icon={<CloudArrowDownIcon className="h-5 w-5" />}
+                  icon={<CloudArrowDownIcon className="stack-btn-icon" />}
                   label="Save"
                   className="bg-green-600 hover:bg-green-700 text-white"
                   successMessage="Saved successfully!"
@@ -432,7 +474,7 @@ const StackPageContent = ({
                 {/* Reload */}
                 <StatusButton
                   onClick={handleReload}
-                  icon={<ArrowPathIcon className="h-5 w-5" />}
+                  icon={<ArrowPathIcon className="stack-btn-icon" />}
                   label="Reload"
                   className="bg-green-600 hover:bg-green-700 text-white"
                   successMessage="Reloaded successfully"
@@ -442,7 +484,7 @@ const StackPageContent = ({
                 {/* Clear */}
                 <TooltipButton
                   onClick={handleClear}
-                  icon={<TrashIcon className="h-5 w-5" />}
+                  icon={<TrashIcon className="stack-btn-icon" />}
                   tooltip="Clear all data"
                   className="bg-red-600 hover:bg-red-700 text-white"
                 />
@@ -450,7 +492,7 @@ const StackPageContent = ({
                 {/* Page Info */}
                 <TooltipButton
                   onClick={() => setShowGridInfo(true)}
-                  icon={<InformationCircleIcon className="h-5 w-5" />}
+                  icon={<InformationCircleIcon className="stack-btn-icon" />}
                   tooltip="Page Info & Settings"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 />
@@ -461,9 +503,9 @@ const StackPageContent = ({
                     onClick={() => setShowEditor(!showEditor)}
                     icon={
                       showEditor ? (
-                        <ChevronRightIcon className="h-5 w-5" />
+                        <ChevronRightIcon className="stack-btn-icon" />
                       ) : (
-                        <ChevronLeftIcon className="h-5 w-5" />
+                        <ChevronLeftIcon className="stack-btn-icon" />
                       )
                     }
                     tooltip={showEditor ? "Hide Editor" : "Show Editor"}
@@ -517,7 +559,7 @@ const StackPageContent = ({
               {/* Mobile Overlay */}
               {isMobile && (
                 <div
-                  className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                  className="relative inset-0 bg-black bg-opacity-50 z-40 stack-tab-panel-top-mobile"
                   onClick={() => setShowEditor(false)}
                 />
               )}
@@ -526,7 +568,7 @@ const StackPageContent = ({
               <div
                 className={`flex flex-col bg-white shadow-lg border-l border-gray-200 ${
                   isMobile
-                    ? "fixed right-0 top-0 bottom-0 z-50 transform transition-transform duration-300"
+                    ? "fixed right-0 bottom-0 transform transition-transform duration-300"
                     : "relative"
                 }`}
                 style={panelStyle}
@@ -538,13 +580,13 @@ const StackPageContent = ({
                       onClick={() => setShowEditor(false)}
                       className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
                     >
-                      <ChevronRightIcon className="h-5 w-5" />
+                      <ChevronRightIcon className="stack-btn-icon" />
                     </button>
                   </div>
                 )}
 
                 {/* Tab Header */}
-                <div className="flex border-b border-gray-200 pt-4">
+                <div className="flex border-b border-gray-200 pt-4 px-4">
                   {(["components", "properties", "page"] as const).map(
                     (tab) => (
                       <button
@@ -563,28 +605,38 @@ const StackPageContent = ({
                 </div>
 
                 {/* Tab Content */}
-<div className="flex-1 overflow-y-auto pb-4">
-  <div style={{ display: activeTab === "components" ? "block" : "none" }}>
-    <ComponentsTab
-      componentMapProvider={componentMapProvider}
-      onDragStart={handleDragStart}
-    />
-  </div>
-  <div style={{ display: activeTab === "properties" ? "block" : "none" }}>
-    <PropertiesTab
-      onFileUpload={onFileUpload}
-      onApiCall={onApiCall}
-      onCustomAction={onCustomAction}
-      onGetSelectOptions={onGetSelectOptions}
-    />
-  </div>
-  <div style={{ display: activeTab === "page" ? "block" : "none" }}>
-    <PageTab
-      onFileUpload={onFileUpload}
-      onGetTags={onGetTags}
-    />
-  </div>
-</div>
+                <div className="flex-1 overflow-y-auto pb-4">
+                  <div
+                    style={{
+                      display: activeTab === "components" ? "block" : "none",
+                    }}
+                  >
+                    <ComponentsTab
+                      componentMapProvider={componentMapProvider}
+                      onDragStart={handleDragStart}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      display: activeTab === "properties" ? "block" : "none",
+                    }}
+                  >
+                    <PropertiesTab
+                      onFileUpload={onFileUpload}
+                      onApiCall={onApiCall}
+                      onCustomAction={onCustomAction}
+                      onGetSelectOptions={onGetSelectOptions}
+                    />
+                  </div>
+                  <div
+                    style={{ display: activeTab === "page" ? "block" : "none" }}
+                  >
+                    <PageTab
+                      onFileUpload={onFileUpload}
+                      onGetTags={onGetTags}
+                    />
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -598,7 +650,7 @@ const StackPageContent = ({
               onClick={() => setShowEditor(true)}
               className="p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
             >
-              <ChevronLeftIcon className="h-6 w-6" />
+              <ChevronLeftIcon className="stack-btn-icon" />
             </button>
           </div>
         )}
@@ -612,7 +664,7 @@ const StackPageContent = ({
                 className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
                 title="Return to Edit Mode"
               >
-                <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
+                <ArrowLeftCircleIcon className="stack-btn-icon group-hover:animate-bounce" />
                 <span className="text-sm font-medium">Edit Mode</span>
               </button>
             </div>
@@ -628,7 +680,7 @@ const StackPageContent = ({
                 className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
                 title="Back to List"
               >
-                <ArrowLeftCircleIcon className="h-6 w-6 group-hover:animate-bounce" />
+                <ArrowLeftCircleIcon className="stack-btn-icon group-hover:animate-bounce" />
                 <span className="text-sm font-medium">Back to List</span>
               </button>
             </div>
@@ -649,11 +701,9 @@ const StackPageContent = ({
 // Main exported component with StackPageProvider
 const StackPage = (props: StackPageProps) => {
   return (
-    <LocaleProvider defaultLocale="ja-JP">
-      <StackPageProvider>
-        <StackPageContent {...props} />
-      </StackPageProvider>
-    </LocaleProvider>
+    <StackPageProvider>
+      <StackPageContent {...props} />
+    </StackPageProvider>
   );
 };
 

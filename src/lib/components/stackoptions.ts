@@ -31,12 +31,13 @@ export const gridOptions: GridStackOptions = {
   },
   margin: 5,
   cellHeight: CELL_HEIGHT,
-
+  subGridDynamic: true, // v7 api to create sub-grids on the fly
   subGridOpts: {
     acceptWidgets: true,
     removable: "#trash",
     resizable: { handles: "se" },
     sizeToContent: true,
+    subGridDynamic: true,
     columnOpts: {
       breakpoints: BREAKPOINTS,
       layout: "moveScale",
@@ -57,6 +58,7 @@ export const subGridOptions: GridStackOptions = {
   removable: "#trash",
   resizable: { handles: "se" },
   sizeToContent: true,
+  subGridDynamic: true, // v7 api to create sub-grids on the fly
   subGridOpts: {
     acceptWidgets: true,
     removable: "#trash",
