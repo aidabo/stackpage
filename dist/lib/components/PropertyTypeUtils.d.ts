@@ -1,0 +1,14 @@
+export declare const isValidHttpUrl: (string: string) => boolean;
+export declare const isValidDate: (dateString: any) => boolean;
+export declare const isSelectField: (value: any) => boolean;
+export declare const parseSelectOptions: (selectString: string) => string[];
+export declare const getFileType: (fileValue: string) => "image" | "video" | "audio" | "document" | "other";
+export declare const getFileAccept: (name: string, value: any) => string;
+export declare const formatDateForInput: (dateValue: any, type: "date" | "datetime") => string;
+export declare const parseDateFromInput: (inputValue: string, type: "date" | "datetime") => string;
+export declare const formatDateForDisplay: (dateValue: any, type: "date" | "datetime") => string;
+export declare const detectFieldType: (name: string, value: any, onGetSelectOptions?: (propertyName: string, componentType: string) => Promise<string[]>) => string;
+export declare const isLikelySelectField: (name: string) => boolean;
+export declare const getDynamicSelectOptions: (propertyName: string, componentType: string, onGetSelectOptions?: (propertyName: string, componentType: string) => Promise<string[]>) => Promise<string[]>;
+export declare const handleApiCall: (endpoint: string, method?: string, data?: any, onApiCall?: (endpoint: string, method?: string, data?: any) => Promise<any>) => Promise<any>;
+export declare const handleCustomAction: (action: string, data: any, onCustomAction?: (action: string, data: any) => Promise<any>) => Promise<any>;

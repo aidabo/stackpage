@@ -1,12 +1,25 @@
 /* eslint-disable no-case-declarations */
 // PropertyField.tsx
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  isValidHttpUrl,
+  detectFieldType,
+  parseSelectOptions,
+  getFileType,
+  getFileAccept,
+  formatDateForInput,
+  parseDateFromInput,
+  formatDateForDisplay,
+  getDynamicSelectOptions,
+} from "./PropertyTypeUtils";
 
 interface PropertyFieldProps {
   name: string;
   value: any;
   onChange: (value: any) => void;
   onFileUpload?: (file: File) => Promise<string>;
+  onGetSelectOptions?: (propertyName: string, componentType: string) => Promise<string[]>;
+  componentType?: string;
 }
 
 export const PropertyField = ({
@@ -14,301 +27,40 @@ export const PropertyField = ({
   value,
   onChange,
   onFileUpload,
+  onGetSelectOptions,
+  componentType = "Unknown",
 }: PropertyFieldProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [urlInput, setUrlInput] = useState(value || "");
+  const [dynamicOptions, setDynamicOptions] = useState<string[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
 
-  // Helper function to detect if a string is a valid date
-  const isValidDate = (dateString: any): boolean => {
-    if (typeof dateString !== "string") return false;
-    const date = new Date(dateString);
-    return !isNaN(date.getTime());
-  };
+  const fieldType = detectFieldType(name, value, onGetSelectOptions);
 
-  // Helper function to check if string is a valid HTTP URL
-  const isValidHttpUrl = (string: string): boolean => {
-    try {
-      const url = new URL(string);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch (_) {
-      return false;
-    }
-  };
-
-  // Helper function to detect field type
-  const detectFieldType = (): string => {
-    const lowerName = name.toLowerCase();
-
-    // Check for special field names
-    if (
-      [
-        "src",
-        "source",
-        "file",
-        "image",
-        "url",
-        "avatar",
-        "logo",
-        "icon",
-        "video",
-        "audio",
-        "media",
-      ].includes(lowerName)
-    ) {
-      return "file";
-    }
-
-    // Check for date/time fields
-    const dateLikeNames = [
-      "date",
-      "time",
-      "datetime",
-      "created",
-      "updated",
-      "start",
-      "end",
-      "timestamp",
-      "published",
-      "due",
-      "_at",
-    ];
-    const isDateLikeName = dateLikeNames.some((dateName) =>
-      lowerName.includes(dateName)
-    );
-
-    if (isDateLikeName && isValidDate(value)) {
-      if (
-        lowerName.includes("time") ||
-        lowerName.includes("datetime") ||
-        lowerName === "timestamp"
-      ) {
-        return "datetime";
-      }
-      return "date";
-    }
-
-    // Check value type
-    if (typeof value === "number") return "number";
-    if (typeof value === "boolean") return "boolean";
-    if (Array.isArray(value)) return "array";
-    if (typeof value === "object" && value !== null) return "json";
-
-    if (typeof value === "string") {
-      // Check for select pattern
-      const selectPattern = /^\[([^\]]+)\]$/;
-      const match = value.match(selectPattern);
-      if (match) {
-        const optionsString = match[1];
-        if (optionsString.includes(",") || optionsString.includes("|")) {
-          return "select";
+  // Load dynamic select options
+  useEffect(() => {
+    if (fieldType === "dynamic-select" && onGetSelectOptions) {
+      const loadOptions = async () => {
+        setLoadingOptions(true);
+        try {
+          const options = await getDynamicSelectOptions(
+            name,
+            componentType,
+            onGetSelectOptions
+          );
+          setDynamicOptions(options);
+        } catch (error) {
+          console.error("Failed to load dynamic options:", error);
+          setDynamicOptions([]);
+        } finally {
+          setLoadingOptions(false);
         }
-      }
-
-      // Check for long text or multi-line
-      if (value.length > 40 || value.includes("\n")) return "textarea";
-
-      // Check if it's a color value
-      if (
-        lowerName.includes("color") ||
-        value.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-      ) {
-        return "color";
-      }
-
-      return "text";
+      };
+      
+      loadOptions();
     }
-
-    return "text";
-  };
-
-  // Helper function to parse select options
-  const parseSelectOptions = (selectString: string): string[] => {
-    const match = selectString.match(/^\[([^\]]+)\]$/);
-    if (!match) return [];
-
-    const optionsString = match[1];
-
-    if (optionsString.includes(",")) {
-      return optionsString.split(",").map((opt) => opt.trim());
-    } else if (optionsString.includes("|")) {
-      return optionsString.split("|").map((opt) => opt.trim());
-    }
-
-    return [optionsString.trim()];
-  };
-
-  // Format date for input (ISO format)
-  const formatDateForInput = (
-    dateValue: any,
-    type: "date" | "datetime"
-  ): string => {
-    if (!dateValue) return "";
-
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return "";
-
-      if (type === "date") {
-        return date.toISOString().split("T")[0]; // YYYY-MM-DD
-      } else {
-        return date.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
-      }
-    } catch {
-      return "";
-    }
-  };
-
-  // Parse date from input (ISO format)
-  const parseDateFromInput = (
-    inputValue: string,
-    type: "date" | "datetime"
-  ): string => {
-    if (!inputValue) return "";
-
-    try {
-      if (type === "date") {
-        const date = new Date(inputValue + "T00:00:00");
-        return date.toISOString().split("T")[0];
-      } else {
-        const date = new Date(inputValue);
-        return date.toISOString();
-      }
-    } catch {
-      return inputValue;
-    }
-  };
-
-  // Format date for display as yyyy/MM/dd
-  const formatDateForDisplay = (
-    dateValue: any,
-    type: "date" | "datetime"
-  ): string => {
-    if (!dateValue) return "";
-
-    try {
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return "";
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-
-      if (type === "date") {
-        return `${year}/${month}/${day}`;
-      } else {
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        return `${year}/${month}/${day} ${hours}:${minutes}`;
-      }
-    } catch {
-      return "";
-    }
-  };
-
-  // Get file type based on extension or value
-  const getFileType = (
-    fileValue: string
-  ): "image" | "video" | "audio" | "document" | "other" => {
-    if (!fileValue) return "other";
-
-    // Check for data URLs
-    if (fileValue.startsWith("data:")) {
-      if (fileValue.startsWith("data:image")) return "image";
-      if (fileValue.startsWith("data:video")) return "video";
-      if (fileValue.startsWith("data:audio")) return "audio";
-      return "other";
-    }
-
-    // Check file extension
-    const extension = fileValue.split(".").pop()?.toLowerCase() || "";
-
-    const imageExtensions = [
-      "jpg",
-      "jpeg",
-      "png",
-      "gif",
-      "webp",
-      "bmp",
-      "svg",
-      "ico",
-      "tiff",
-    ];
-    const videoExtensions = [
-      "mp4",
-      "mov",
-      "avi",
-      "webm",
-      "mkv",
-      "flv",
-      "wmv",
-      "m4v",
-      "3gp",
-    ];
-    const audioExtensions = ["mp3", "wav", "ogg", "aac", "flac", "m4a", "wma"];
-    const documentExtensions = [
-      "pdf",
-      "doc",
-      "docx",
-      "txt",
-      "rtf",
-      "odt",
-      "xls",
-      "xlsx",
-      "ppt",
-      "pptx",
-    ];
-
-    if (imageExtensions.includes(extension)) return "image";
-    if (videoExtensions.includes(extension)) return "video";
-    if (audioExtensions.includes(extension)) return "audio";
-    if (documentExtensions.includes(extension)) return "document";
-
-    return "other";
-  };
-
-  // Get accept attribute for file input based on field name
-  const getFileAccept = (): string => {
-    const lowerName = name.toLowerCase();
-    const fileType = getFileType(value);
-
-    if (
-      lowerName.includes("image") ||
-      lowerName.includes("avatar") ||
-      lowerName.includes("logo") ||
-      lowerName.includes("icon")
-    ) {
-      return "image/*";
-    }
-    if (lowerName.includes("video")) {
-      return "video/*";
-    }
-    if (lowerName.includes("audio") || lowerName.includes("sound")) {
-      return "audio/*";
-    }
-    if (
-      lowerName.includes("document") ||
-      lowerName.includes("pdf") ||
-      lowerName.includes("doc")
-    ) {
-      return ".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx";
-    }
-    // Priority 2: by current file value
-    switch (fileType) {
-      case "image":
-        return "image/*";
-      case "video":
-        return "video/*";
-      case "audio":
-        return "audio/*";
-      case "document":
-        return ".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx";
-      default:
-        return "*/*";
-    }
-  };
-
-  const fieldType = detectFieldType();
+  }, [fieldType, name, componentType, onGetSelectOptions]);
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -439,7 +191,7 @@ export const PropertyField = ({
   };
 
   // Update urlInput when value changes
-  React.useEffect(() => {
+  useEffect(() => {
     setUrlInput(value || "");
   }, [value]);
 
@@ -539,6 +291,28 @@ export const PropertyField = ({
         </div>
       );
 
+    case "email":
+      return (
+        <input
+          type="email"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={`Enter ${name}...`}
+        />
+      );
+
+    case "url":
+      return (
+        <input
+          type="url"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={`Enter ${name}...`}
+        />
+      );
+
     case "file":
       return (
         <div className="space-y-3">
@@ -561,7 +335,7 @@ export const PropertyField = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept={getFileAccept()}
+              accept={getFileAccept(name, value)}
               onChange={handleFileUpload}
               disabled={isUploading}
               className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -571,7 +345,7 @@ export const PropertyField = ({
             )}
             <div className="text-xs text-gray-500">
               Allowed:{" "}
-              {getFileAccept() === "*/*" ? "All files" : getFileAccept()}
+              {getFileAccept(name, value) === "*/*" ? "All files" : getFileAccept(name, value)}
             </div>
           </div>
 
@@ -608,8 +382,8 @@ export const PropertyField = ({
       );
 
     case "select":
-      const options = parseSelectOptions(value);
-      const currentValue = options.length > 0 ? value : "";
+      const staticOptions = parseSelectOptions(value);
+      const currentValue = staticOptions.length > 0 ? value : "";
 
       return (
         <div className="space-y-2">
@@ -619,14 +393,68 @@ export const PropertyField = ({
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select an option</option>
-            {options.map((option) => (
+            {staticOptions.map((option) => (
               <option key={option} value={`[${option}]`}>
                 {option}
               </option>
             ))}
           </select>
           <div className="text-xs text-gray-500">
-            {options.length} options available
+            {staticOptions.length} static options available
+          </div>
+        </div>
+      );
+
+    case "dynamic-select":
+      return (
+        <div className="space-y-2">
+          <select
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={loadingOptions}
+            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Select an option</option>
+            {dynamicOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <div className="text-xs text-gray-500 flex justify-between">
+            <span>
+              {loadingOptions 
+                ? "Loading options..." 
+                : `${dynamicOptions.length} dynamic options available`
+              }
+            </span>
+            {onGetSelectOptions && (
+              <button
+                type="button"
+                onClick={() => {
+                  // Re-fetch options
+                  const loadOptions = async () => {
+                    setLoadingOptions(true);
+                    try {
+                      const options = await getDynamicSelectOptions(
+                        name,
+                        componentType,
+                        onGetSelectOptions
+                      );
+                      setDynamicOptions(options);
+                    } catch (error) {
+                      console.error("Failed to reload options:", error);
+                    } finally {
+                      setLoadingOptions(false);
+                    }
+                  };
+                  loadOptions();
+                }}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                Refresh
+              </button>
+            )}
           </div>
         </div>
       );
