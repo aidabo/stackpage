@@ -88,7 +88,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
   const statusOptions = ["draft", "published"];
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="h-full p-4 space-y-6 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto">
       <h3 className="text-lg font-medium mb-3">Page Settings</h3>
       <p className="text-sm text-gray-600 mb-4">
         Configure the overall page layout and appearance

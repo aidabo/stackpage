@@ -1995,7 +1995,7 @@ export const PropertiesTab = ({
   // };
 
   return (
-    <div className="h-full overflow-auto bg-white">
+    <div className="max-h-[calc(100vh-48*0.25rem)] h-full bg-white overflow-y-auto">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white p-6 sticky top-0 z-10">
         <div className="flex items-center justify-between">
