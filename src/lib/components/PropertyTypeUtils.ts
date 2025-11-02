@@ -1,193 +1,35 @@
-// propertyTypeUtils.ts
+// PropertyTypeUtils.ts
+// Utility functions for property type detection and schema generation
 
-// Helper function to check if string is a valid HTTP URL
-export const isValidHttpUrl = (string: string): boolean => {
-  try {
-    const url = new URL(string);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch (_) {
-    return false;
-  }
-};
-
-// Strict date validation - only accepts unambiguous date formats
-export const isValidDate = (dateString: any): boolean => {
-  if (typeof dateString !== "string") return false;
-
-  const trimmed = dateString.trim();
-  if (!trimmed) return false;
-
-  // Only accept these exact formats
-  const strictDatePatterns = [
-    /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, // YYYY-MM-DDTHH:mm:ss
-    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/, // YYYY-MM-DD HH:mm:ss
-    /^\d{4}\/\d{2}\/\d{2}$/, // YYYY/MM/DD
-  ];
-
-  const matchesFormat = strictDatePatterns.some((pattern) =>
-    pattern.test(trimmed)
-  );
-  if (!matchesFormat) return false;
-
-  try {
-    const date = new Date(trimmed);
-    return !isNaN(date.getTime());
-  } catch {
-    return false;
-  }
-};
-
-// Check if value matches select pattern
-export const isSelectField = (value: any): boolean => {
-  if (typeof value !== "string") return false;
-
-  const selectPattern = /^\[([^\]]+)\]$/;
-  const match = value.match(selectPattern);
-  return !!(match && (match[1].includes(",") || match[1].includes("|")));
-};
-
-// Parse select options from select pattern string
-export const parseSelectOptions = (selectString: string): string[] => {
-  const match = selectString.match(/^\[([^\]]+)\]$/);
-  if (!match) return [];
-
-  const optionsString = match[1];
-
-  if (optionsString.includes(",")) {
-    return optionsString.split(",").map((opt) => opt.trim());
-  } else if (optionsString.includes("|")) {
-    return optionsString.split("|").map((opt) => opt.trim());
-  }
-
-  return [optionsString.trim()];
-};
-
-// Main field type detection function
-// export const detectFieldType = (name: string, value: any): string => {
-//   const lowerName = name.toLowerCase();
-
-//   // Check for special field names
-//   if (
-//     [
-//       "src", "source", "file", "image", "url", "avatar", "logo", "icon",
-//       "video", "audio", "media",
-//     ].includes(lowerName)
-//   ) {
-//     return "file";
-//   }
-
-//   // Check for date/time fields - only check if name suggests it's a date
-//   const dateLikeNames = [
-//     "date", "time", "datetime", "created", "updated", "start", "end",
-//     "timestamp", "published", "due", "_at",
-//   ];
-//   const isDateLikeName = dateLikeNames.some((dateName) =>
-//     lowerName.includes(dateName)
-//   );
-
-//   // Only check for dates if the field name suggests it's a date field
-//   if (isDateLikeName && isValidDate(value)) {
-//     if (
-//       lowerName.includes("time") ||
-//       lowerName.includes("datetime") ||
-//       lowerName === "timestamp"
-//     ) {
-//       return "datetime";
-//     }
-//     return "date";
-//   }
-
-//   // Check value type
-//   if (typeof value === "number") return "number";
-//   if (typeof value === "boolean") return "boolean";
-//   if (Array.isArray(value)) return "array";
-//   if (typeof value === "object" && value !== null) return "json";
-
-//   if (typeof value === "string") {
-//     // Check for select pattern
-//     if (isSelectField(value)) {
-//       return "select";
-//     }
-
-//     // Check for long text or multi-line
-//     if (value.length > 40 || value.includes("\n")) return "textarea";
-
-//     // Check if it's a color value
-//     if (
-//       lowerName.includes("color") ||
-//       value.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-//     ) {
-//       return "color";
-//     }
-
-//     // Check for email
-//     if (lowerName.includes("email") && value.includes("@")) {
-//       return "email";
-//     }
-
-//     // Check for URL
-//     if ((lowerName.includes("url") || lowerName.includes("link")) && isValidHttpUrl(value)) {
-//       return "url";
-//     }
-
-//     return "text";
-//   }
-
-//   return "text";
-// };
-
-// Get file type based on extension or value
+// Helper functions for file type detection
 export const getFileType = (
-  fileValue: string
+  name: string,
+  value: string
 ): "image" | "video" | "audio" | "document" | "other" => {
-  if (!fileValue) return "other";
+  if (!value) return "other";
+
+  const nameLower = name.toLowerCase();
 
   // Check for data URLs
-  if (fileValue.startsWith("data:")) {
-    if (fileValue.startsWith("data:image")) return "image";
-    if (fileValue.startsWith("data:video")) return "video";
-    if (fileValue.startsWith("data:audio")) return "audio";
+  if (value.startsWith("data:")) {
+    if (value.startsWith("data:image")) return "image";
+    if (value.startsWith("data:video")) return "video";
+    if (value.startsWith("data:audio")) return "audio";
     return "other";
   }
 
   // Check file extension
-  const extension = fileValue.split(".").pop()?.toLowerCase() || "";
+  const extension = value.split(".").pop()?.toLowerCase() || "";
 
   const imageExtensions = [
-    "jpg",
-    "jpeg",
-    "png",
-    "gif",
-    "webp",
-    "bmp",
-    "svg",
-    "ico",
-    "tiff",
+    "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico", "tiff",
   ];
   const videoExtensions = [
-    "mp4",
-    "mov",
-    "avi",
-    "webm",
-    "mkv",
-    "flv",
-    "wmv",
-    "m4v",
-    "3gp",
+    "mp4", "mov", "avi", "webm", "mkv", "flv", "wmv", "m4v", "3gp",
   ];
   const audioExtensions = ["mp3", "wav", "ogg", "aac", "flac", "m4a", "wma"];
   const documentExtensions = [
-    "pdf",
-    "doc",
-    "docx",
-    "txt",
-    "rtf",
-    "odt",
-    "xls",
-    "xlsx",
-    "ppt",
-    "pptx",
+    "pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "ppt", "pptx",
   ];
 
   if (imageExtensions.includes(extension)) return "image";
@@ -195,37 +37,57 @@ export const getFileType = (
   if (audioExtensions.includes(extension)) return "audio";
   if (documentExtensions.includes(extension)) return "document";
 
+  // Fallback to name-based detection
+  if (
+    nameLower.includes("image") ||
+    nameLower.includes("avatar") ||
+    nameLower.includes("logo") ||
+    nameLower.includes("icon")
+  ) {
+    return "image";
+  }
+  if (nameLower.includes("video")) return "video";
+  if (nameLower.includes("audio") || nameLower.includes("sound"))
+    return "audio";
+  if (
+    nameLower.includes("document") ||
+    nameLower.includes("pdf") ||
+    nameLower.includes("doc")
+  ) {
+    return "document";
+  }
+
   return "other";
 };
 
-// Get accept attribute for file input based on field name and value
 export const getFileAccept = (name: string, value: any): string => {
-  const lowerName = name.toLowerCase();
-  const fileType = getFileType(value);
+  const nameLower = name.toLowerCase();
+  const fileType = getFileType(name, value);
 
+  // Priority 1: by field name
   if (
-    lowerName.includes("image") ||
-    lowerName.includes("avatar") ||
-    lowerName.includes("logo") ||
-    lowerName.includes("icon")
+    nameLower.includes("image") ||
+    nameLower.includes("avatar") ||
+    nameLower.includes("logo") ||
+    nameLower.includes("icon")
   ) {
     return "image/*";
   }
-  if (lowerName.includes("video")) {
+  if (nameLower.includes("video")) {
     return "video/*";
   }
-  if (lowerName.includes("audio") || lowerName.includes("sound")) {
+  if (nameLower.includes("audio") || nameLower.includes("sound")) {
     return "audio/*";
   }
   if (
-    lowerName.includes("document") ||
-    lowerName.includes("pdf") ||
-    lowerName.includes("doc")
+    nameLower.includes("document") ||
+    nameLower.includes("pdf") ||
+    nameLower.includes("doc")
   ) {
     return ".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx";
   }
 
-  // Priority 2: by current file value
+  // Priority 2: by current file type
   switch (fileType) {
     case "image":
       return "image/*";
@@ -240,248 +102,375 @@ export const getFileAccept = (name: string, value: any): string => {
   }
 };
 
-// Date formatting utilities
-export const formatDateForInput = (
-  dateValue: any,
-  type: "date" | "datetime"
-): string => {
-  if (!dateValue) return "";
+// File type detection function
+export const isFileTypeField = (key: string, value: any): boolean => {
+  const keyLower = key.toLowerCase();
 
-  try {
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return "";
-
-    if (type === "date") {
-      return date.toISOString().split("T")[0]; // YYYY-MM-DD
-    } else {
-      return date.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
-    }
-  } catch {
-    return "";
-  }
-};
-
-export const parseDateFromInput = (
-  inputValue: string,
-  type: "date" | "datetime"
-): string => {
-  if (!inputValue) return "";
-
-  try {
-    if (type === "date") {
-      const date = new Date(inputValue + "T00:00:00");
-      return date.toISOString().split("T")[0];
-    } else {
-      const date = new Date(inputValue);
-      return date.toISOString();
-    }
-  } catch {
-    return inputValue;
-  }
-};
-
-export const formatDateForDisplay = (
-  dateValue: any,
-  type: "date" | "datetime"
-): string => {
-  if (!dateValue) return "";
-
-  try {
-    const date = new Date(dateValue);
-    if (isNaN(date.getTime())) return "";
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    if (type === "date") {
-      return `${year}/${month}/${day}`;
-    } else {
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      return `${year}/${month}/${day} ${hours}:${minutes}`;
-    }
-  } catch {
-    return "";
-  }
-};
-
-// Enhanced field type detection with support for dynamic fields
-export const detectFieldType = (
-  name: string,
-  value: any,
-  onGetSelectOptions?: (
-    propertyName: string,
-    componentType: string
-  ) => Promise<string[]>
-): string => {
-  const lowerName = name.toLowerCase();
-
-  // Check for special field names
-  if (
-    [
-      "src",
-      "source",
-      "file",
-      "image",
-      "url",
-      "avatar",
-      "logo",
-      "icon",
-      "video",
-      "audio",
-      "media",
-    ].includes(lowerName)
-  ) {
-    return "file";
-  }
-
-  // Check for date/time fields - only check if name suggests it's a date
-  const dateLikeNames = [
-    "date",
-    "time",
-    "datetime",
-    "created",
-    "updated",
-    "start",
-    "end",
-    "timestamp",
-    "published",
-    "due",
-    "_at",
+  // Check for special field names that should be file fields
+  const fileFieldNames = [
+    "src", "source", "file", "image", "url", "avatar", "logo", "icon",
+    "video", "audio", "media", "background", "poster", "thumbnail",
   ];
-  const isDateLikeName = dateLikeNames.some((dateName) =>
-    lowerName.includes(dateName)
+
+  const isFileByName = fileFieldNames.some((fileName) =>
+    keyLower.includes(fileName)
   );
 
-  // Only check for dates if the field name suggests it's a date field
-  if (isDateLikeName && isValidDate(value)) {
-    if (
-      lowerName.includes("time") ||
-      lowerName.includes("datetime") ||
-      lowerName === "timestamp"
-    ) {
-      return "datetime";
-    }
-    return "date";
-  }
+  // Also check if the value looks like a file reference
+  const isFileByValue =
+    typeof value === "string" &&
+    (value.startsWith("data:") || // Data URLs
+      value.startsWith("blob:") || // Blob URLs
+      value.match(
+        /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|avi|webm|mkv|mp3|wav|ogg|pdf|doc|docx|txt|rtf)$/i
+      ) || // File extensions
+      value.match(
+        /\/[^/]+\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|avi|webm|mkv|mp3|wav|ogg|pdf|doc|docx|txt|rtf)(\?.*)?$/i
+      )); // URL with file extension
 
-  // Check value type
-  if (typeof value === "number") return "number";
-  if (typeof value === "boolean") return "boolean";
-  if (Array.isArray(value)) return "array";
-  if (typeof value === "object" && value !== null) return "json";
-
-  if (typeof value === "string") {
-    // Check for select pattern
-    if (isSelectField(value)) {
-      return "select";
-    }
-
-    // Check for dynamic select fields (if callback provided)
-    if (onGetSelectOptions && isLikelySelectField(name)) {
-      return "dynamic-select";
-    }
-
-    // Check for long text or multi-line
-    if (value.length > 40 || value.includes("\n")) return "textarea";
-
-    // Check if it's a color value
-    if (
-      lowerName.includes("color") ||
-      value.match(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-    ) {
-      return "color";
-    }
-
-    // Check for email
-    if (lowerName.includes("email") && value.includes("@")) {
-      return "email";
-    }
-
-    // Check for URL
-    if (
-      (lowerName.includes("url") || lowerName.includes("link")) &&
-      isValidHttpUrl(value)
-    ) {
-      return "url";
-    }
-
-    return "text";
-  }
-
-  return "text";
+  return isFileByName || (isFileByValue as any);
 };
 
-// Check if a field is likely to be a select field based on name
-export const isLikelySelectField = (name: string): boolean => {
-  const lowerName = name.toLowerCase();
-  const selectLikeNames = [
-    "type",
-    "category",
-    "status",
-    "state",
-    "role",
-    "priority",
-    "size",
-    "color",
-    "variant",
-    "alignment",
-    "position",
-    "option",
-    "selection",
-    "choice",
-    "mode",
-    "direction",
+// Check if string represents static options array
+export const isStaticOptionsArray = (value: string): boolean => {
+  return typeof value === "string" && /^\[.*\]$/.test(value);
+};
+
+// Parse static options from string
+export const parseStaticOptionsFromString = (value: string): string[] => {
+  if (!isStaticOptionsArray(value)) return [];
+
+  const match = value.match(/^\[(.*)\]$/);
+  if (match) {
+    return match[1]
+      .split(",")
+      .map((opt) => opt.trim())
+      .filter((opt) => opt.length > 0);
+  }
+
+  return [];
+};
+
+// Enhanced select field detection
+export const detectSelectField = (key: string, value: any): boolean => {
+  const keyLower = key.toLowerCase();
+
+  // Field name indicators for select fields
+  const selectFieldNames = [
+    "select", "option", "choice", "dropdown", "picker", "type", 
+    "category", "status", "state", "mode",
   ];
 
-  return selectLikeNames.some((selectName) => lowerName.includes(selectName));
+  const isSelectByName = selectFieldNames.some((name) =>
+    keyLower.includes(name)
+  );
+
+  // Value pattern indicators
+  const isSelectByValue =
+    typeof value === "string" &&
+    (value.startsWith("/api/") || // API endpoint
+      isStaticOptionsArray(value) || // Static options array
+      value.includes("|") || // Pipe-separated values
+      (value.includes(",") && value.split(",").length <= 10)); // Comma-separated values
+
+  return isSelectByName || isSelectByValue;
 };
 
-// Get dynamic select options
-export const getDynamicSelectOptions = async (
-  propertyName: string,
-  componentType: string,
-  onGetSelectOptions?: (
-    propertyName: string,
-    componentType: string
-  ) => Promise<string[]>
-): Promise<string[]> => {
-  if (!onGetSelectOptions) {
-    return [];
+// Enhanced property schema inference with better array-of-objects handling
+export const inferPropertySchema = (key: string, value: any): any => {
+  const type = typeof value;
+  const keyLower = key.toLowerCase();
+
+  const baseSchema: any = {
+    title: key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (str) => str.toUpperCase()),
+    default: value,
+  };
+
+  // Check for file fields first (highest priority)
+  const isFileField = isFileTypeField(key, value);
+  if (isFileField) {
+    baseSchema.type = "string";
+    baseSchema.format = "file";
+    return baseSchema;
+  }
+  
+  if (type === "string") {
+    baseSchema.type = "string";
+
+    // Enhanced select field detection
+    const isSelectField = detectSelectField(key, value);
+    if (isSelectField) {
+      baseSchema.format = "select";
+
+      // Handle different types of select fields
+      if (value && value.startsWith("/api/")) {
+        baseSchema.description = "API Endpoint";
+        baseSchema.format = "dynamic-select";
+      } else if (isStaticOptionsArray(value)) {
+        // Parse static options from string like "[option1, option2]"
+        const options = parseStaticOptionsFromString(value);
+        if (options.length > 0) {
+          baseSchema.enum = options;
+        }
+      }
+    }
+
+    // Standard format detection
+    if (keyLower.includes("email")) {
+      baseSchema.format = "email";
+    } else if (keyLower.includes("color")) {
+      baseSchema.format = "color";
+    } else if (keyLower.includes("date") && !keyLower.includes("datetime")) {
+      baseSchema.format = "date";
+    } else if (keyLower.includes("datetime")) {
+      baseSchema.format = "datetime";
+    } else if (keyLower.includes("url") || keyLower.includes("link")) {
+      baseSchema.format = "uri";
+    }
+
+    // Textarea detection
+    if (
+      value &&
+      (value.length > 50 ||
+        keyLower.includes("content") ||
+        keyLower.includes("description"))
+    ) {
+      baseSchema.format = "textarea";
+    }
+  } else if (type === "number") {
+    baseSchema.type = "number";
+  } else if (type === "boolean") {
+    baseSchema.type = "boolean";
+  } else if (Array.isArray(value)) {
+    baseSchema.type = "array";
+
+    // Enhanced array of objects detection
+    if (value.length > 0 && typeof value[0] === "object" && value[0] !== null) {
+      const firstItem = value[0];
+      const itemKeys = Object.keys(firstItem);
+
+      // Only handle simple object arrays (no nested objects/arrays)
+      const hasSimpleTypes = itemKeys.every((itemKey) => {
+        const val = firstItem[itemKey];
+        return (
+          typeof val === "string" ||
+          typeof val === "number" ||
+          typeof val === "boolean" ||
+          val === null
+        );
+      });
+
+      if (hasSimpleTypes && itemKeys.length > 0) {
+        baseSchema.items = {
+          type: "object",
+          properties: itemKeys.reduce((acc, itemKey) => {
+            // Use a simplified schema inference for array items
+            const itemValue = firstItem[itemKey];
+            const itemType = typeof itemValue;
+            
+            const itemSchema: any = {
+              title: itemKey
+                .replace(/([A-Z])/g, " $1")
+                .replace(/^./, (str) => str.toUpperCase()),
+            };
+
+            if (itemType === "string") {
+              itemSchema.type = "string";
+              // Check if it's a file field within the array object
+              if (isFileTypeField(itemKey, itemValue)) {
+                itemSchema.format = "file";
+              }
+            } else if (itemType === "number") {
+              itemSchema.type = "number";
+            } else if (itemType === "boolean") {
+              itemSchema.type = "boolean";
+            } else {
+              itemSchema.type = "string";
+            }
+
+            acc[itemKey] = itemSchema;
+            return acc;
+          }, {} as any),
+        };
+        // Use a custom format that we'll handle in the UI schema
+        baseSchema.format = "array-of-objects";
+      } else {
+        // Fallback to JSON for complex objects
+        baseSchema.items = { type: "object" };
+        baseSchema.format = "json";
+      }
+    } else if (value.length > 0 && typeof value[0] === "string") {
+      baseSchema.items = { type: "string" };
+      // Check if array contains select options
+      if (
+        value.every((item) => typeof item === "string") &&
+        value.length <= 10
+      ) {
+        baseSchema.format = "select";
+        baseSchema.enum = value;
+      }
+    } else {
+      baseSchema.items = { type: "string" };
+    }
+  } else if (type === "object" && value !== null) {
+    baseSchema.type = "object";
+    baseSchema.format = "json";
+  } else {
+    baseSchema.type = "string";
   }
 
-  try {
-    return await onGetSelectOptions(propertyName, componentType);
-  } catch (error) {
-    console.error(`Failed to get select options for ${propertyName}:`, error);
-    return [];
-  }
+  return baseSchema;
 };
 
-// Handle API calls for dynamic fields
-export const handleApiCall = async (
-  endpoint: string,
-  method: string = "GET",
-  data?: any,
-  onApiCall?: (endpoint: string, method?: string, data?: any) => Promise<any>
-): Promise<any> => {
-  if (!onApiCall) {
-    throw new Error("API call handler not provided");
-  }
+// Generate JSON schema from currentProps with enhanced select item detection
+export const generateSchemaFromCurrentProps = (currentProps: Record<string, any>) => {
+  const schema: any = {
+    type: "object",
+    properties: {},
+    required: [],
+  };
 
-  return await onApiCall(endpoint, method, data);
+  Object.entries(currentProps).forEach(([key, value]) => {
+    schema.properties[key] = inferPropertySchema(key, value);
+  });
+
+  return schema;
 };
 
-// Handle custom actions
-export const handleCustomAction = async (
-  action: string,
-  data: any,
-  onCustomAction?: (action: string, data: any) => Promise<any>
-): Promise<any> => {
-  if (!onCustomAction) {
-    throw new Error("Custom action handler not provided");
-  }
+// Generate UI schema with proper widget assignment
+export const generateUiSchema = (
+  currentProps: Record<string, any>, 
+  schema: any,
+  onFileUpload?: (file: File) => Promise<string>
+) => {
+  const uiSchema: any = {
+    "ui:order": Object.keys(schema.properties || {}),
+  };
 
-  return await onCustomAction(action, data);
+  Object.keys(schema.properties || {}).forEach((key) => {
+    const property = schema.properties[key];
+    const value = currentProps[key];
+
+    // Assign appropriate widgets based on schema
+    if (property.format === "file" || isFileTypeField(key, value)) {
+      uiSchema[key] = {
+        "ui:widget": "FileWidget",
+      };
+    } else if (property.type === "object" || property.format === "json") {
+      uiSchema[key] = {
+        "ui:widget": "JsonWidget",
+      };
+    } else if (property.format === "textarea") {
+      uiSchema[key] = {
+        "ui:widget": "CustomTextareaWidget",
+        "ui:options": {
+          rows: 5,
+        },
+      };
+    } else if (
+      property.format === "select" ||
+      property.format === "dynamic-select"
+    ) {
+      uiSchema[key] = {
+        "ui:widget": "CustomSelectWidget",
+      };
+
+      if (property.format === "dynamic-select") {
+        uiSchema[key]["ui:options"] = {
+          ...uiSchema[key]["ui:options"],
+          isDynamic: true,
+        };
+      }
+    } else if (property.format === "date") {
+      uiSchema[key] = {
+        "ui:widget": "CustomDateWidget",
+      };
+    } else if (property.format === "datetime") {
+      uiSchema[key] = {
+        "ui:widget": "CustomDateTimeWidget",
+      };
+    } else if (property.format === "email") {
+      uiSchema[key] = {
+        "ui:widget": "CustomEmailWidget",
+      };
+    } else if (property.format === "color") {
+      uiSchema[key] = {
+        "ui:widget": "CustomColorWidget",
+      };
+    } else if (property.type === "boolean") {
+      uiSchema[key] = {
+        "ui:widget": "CustomCheckboxWidget",
+      };
+    } else if (property.type === "number") {
+      uiSchema[key] = {
+        "ui:widget": "CustomNumberWidget",
+      };
+    } else if (property.format === "array-of-objects") {
+      // Handle array-of-objects format with our custom widget
+      uiSchema[key] = {
+        "ui:widget": "ArrayOfObjectsWidget",
+        "ui:options": {
+          onFileUpload: onFileUpload,
+        },
+      };
+    } else {
+      // Default to text widget for other string fields
+      uiSchema[key] = {
+        "ui:widget": "CustomTextWidget",
+      };
+    }
+
+    // Add descriptions for special fields
+    if (value && typeof value === "string" && value.startsWith("/api/")) {
+      uiSchema[key] = {
+        ...uiSchema[key],
+        "ui:description": `API Endpoint: ${value}`,
+      };
+    }
+
+    if (
+      value &&
+      typeof value === "string" &&
+      value.toLowerCase().startsWith("/customaction/")
+    ) {
+      uiSchema[key] = {
+        ...uiSchema[key],
+        "ui:description": `Custom Action: ${value}`,
+      };
+    }
+  });
+
+  return uiSchema;
+};
+
+// DataBinding Fieldの検出
+export const isDataBindingField = (key: string, value: any): boolean => {
+  const keyLower = key.toLowerCase();
+  
+  const bindingFieldNames = [
+    "binding",
+    "datasource",
+    "dataSource", 
+    "api",
+    "endpoint",
+    "url",
+    "source",
+  ];
+
+  const isBindingByName = bindingFieldNames.some(name =>
+    keyLower.includes(name)
+  );
+
+  const isBindingByValue =
+    typeof value === "string" &&
+    (value.startsWith("/api/") ||
+     value.startsWith("http://") ||
+     value.startsWith("https://") ||
+     value.startsWith("data://") ||
+     value.includes("${") || // Template literal
+     value.startsWith("{")); // JSON-like
+
+  return isBindingByName || isBindingByValue;
 };

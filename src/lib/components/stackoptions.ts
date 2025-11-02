@@ -1,5 +1,4 @@
 import { GridStackOptions, GridStackWidget } from "gridstack";
-import { v4 as uuidv4 } from "uuid";
 import { ComponentMap } from "..";
 import Text from "./Text";
 
@@ -80,14 +79,15 @@ export const subGridOptions: GridStackOptions = {
  * Page properties interface
  */
 export interface PageProps {
-  id: string;
+  id?: string;
+  type: string;
   title: string;
-  description?: string;
+  excerpt?: string;
   image?: string;
-  tag?: string;
-  status?: string;
-  pageAttributes?: any;
-  grids: GridStackOptions | GridStackWidget[] | undefined;
+  published_at?: Date | null;
+  status?: 'draft' | 'published';
+  attributes?: any;
+  layout: GridStackOptions | GridStackWidget[] | undefined;
 }
 
 /**
@@ -96,18 +96,6 @@ export interface PageProps {
 export interface ComponentProps {
   [key: string]: any;
 }
-
-/**
- * getDefaultPageProps - Returns the default properties for a page.
- * @returns Default page properties with a unique ID and default grid options.
- */
-export const getDefaultPageProps = (): PageProps => {
-  return {
-    id: `${uuidv4()}`,
-    title: "untitled page",
-    grids: gridOptions,
-  };
-};
 
 /**
  * default component properties
@@ -171,12 +159,9 @@ export const getComponentProps = (
 
 /**
  * Save page layout, if pageid is not the same as pageProps.id, it will as created a new page
- * @param pageid - The ID of the page to save
  * @param pageProps - The properties of the page to save
  */
-export type SaveLayoutFn = (
-  pageid: string,
-  pageProps: PageProps
+export type SaveLayoutFn = (pageProps: PageProps
 ) => Promise<void>;
 
 
@@ -194,11 +179,6 @@ export type GoBackListFn = () => void;
  * Image, video, audio, file uploaded callback for server upload
  */
 export type FileUploadFn = (file: File) => Promise<string>;
-
-/**
- * Get tags for system to set for page
- */
-export type GetTagsFn = () => Promise<Array<string>>;
 
 /**
  * If component field name  include "/api", use this callback to get data

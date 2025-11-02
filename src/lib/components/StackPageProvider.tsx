@@ -17,14 +17,15 @@ export function StackPageProvider({ children }: StackPageProviderProps) {
   );
   const [selectedInstance, setSelectedInstance] =
     useState<ComponentInstance | null>(null);
-  const [pageAttributes, setPageAttributes] = useState({
+  const [attributes, setPageAttributes] = useState<any>({
+    type: "page",
+    title: "Untitled Page",
+    status: "draft", // Add this
     margin: "5",
     padding: "10px",
     background: "#ffffff",
     showMenubar: true,
-    image: "", // Add this
-    tag: "", // Add this
-    status: "draft", // Add this
+    image: "", // Add this    
   });
   const [activeTab, setActiveTab] = useState<
     "components" | "properties" | "page"
@@ -46,7 +47,7 @@ export function StackPageProvider({ children }: StackPageProviderProps) {
     setSelectedComponent,
     selectedInstance,
     setSelectedInstance,
-    pageAttributes,
+    attributes,
     setPageAttributes,
     activeTab,
     setActiveTab,

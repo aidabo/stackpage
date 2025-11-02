@@ -22,7 +22,6 @@ import {
   gridOptions,
   subGridOptions,
   PageProps,
-  getDefaultPageProps,
   getComponentMap,
   getComponentProps,
   ComponentMapProvider,
@@ -31,7 +30,6 @@ import {
   LoadLayoutFn,
   SaveLayoutFn,
   FileUploadFn,
-  GetTagsFn,
   ApiCallFn,
   CustomActionFn,
   GetSelectOptionsFn,
@@ -63,7 +61,6 @@ export interface StackPageProps {
   componentMapProvider?: ComponentMapProvider;
   componentPropsProvider?: ComponentPropsProvider;
   onFileUpload?: FileUploadFn;
-  onGetTags?: GetTagsFn;
   onApiCall?: ApiCallFn;
   onCustomAction?: CustomActionFn;
   onGetSelectOptions?: GetSelectOptionsFn;
@@ -101,7 +98,6 @@ const StackPageContent = ({
   componentPropsProvider,
   gobackList,
   onFileUpload,
-  onGetTags,
   onApiCall,
   onCustomAction,
   onGetSelectOptions,
@@ -118,16 +114,19 @@ const StackPageContent = ({
   const {
     activeTab,
     setActiveTab,
-    pageAttributes,
+    attributes,
     setPageAttributes,
     setSelectedInstance,
     setSelectedComponent,
     widgetProps, // Add this to get widgetProps from context
   } = useStackPage();
 
-  const [pageProps, setPageProps] = useState<PageProps>({
-    ...getDefaultPageProps(),
-    id: pageid,
+  const [pageProps, setPageProps] = useState<PageProps>(
+    {
+      id: pageid,
+      type: "page",
+      title: "untitled page",
+      layout: gridOptions,
   });
   const [title, setTitle] = useState<string>();
   const [pageTitle, setPageTitle] = useState<string>();
@@ -174,24 +173,25 @@ const StackPageContent = ({
 
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
-      const pageProps = (await onLoadLayout(pageid)) || getDefaultPageProps();
+      const pageProps = (await onLoadLayout(pageid));
       setPageProps(pageProps);
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
-      setPageAttributes(pageProps.pageAttributes || pageAttributes);
-      return pageProps.grids;
+      setPageAttributes(pageProps.attributes || attributes);
+      return pageProps.layout;
     },
     [onLoadLayout]
   );
 
   const handleReload = useCallback(async () => {
     if (pageid) {
-      const gridOptions: any = await handleLoadLayout(pageid);
+      setPageProps((prev) => ({ ...prev, id: pageid })); // Trigger re-render
+      const gridOptions: any = await handleLoadLayout(pageid);      
       setInitialOptions(gridOptions);
       // Force remount
       setResetKey((prev) => prev + 1);
       clearSelectedData();
-      console.log(`reload layout: pageid ${pageid}, props id ${pageProps?.id}`);
+      console.log(`Reload layout: pageid ${pageid}, props id ${pageProps?.id}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageid, handleLoadLayout]);
@@ -274,24 +274,20 @@ const StackPageContent = ({
   const handleSave = async () => {
     if (onSaveLayout) {
       let layout = stackActionsRef.current?.saveLayout();
-      console.log("****grid stack layout: ", layout);
-
       if (layout) {
         // Update the layout with the latest props from context
         layout = updateLayoutWithNewProps(layout, widgetProps);
-
         const savedPageProps: PageProps = {
-          ...(pageProps || getDefaultPageProps()),
-          grids: layout,
+          ...pageProps,
+          id: pageid,
+          layout: layout,
           title: pageTitle as any,
-          tag: pageAttributes.tag,
-          status: pageAttributes.status,
-          pageAttributes: pageAttributes,
+          type: attributes.type,
+          status: attributes.status,
+          attributes: attributes,
         };
-        console.log(
-          `Saving layout: pageid ${pageid}, props id ${savedPageProps.id}`
-        );
-        await onSaveLayout(pageid, savedPageProps);
+        console.log("Saving page layout:", savedPageProps);
+        await onSaveLayout(savedPageProps);
       }
     }
   };
@@ -357,7 +353,7 @@ const StackPageContent = ({
 
   const getPageInfo = () => {
     const pageInfo: PageProps = JSON.parse(JSON.stringify(pageProps));
-    pageInfo.grids = stackActionsRef.current?.saveLayout();
+    pageInfo.layout = stackActionsRef.current?.saveLayout();
     return pageInfo;
   };
 
@@ -399,9 +395,9 @@ const StackPageContent = ({
 
   // Main content style
   const mainContentStyle = {
-    margin: pageAttributes.margin,
-    padding: pageAttributes.padding,
-    backgroundColor: pageAttributes.background,
+    margin: attributes.margin,
+    padding: attributes.padding,
+    backgroundColor: attributes.background,
   };
 
   return (
@@ -540,7 +536,7 @@ const StackPageContent = ({
                   >
                     <GridStackRender
                       componentMap={getComponentMap(componentMapProvider)}
-                      showMenubar={pageAttributes.showMenubar}
+                      showMenubar={attributes.showMenubar}
                       onWidgetSelect={handleWidgetSelect}
                     />
                   </GridStackRenderProvider>
@@ -633,7 +629,6 @@ const StackPageContent = ({
                   >
                     <PageTab
                       onFileUpload={onFileUpload}
-                      onGetTags={onGetTags}
                     />
                   </div>
                 </div>

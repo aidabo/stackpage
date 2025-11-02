@@ -1,26 +1,20 @@
 import { useStackPage } from "./StackPageContext";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 interface PageTabProps {
   onFileUpload?: (file: File) => Promise<string>;
-  onGetTags?: () => Promise<Array<string>>;
 }
 
 // Page Tab Component
-export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
-  const { pageAttributes, setPageAttributes } = useStackPage();
+export const PageTab = ({ onFileUpload }: PageTabProps) => {
+  const { attributes, setPageAttributes } = useStackPage();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [tagOptions, setTagOptions] = useState<Array<string>>([
-    "home",
-    "person",
-    "story",
-  ]);
 
   const handlePageAttributeChange = (attribute: string, value: string) => {
     const newAttributes = {
-      ...pageAttributes,
+      ...attributes,
       [attribute]: value,
     };
     setPageAttributes(newAttributes);
@@ -47,7 +41,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
           setImagePreview(null);
         }
 
-        // Update the pageAttributes with the final image URL
+        // Update the attributes with the final image URL
         handlePageAttributeChange("image", finalImageUrl);
       } catch (error) {
         console.error("Failed to upload image:", error);
@@ -70,21 +64,6 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
     }
   };
 
-  useEffect(() => {
-    const getTags = async () => {
-      if (onGetTags) {
-        return (await onGetTags()) || [];
-      } else {
-        return ["home", "person", "story"];
-      }
-    };
-    
-    if(onGetTags){
-      const tags: Array<string> = (getTags() as any) || [];
-      setTagOptions(tags);
-    }
-  }, [onGetTags]);
-
   const statusOptions = ["draft", "published"];
 
   return (
@@ -101,10 +80,10 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
             Page Image
           </label>
           <div className="flex flex-col items-start space-y-3">
-            {pageAttributes.image || imagePreview ? (
+            {attributes.image || imagePreview ? (
               <div className="relative">
                 <img
-                  src={pageAttributes.image || imagePreview || ""}
+                  src={attributes.image || imagePreview || ""}
                   alt="Page preview"
                   className="w-32 h-32 object-cover rounded-lg border border-gray-200"
                 />
@@ -149,35 +128,13 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
           </div>
         </div>
 
-        {/* Tag Selection */}
-        <div className="border-b border-gray-100 pb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tag
-          </label>
-          <select
-            value={pageAttributes.tag || ""}
-            onChange={(e) => handlePageAttributeChange("tag", e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">Select a tag</option>
-            {tagOptions.map((tag: string) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Categorize your page with a tag
-          </p>
-        </div>
-
         {/* Status Selection */}
         <div className="border-b border-gray-100 pb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Status
           </label>
           <select
-            value={pageAttributes.status || "draft"}
+            value={attributes.status || "draft"}
             onChange={(e) =>
               handlePageAttributeChange("status", e.target.value)
             }
@@ -208,7 +165,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
             <div className="flex items-center">
               <input
                 type="checkbox"
-                checked={pageAttributes.showMenubar}
+                checked={attributes.showMenubar}
                 onChange={(e) =>
                   handlePageAttributeChange(
                     "showMenubar",
@@ -228,7 +185,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
           </label>
           <input
             type="text"
-            value={pageAttributes.margin}
+            value={attributes.margin}
             onChange={(e) =>
               handlePageAttributeChange("margin", e.target.value)
             }
@@ -246,7 +203,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
           </label>
           <input
             type="text"
-            value={pageAttributes.padding}
+            value={attributes.padding}
             onChange={(e) =>
               handlePageAttributeChange("padding", e.target.value)
             }
@@ -265,7 +222,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
           <div className="flex gap-3 items-center">
             <input
               type="color"
-              value={pageAttributes.background}
+              value={attributes.background}
               onChange={(e) =>
                 handlePageAttributeChange("background", e.target.value)
               }
@@ -273,7 +230,7 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
             />
             <input
               type="text"
-              value={pageAttributes.background}
+              value={attributes.background}
               onChange={(e) =>
                 handlePageAttributeChange("background", e.target.value)
               }
@@ -294,27 +251,24 @@ export const PageTab = ({ onFileUpload, onGetTags }: PageTabProps) => {
         <div className="text-sm text-blue-700 grid grid-cols-2 gap-2">
           <div>
             Menu Bar:{" "}
-            <code>{pageAttributes.showMenubar ? "Visible" : "Hidden"}</code>
+            <code>{attributes.showMenubar ? "Visible" : "Hidden"}</code>
           </div>
           <div>
-            Tag: <code>{pageAttributes.tag || "Not set"}</code>
+            Status: <code>{attributes.status || "draft"}</code>
           </div>
           <div>
-            Status: <code>{pageAttributes.status || "draft"}</code>
+            Margin: <code>{attributes.margin}</code>
           </div>
           <div>
-            Margin: <code>{pageAttributes.margin}</code>
+            Padding: <code>{attributes.padding}</code>
           </div>
           <div>
-            Padding: <code>{pageAttributes.padding}</code>
-          </div>
-          <div>
-            Background: <code>{pageAttributes.background}</code>
+            Background: <code>{attributes.background}</code>
           </div>
           <div className="col-span-2">
             Image:{" "}
             <code>
-              {pageAttributes.image
+              {attributes.image
                 ? onFileUpload
                   ? "Remote"
                   : "Local"

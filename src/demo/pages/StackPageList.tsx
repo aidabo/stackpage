@@ -1,5 +1,5 @@
 "use client";
-import { PageProps } from "@/lib/components/stackoptions";
+import { gridOptions, PageProps } from "@/lib/components/stackoptions";
 import { useState, useEffect } from "react";
 import {
   PencilIcon,
@@ -10,7 +10,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { PageInfoDialog } from "@/demo/components/PageInfoDialog";
 import { useNavigate } from "react-router-dom";
-import { getDefaultPageProps } from "@/lib/components/stackoptions";
 import useLayoutStore from "@/demo/api";
 
 export default function StackPageList() {
@@ -86,9 +85,12 @@ export default function StackPageList() {
       await updatePage(updatedPage);
     } else {
       await insertPage({
-        ...getDefaultPageProps(),
+        type: "page",
+        id: `page-${Date.now()}`,
+        status: "draft",
         title: data.title,
         image: data.image,
+        layout: gridOptions
       });
     }
     // close dialog

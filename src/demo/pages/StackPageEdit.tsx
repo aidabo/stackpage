@@ -10,12 +10,12 @@ import {
   SaveLayoutFn,
   LoadLayoutFn,
   GoBackListFn,
-} from "../../lib/components/stackoptions";
+} from "@/lib/components/stackoptions";
 
 import useLayoutStore from "@/demo/api";
 import { LocaleProvider } from "@/lib";
 
-function StackPageEdit(props: { mode: string }) {
+function StackPageEdit() {
   const { pageid } = useParams<{ pageid: string }>();
   const [currentPageid, setCurrentPageid] = useState(pageid || "");
   const [searchParams, setSearchParams] = useSearchParams();
@@ -31,13 +31,9 @@ function StackPageEdit(props: { mode: string }) {
    * @param pageProps
    */
   const saveLayout: SaveLayoutFn = async (
-    pageid: string,
     pageProps: PageProps
   ) => {
     await savePage(pageProps);
-    if (pageid !== pageProps.id) {
-      navigate(`/edit/${pageProps.id}`);
-    }
   };
 
   /**

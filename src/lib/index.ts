@@ -29,19 +29,18 @@ import {
   GoBackListFn,
   LoadLayoutFn,
   SaveLayoutFn,
-  getDefaultPageProps,
   FileUploadFn,
-  GetTagsFn,
   ApiCallFn,
   CustomActionFn,
   GetSelectOptionsFn,
+  gridOptions,
+  subGridOptions
 } from "./components/stackoptions";
 
 import "./styles/index.css";
 
 export {
   StackPage,
-  getDefaultPageProps,
   useLocale,
   LocaleProvider,
   type StackPageProps,
@@ -54,10 +53,11 @@ export {
   type LoadLayoutFn,
   type SaveLayoutFn,
   type FileUploadFn,
-  type GetTagsFn,
   type ApiCallFn,
   type CustomActionFn,
   type GetSelectOptionsFn,
+  gridOptions,
+  subGridOptions
 };
 
 //export { default as styles } from './styles/index.css';
