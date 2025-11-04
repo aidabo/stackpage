@@ -45,11 +45,11 @@ export default function DeleteDropZone({ onDropDelete }: { onDropDelete: () => v
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
-      className="bg-red-50 min-h-14 h-18 flex items-center justify-center p-0 border-2 border-dashed border-red-200 rounded-lg transition-all duration-200 hover:bg-red-100 cursor-pointer group"
+      className="bg-red-50 min-h-20 h-18 flex items-center justify-center p-0 border-2 border-dashed border-red-200 rounded-lg transition-all duration-200 hover:bg-red-100 cursor-pointer group"
     >
       <div className="w-full h-full flex flex-col items-center justify-center m-3">
         <svg 
-          className="w-14 h-14 text-red-300 group-hover:text-red-400 transition-colors" 
+          className="w-16 h-16 text-red-300 group-hover:text-red-400 transition-colors" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"

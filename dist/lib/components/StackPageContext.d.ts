@@ -8,14 +8,17 @@ export interface StackPageContextType {
     setSelectedComponent: (component: string | null) => void;
     selectedInstance: ComponentInstance | null;
     setSelectedInstance: (instance: ComponentInstance | null) => void;
-    pageAttributes: {
+    attributes: {
+        type: string;
+        title: string;
+        excerpt?: string;
+        image?: string;
+        status?: 'draft' | 'published';
+        published_at?: Date | null;
         margin: string;
         padding: string;
         background: string;
         showMenubar: boolean;
-        image?: string;
-        tag?: string;
-        status?: string;
     };
     setPageAttributes: (attributes: any) => void;
     activeTab: "components" | "properties" | "page";

@@ -339,7 +339,7 @@ export const FileWidget = (props: any) => {
               </div>
             )}
 
-            {(fileType === "document" || fileType === "other") && (
+            {(fileType === "document" || fileType === "file") && (
               <div className="text-center py-4 w-full">
                 <div className="text-3xl mb-2">
                   {fileType === "document" ? "📄" : "📎"}
@@ -1026,7 +1026,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
           )}
 
         {/* Simple preview for documents and other files */}
-        {currentValue && (fileType === "document" || fileType === "other") && (
+        {currentValue && (fileType === "document" || fileType === "file") && (
           <div className="space-y-2 w-full">
             <label className="block text-xs font-medium text-gray-700">
               Preview

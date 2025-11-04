@@ -18,7 +18,7 @@ export const ComponentsTab = ({
   const componentMap = getComponentMap(componentMapProvider);
 
   return (
-    <div className="h-full p-4 space-y-6 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto">
+    <div className="h-full p-4 space-y-4 max-h-[calc(100vh-48*0.25rem)] bg-zinc-200 overflow-y-auto">
       <h3 className="text-lg font-medium mb-3">Components</h3>
       <p className="text-sm text-gray-600 mb-4">
         Drag components to the main area or click to select them

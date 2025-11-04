@@ -1,0 +1,14 @@
+export declare const CustomFieldTemplate: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const FileWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomSelectWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const JsonWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const ArrayOfObjectsWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomTextWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomTextareaWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomNumberWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomDateWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomDateTimeWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomEmailWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomURLWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomColorWidget: (props: any) => import("react/jsx-runtime").JSX.Element;
+export declare const CustomCheckboxWidget: (props: any) => import("react/jsx-runtime").JSX.Element;

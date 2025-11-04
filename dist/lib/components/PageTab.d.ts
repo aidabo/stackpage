@@ -1,6 +1,6 @@
+import { FileUploadFn } from '..';
 interface PageTabProps {
-    onFileUpload?: (file: File) => Promise<string>;
-    onGetTags?: () => Promise<Array<string>>;
+    onFileUpload?: FileUploadFn;
 }
-export declare const PageTab: ({ onFileUpload, onGetTags }: PageTabProps) => import("react/jsx-runtime").JSX.Element;
+export declare const PageTab: ({ onFileUpload }: PageTabProps) => import("react/jsx-runtime").JSX.Element;
 export {};

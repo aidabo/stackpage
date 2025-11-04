@@ -14,14 +14,15 @@ export declare const subGridOptions: GridStackOptions;
  * Page properties interface
  */
 export interface PageProps {
-    id: string;
+    id?: string;
+    type: string;
     title: string;
-    description?: string;
+    excerpt?: string;
     image?: string;
-    tag?: string;
-    status?: string;
-    pageAttributes?: any;
-    grids: GridStackOptions | GridStackWidget[] | undefined;
+    published_at?: Date | null;
+    status?: 'draft' | 'published';
+    attributes?: any;
+    layout: GridStackOptions | GridStackWidget[] | undefined;
 }
 /**
  * component properties interface
@@ -29,11 +30,6 @@ export interface PageProps {
 export interface ComponentProps {
     [key: string]: any;
 }
-/**
- * getDefaultPageProps - Returns the default properties for a page.
- * @returns Default page properties with a unique ID and default grid options.
- */
-export declare const getDefaultPageProps: () => PageProps;
 /**
  * ComponentMapProvider - A function that returns a map of components.
  * This will allow for dynamic customization of components.
@@ -58,10 +54,9 @@ export declare const getComponentMap: (fn?: ComponentMapProvider) => ComponentMa
 export declare const getComponentProps: (fn?: ComponentPropsProvider) => ComponentProps;
 /**
  * Save page layout, if pageid is not the same as pageProps.id, it will as created a new page
- * @param pageid - The ID of the page to save
  * @param pageProps - The properties of the page to save
  */
-export type SaveLayoutFn = (pageid: string, pageProps: PageProps) => Promise<void>;
+export type SaveLayoutFn = (pageProps: PageProps) => Promise<void>;
 /**
  * Load page layout function
  */
@@ -71,13 +66,17 @@ export type LoadLayoutFn = (pageid: string) => Promise<PageProps>;
  */
 export type GoBackListFn = () => void;
 /**
+ * FileUploadOptions
+ */
+export interface FileUploadOptions {
+    onProgress?: (p: number) => void;
+    onError?: (err: Error) => void;
+    options?: any;
+}
+/**
  * Image, video, audio, file uploaded callback for server upload
  */
-export type FileUploadFn = (file: File) => Promise<string>;
-/**
- * Get tags for system to set for page
- */
-export type GetTagsFn = () => Promise<Array<string>>;
+export type FileUploadFn = (file: File, props?: FileUploadOptions) => Promise<string>;
 /**
  * If component field name  include "/api", use this callback to get data
  */

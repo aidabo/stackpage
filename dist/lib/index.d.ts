@@ -5,6 +5,6 @@ import { useGridStackContext } from './grid-stack-context';
 import { useGridStackWidgetContext } from './grid-stack-widget-context';
 import { LocaleProvider, useLocale } from './components/LocaleContext';
 import { default as StackPage, StackPageProps, StackPageOptions } from './components/stackpage';
-import { ComponentProps, PageProps, ComponentMapProvider, ComponentPropsProvider, GoBackListFn, LoadLayoutFn, SaveLayoutFn, getDefaultPageProps, FileUploadFn, GetTagsFn, ApiCallFn, CustomActionFn, GetSelectOptionsFn } from './components/stackoptions';
+import { ComponentProps, PageProps, ComponentMapProvider, ComponentPropsProvider, GoBackListFn, LoadLayoutFn, SaveLayoutFn, FileUploadFn, ApiCallFn, CustomActionFn, GetSelectOptionsFn, gridOptions, subGridOptions, FileUploadOptions } from './components/stackoptions';
 export { GridStackProvider, GridStackRenderProvider, GridStackRender, type ComponentDataType, type ComponentMap, useGridStackContext, useGridStackWidgetContext, };
-export { StackPage, getDefaultPageProps, useLocale, LocaleProvider, type StackPageProps, type StackPageOptions, type PageProps, type ComponentProps, type ComponentMapProvider, type ComponentPropsProvider, type GoBackListFn, type LoadLayoutFn, type SaveLayoutFn, type FileUploadFn, type GetTagsFn, type ApiCallFn, type CustomActionFn, type GetSelectOptionsFn, };
+export { StackPage, useLocale, LocaleProvider, type StackPageProps, type StackPageOptions, type PageProps, type ComponentProps, type ComponentMapProvider, type ComponentPropsProvider, type GoBackListFn, type LoadLayoutFn, type SaveLayoutFn, type FileUploadFn, type ApiCallFn, type CustomActionFn, type GetSelectOptionsFn, type FileUploadOptions, gridOptions, subGridOptions };

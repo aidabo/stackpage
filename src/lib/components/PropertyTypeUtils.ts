@@ -5,8 +5,8 @@
 export const getFileType = (
   name: string,
   value: string
-): "image" | "video" | "audio" | "document" | "other" => {
-  if (!value) return "other";
+): "image" | "video" | "audio" | "document" | "file" => {
+  if (!value) return "image";
 
   const nameLower = name.toLowerCase();
 
@@ -15,7 +15,7 @@ export const getFileType = (
     if (value.startsWith("data:image")) return "image";
     if (value.startsWith("data:video")) return "video";
     if (value.startsWith("data:audio")) return "audio";
-    return "other";
+    return "file";
   }
 
   // Check file extension
@@ -57,7 +57,7 @@ export const getFileType = (
     return "document";
   }
 
-  return "other";
+  return "file";
 };
 
 export const getFileAccept = (name: string, value: any): string => {

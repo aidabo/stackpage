@@ -56,8 +56,8 @@ export interface StackPageProps {
   pageid: string;
   pageMode: "edit" | "preview" | "view";
   onLoadLayout: LoadLayoutFn;
-  onSaveLayout: SaveLayoutFn;
-  gobackList: GoBackListFn;
+  onSaveLayout?: SaveLayoutFn;
+  gobackList?: GoBackListFn;
   componentMapProvider?: ComponentMapProvider;
   componentPropsProvider?: ComponentPropsProvider;
   onFileUpload?: FileUploadFn;
@@ -291,23 +291,6 @@ const StackPageContent = ({
   // Default handlers
   const handleSave = async () => {
     if (onSaveLayout) {
-      // let layout = stackActionsRef.current?.saveLayout();
-      // if (layout) {
-      //   // Update the layout with the latest props from context
-      //   layout = updateLayoutWithNewProps(layout, widgetProps);
-      //   const savedPageProps: PageProps = {
-      //     ...pageProps,
-      //     id: pageid,
-      //     layout: layout,
-      //     attributes: attributes,
-      //     type: attributes.type,
-      //     title: attributes.title,
-      //     status: attributes.status,
-      //     published_at: attributes.published_at,
-      //   };
-      //   console.log("Saving page layout:", savedPageProps);
-      //   await onSaveLayout(savedPageProps);
-      // }
       const savedPageProps = getCurrentPageProps();
       await onSaveLayout(savedPageProps);
     }
@@ -680,7 +663,7 @@ const StackPageContent = ({
         )}
 
         {/* Floating Return Button - For view mode (external) */}
-        {currentMode === "view" && (
+        {currentMode === "view" && gobackList && (
           <div className="fixed inset-0 pointer-events-none z-50">
             <div className="absolute bottom-8 right-8 pointer-events-auto">
               <button
