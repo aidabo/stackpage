@@ -1,11 +1,14 @@
 // PropertiesTab.tsx
+import { useEffect, useRef } from "react";
 import Form from "@rjsf/core";
 import validator from "@rjsf/validator-ajv8";
 import { useStackPage } from "./StackPageContext";
 import { useWidgetProps } from "./StackPageWidgetProps";
 import { 
   generateSchemaFromCurrentProps, 
-  generateUiSchema 
+  generateUiSchema,
+  getFileType,
+  getFileAccept 
 } from "./PropertyTypeUtils";
 import {
   CustomFieldTemplate,
@@ -23,15 +26,13 @@ import {
   CustomColorWidget,
   CustomCheckboxWidget,
 } from "./PropertyWidgets";
+import { ApiCallFn, CustomActionFn, FileUploadFn, GetSelectOptionsFn } from "..";
 
 interface PropertiesTabProps {
-  onFileUpload?: (file: File) => Promise<string>;
-  onApiCall?: (endpoint: string, data?: any) => Promise<any>;
-  onCustomAction?: (action: string, data: any) => Promise<any>;
-  onGetSelectOptions?: (
-    propertyName: string,
-    componentType: string
-  ) => Promise<string[]>;
+  onFileUpload?: FileUploadFn,
+  onApiCall?: ApiCallFn,
+  onCustomAction?: CustomActionFn,
+  onGetSelectOptions?: GetSelectOptionsFn
 }
 
 export const PropertiesTab = ({
@@ -48,6 +49,20 @@ export const PropertiesTab = ({
   } = useStackPage();
   const { updateProps, getProps } = useWidgetProps(selectedInstance?.id);
 
+  // Use a ref to preserve selection across re-renders
+  const selectionRef = useRef<{ instanceId: string | null, component: string | null }>({
+    instanceId: selectedInstance?.id || null,
+    component: selectedComponent
+  });
+
+  // Update ref when selection changes
+  useEffect(() => {
+    selectionRef.current = {
+      instanceId: selectedInstance?.id || null,
+      component: selectedComponent
+    };
+  }, [selectedInstance, selectedComponent]);
+
   if (!selectedInstance && !selectedComponent) {
     return (
       <div className="p-6 text-center text-gray-500">
@@ -61,7 +76,6 @@ export const PropertiesTab = ({
   }
 
   const componentType = selectedInstance?.type || selectedComponent;
-
   const currentInstanceProps = selectedInstance?.props || {};
   const updatedPropsFromContext = getProps() || {};
   const currentProps = { ...currentInstanceProps, ...updatedPropsFromContext };
@@ -94,9 +108,34 @@ export const PropertiesTab = ({
     }
   };
 
+  // Updated widgets with consistent FileUploadFn signature
   const widgets = {
     FileWidget: (props: any) => (
-      <FileWidget {...props} onFileUpload={onFileUpload} />
+      <FileWidget 
+        {...props} 
+        onFileUpload={onFileUpload ? (file: File) => {
+          // Get file type information
+          const fileType = getFileType(props.name, props.value);
+          const acceptTypes = getFileAccept(props.name, props.value);          
+          // Call with proper FileUploadOptions
+          return onFileUpload(file, {
+            onProgress: (progress) => {
+              console.log(`Upload progress: ${progress}%`);
+              // You could add a progress indicator here if needed
+            },
+            onError: (error) => {
+              console.error('Upload error:', error);
+              alert(`Upload failed: ${error.message}`);
+            },
+            options: {
+              fileType: fileType,
+              fieldName: props.name,
+              acceptTypes: acceptTypes,
+              componentType: componentType
+            }
+          });
+        } : undefined}
+      />
     ),
     CustomSelectWidget: (props: any) => (
       <CustomSelectWidget
@@ -108,7 +147,26 @@ export const PropertiesTab = ({
     ),
     JsonWidget,
     ArrayOfObjectsWidget: (props: any) => (
-      <ArrayOfObjectsWidget {...props} onFileUpload={onFileUpload} />
+      <ArrayOfObjectsWidget 
+        {...props} 
+        onFileUpload={onFileUpload ? (file: File, fieldName?: string, fieldType?: string) => {
+          return onFileUpload(file, {
+            onProgress: (progress) => {
+              console.log(`Upload progress: ${progress}%`);
+            },
+            onError: (error) => {
+              console.error('Upload error:', error);
+              alert(`Upload failed: ${error.message}`);
+            },
+            options: {
+              fieldName: fieldName || props.name,
+              fieldType: fieldType || 'file',
+              componentType: componentType,
+              isArrayItem: true
+            }
+          });
+        } : undefined}
+      />
     ),
     CustomTextWidget,
     CustomTextareaWidget,
@@ -155,6 +213,7 @@ export const PropertiesTab = ({
         {/* RJSF Form */}
         <div className="properties-form">
           <Form
+            key={selectedInstance?.id}
             schema={schema}
             uiSchema={uiSchema}
             formData={currentProps}

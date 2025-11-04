@@ -121,12 +121,11 @@ const StackPageContent = ({
     widgetProps, // Add this to get widgetProps from context
   } = useStackPage();
 
-  const [pageProps, setPageProps] = useState<PageProps>(
-    {
-      id: pageid,
-      type: "page",
-      title: "untitled page",
-      layout: gridOptions,
+  const [pageProps, setPageProps] = useState<PageProps>({
+    id: pageid,
+    type: "page",
+    title: "untitled page",
+    layout: gridOptions,
   });
   const [title, setTitle] = useState<string>();
   const [pageTitle, setPageTitle] = useState<string>();
@@ -155,25 +154,25 @@ const StackPageContent = ({
   }, [isMobile]);
 
   // Handle mode changes and update showMenubar accordingly
-  useEffect(() => {  
+  useEffect(() => {
     if (currentMode === "preview" || currentMode === "view") {
       // When switching to preview or view mode, hide menubar
-      setPageAttributes((prev:any) => ({
+      setPageAttributes((prev: any) => ({
         ...prev,
-        showMenubar: false
+        showMenubar: false,
       }));
     } else if (currentMode === "edit") {
       // When switching back to edit mode, show menubar
-      setPageAttributes((prev:any) => ({
+      setPageAttributes((prev: any) => ({
         ...prev,
-        showMenubar: true
+        showMenubar: true,
       }));
     }
   }, [currentMode, setPageAttributes]);
 
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
-      const pageProps = (await onLoadLayout(pageid));
+      const pageProps = await onLoadLayout(pageid);
       setPageProps(pageProps);
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
@@ -186,7 +185,7 @@ const StackPageContent = ({
   const handleReload = useCallback(async () => {
     if (pageid) {
       setPageProps((prev) => ({ ...prev, id: pageid })); // Trigger re-render
-      const gridOptions: any = await handleLoadLayout(pageid);      
+      const gridOptions: any = await handleLoadLayout(pageid);
       setInitialOptions(gridOptions);
       // Force remount
       setResetKey((prev) => prev + 1);
@@ -270,25 +269,47 @@ const StackPageContent = ({
     }
   };
 
+  const getCurrentPageProps = () => {
+    let layout = stackActionsRef.current?.saveLayout();
+    if (layout) {
+      // Update the layout with the latest props from context
+      layout = updateLayoutWithNewProps(layout, widgetProps);
+    }
+    const currentPageProps: PageProps = {
+      ...pageProps,
+      id: pageid,
+      layout: layout,
+      attributes: attributes,
+      type: attributes.type,
+      title: attributes.title,
+      status: attributes.status,
+      published_at: attributes.published_at,
+    };
+    return currentPageProps;
+  };
+
   // Default handlers
   const handleSave = async () => {
     if (onSaveLayout) {
-      let layout = stackActionsRef.current?.saveLayout();
-      if (layout) {
-        // Update the layout with the latest props from context
-        layout = updateLayoutWithNewProps(layout, widgetProps);
-        const savedPageProps: PageProps = {
-          ...pageProps,
-          id: pageid,
-          layout: layout,
-          title: pageTitle as any,
-          type: attributes.type,
-          status: attributes.status,
-          attributes: attributes,
-        };
-        console.log("Saving page layout:", savedPageProps);
-        await onSaveLayout(savedPageProps);
-      }
+      // let layout = stackActionsRef.current?.saveLayout();
+      // if (layout) {
+      //   // Update the layout with the latest props from context
+      //   layout = updateLayoutWithNewProps(layout, widgetProps);
+      //   const savedPageProps: PageProps = {
+      //     ...pageProps,
+      //     id: pageid,
+      //     layout: layout,
+      //     attributes: attributes,
+      //     type: attributes.type,
+      //     title: attributes.title,
+      //     status: attributes.status,
+      //     published_at: attributes.published_at,
+      //   };
+      //   console.log("Saving page layout:", savedPageProps);
+      //   await onSaveLayout(savedPageProps);
+      // }
+      const savedPageProps = getCurrentPageProps();
+      await onSaveLayout(savedPageProps);
     }
   };
 
@@ -350,12 +371,6 @@ const StackPageContent = ({
     },
     [setSelectedInstance, setSelectedComponent, setActiveTab]
   );
-
-  const getPageInfo = () => {
-    const pageInfo: PageProps = JSON.parse(JSON.stringify(pageProps));
-    pageInfo.layout = stackActionsRef.current?.saveLayout();
-    return pageInfo;
-  };
 
   useEffect(() => {
     if (dropEvent && stackActionsRef.current) {
@@ -627,9 +642,7 @@ const StackPageContent = ({
                   <div
                     style={{ display: activeTab === "page" ? "block" : "none" }}
                   >
-                    <PageTab
-                      onFileUpload={onFileUpload}
-                    />
+                    <PageTab onFileUpload={onFileUpload} />
                   </div>
                 </div>
               </div>
@@ -685,7 +698,7 @@ const StackPageContent = ({
         {/* show page info */}
         <PageInfoDialogs
           isOpen={showGridInfo}
-          pageInfo={getPageInfo()}
+          pageInfo={getCurrentPageProps}
           resetOpenInfo={setShowGridInfo}
         />
       </div>

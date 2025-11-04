@@ -20,7 +20,6 @@ export interface StackPageContextType {
     image?: string;
     status?: 'draft' | 'published';
     published_at?: Date | null;
-
     margin: string;
     padding: string;
     background: string;

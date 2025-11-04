@@ -1,15 +1,16 @@
+import { FileUploadFn } from "..";
 import { useStackPage } from "./StackPageContext";
 import { useState, useRef } from "react";
 
 interface PageTabProps {
-  onFileUpload?: (file: File) => Promise<string>;
+  onFileUpload?: FileUploadFn
 }
 
 // Page Tab Component
 export const PageTab = ({ onFileUpload }: PageTabProps) => {
   const { attributes, setPageAttributes } = useStackPage();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePageAttributeChange = (attribute: string, value: string) => {
@@ -20,44 +21,42 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
     setPageAttributes(newAttributes);
   };
 
-  const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    handlePageAttributeChange("image", url);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Create temporary preview
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
       setIsUploading(true);
-
+      setProgress(0)
       try {
-        let finalImageUrl = previewUrl;
-
-        // Only call onFileUpload if it exists
+        let finalImageUrl = URL.createObjectURL(file); // Temporary local URL
+        // Upload to server if callback provided
         if (onFileUpload) {
-          finalImageUrl = await onFileUpload(file);
-          // Clean up the temporary preview URL
-          URL.revokeObjectURL(previewUrl);
-          setImagePreview(null);
+          finalImageUrl = await onFileUpload(file, {
+            onProgress: (p) => setProgress(p),
+            onError: (error) => alert(error.message),
+            options: {}
+          });
         }
-
-        // Update the attributes with the final image URL
-        handlePageAttributeChange("image", finalImageUrl);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        handlePageAttributeChange("image", finalImageUrl);  
+        // Update the attributes with the final image URL        
       } catch (error) {
         console.error("Failed to upload image:", error);
-        // If upload fails, keep the preview but show error
         alert("Failed to upload image. Please try again.");
       } finally {
         setIsUploading(false);
+        setProgress(0);        
       }
     }
   };
 
   const handleImageRemove = () => {
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setImagePreview(null);
     handlePageAttributeChange("image", "");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -79,52 +78,122 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Page Image
           </label>
-          <div className="flex flex-col items-start space-y-3">
-            {attributes.image || imagePreview ? (
-              <div className="relative">
-                <img
-                  src={attributes.image || imagePreview || ""}
-                  alt="Page preview"
-                  className="w-32 h-32 object-cover rounded-lg border border-gray-200"
-                />
-                <button
-                  type="button"
-                  onClick={handleImageRemove}
-                  disabled={isUploading}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 disabled:bg-gray-400"
-                >
-                  ×
-                </button>
-              </div>
-            ) : (
-              <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
-                {isUploading ? "Uploading..." : "No image"}
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              disabled={isUploading}
-              className="hidden"
-              id="page-image-upload"
-            />
-            <label
-              htmlFor="page-image-upload"
-              className={`px-4 py-2 rounded-lg transition-colors cursor-pointer text-sm ${
-                isUploading
-                  ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
-              }`}
-            >
-              {isUploading ? "Uploading..." : "Upload Image"}
+          
+          {/* URL Input Box */}
+          <div className="mb-6 space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Image URL
             </label>
+            <input
+              type="url"
+              value={attributes.image || ""}
+              onChange={handleImageUrlChange}
+              placeholder="https://example.com/image.jpg"
+              className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
             <p className="text-xs text-gray-500">
-              {onFileUpload
-                ? "Image will be uploaded to your server"
-                : "Image will be stored locally (for demo)"}
+              Enter image URL or upload a file below
             </p>
+          </div>
+
+          {/* File Upload and Preview - Centered Layout */}
+          <div className="flex flex-col items-center space-y-4">
+            {/* Large Preview Image */}
+            <div className="relative bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-200 w-full max-w-md">
+              {attributes.image ? (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="relative">
+                    <img
+                      src={attributes.image}
+                      alt="Page preview"
+                      className="w-64 h-64 object-contain rounded-lg shadow-lg"
+                      onError={(e) => {
+                        // If image fails to load, show error placeholder
+                        e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='16' fill='%239ca3af'%3EImage Error%3C/text%3E%3C/svg%3E";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleImageRemove}
+                      disabled={isUploading}
+                      className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 disabled:bg-gray-400 transition-colors shadow-lg"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  
+                  {/* Image Info */}
+                  <div className="text-center space-y-1">
+                    <p className="text-sm text-gray-600 truncate max-w-xs">
+                      {attributes.image.startsWith('blob:') ? 'Temporary Preview' : 'Saved Image'}
+                    </p>
+                    {attributes.image.length > 60 && (
+                      <p className="text-xs text-gray-500 break-all">
+                        {attributes.image.substring(0, 80)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 mb-4">
+                    {isUploading ? (
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <span className="text-sm">Uploading...{progress}%</span>
+                      </div>
+                    ) : (
+                      <span className="text-4xl">🖼️</span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 text-sm text-center">
+                    {isUploading ? "Processing your image..." : "No image selected"}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Upload Button */}
+            <div className="flex flex-col items-center space-y-3 w-full max-w-md">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={isUploading}
+                className="hidden"
+                id="page-image-upload"
+              />
+              <label
+                htmlFor="page-image-upload"
+                className={`px-8 py-3 rounded-lg transition-colors cursor-pointer text-sm font-medium w-full text-center ${
+                  isUploading
+                    ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                }`}
+              >
+                {isUploading ? "Uploading..." : "Choose Image File"}
+              </label>
+              
+              {/* Upload Status */}
+              <div className="text-center space-y-1">
+                {isUploading && (
+                  <div className="text-sm text-blue-600 font-medium">
+                    ⏳ Uploading image to server...
+                  </div>
+                )}
+                {attributes.image && !isUploading && (
+                  <div className="text-sm text-green-600 font-medium">
+                    ✅ Image saved successfully
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  {onFileUpload
+                    ? "Images will be uploaded to your server"
+                    : "Images will be stored locally (demo mode)"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -138,7 +207,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
             onChange={(e) =>
               handlePageAttributeChange("status", e.target.value)
             }
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {statusOptions.map((status) => (
               <option key={status} value={status}>
@@ -172,7 +241,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                     e.target.checked as any
                   )
                 }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
               />
             </div>
           </div>
@@ -189,7 +258,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
             onChange={(e) =>
               handlePageAttributeChange("margin", e.target.value)
             }
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="e.g., 0, 10px, 1rem"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -207,7 +276,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
             onChange={(e) =>
               handlePageAttributeChange("padding", e.target.value)
             }
-            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="e.g., 20px, 2rem"
           />
           <p className="text-xs text-gray-500 mt-1">
@@ -219,14 +288,14 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Background Color
           </label>
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-4 items-center">
             <input
               type="color"
               value={attributes.background}
               onChange={(e) =>
                 handlePageAttributeChange("background", e.target.value)
               }
-              className="w-12 h-12 border border-gray-300 rounded cursor-pointer"
+              className="w-16 h-16 border border-gray-300 rounded-lg cursor-pointer shadow-sm"
             />
             <input
               type="text"
@@ -234,7 +303,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
               onChange={(e) =>
                 handlePageAttributeChange("background", e.target.value)
               }
-              className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="#ffffff, rgb(255,255,255), etc."
             />
           </div>
@@ -244,34 +313,48 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
         </div>
       </div>
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-medium text-blue-800 mb-2">
+      <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
+        <h4 className="font-medium text-blue-800 mb-3 text-lg">
           Current Page Settings
         </h4>
-        <div className="text-sm text-blue-700 grid grid-cols-2 gap-2">
-          <div>
-            Menu Bar:{" "}
-            <code>{attributes.showMenubar ? "Visible" : "Hidden"}</code>
+        <div className="text-sm text-blue-700 grid grid-cols-2 gap-3">
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Menu Bar:</span>
+            <code className={`px-2 py-1 rounded ${attributes.showMenubar ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+              {attributes.showMenubar ? "Visible" : "Hidden"}
+            </code>
           </div>
-          <div>
-            Status: <code>{attributes.status || "draft"}</code>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Status:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {attributes.status || "draft"}
+            </code>
           </div>
-          <div>
-            Margin: <code>{attributes.margin}</code>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Margin:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {attributes.margin || "Not set"}
+            </code>
           </div>
-          <div>
-            Padding: <code>{attributes.padding}</code>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Padding:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {attributes.padding || "Not set"}
+            </code>
           </div>
-          <div>
-            Background: <code>{attributes.background}</code>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Background:</span>
+            <code className="px-2 py-1 rounded bg-gray-100 truncate max-w-[120px]">
+              {attributes.background || "Not set"}
+            </code>
           </div>
-          <div className="col-span-2">
-            Image:{" "}
-            <code>
+          <div className="col-span-2 flex items-start space-x-2">
+            <span className="font-medium whitespace-nowrap">Image:</span>
+            <code className="px-2 py-1 rounded bg-gray-100 break-all flex-1">
               {attributes.image
-                ? onFileUpload
-                  ? "Remote"
-                  : "Local"
+                ? (attributes.image.length > 80 
+                    ? attributes.image.substring(0, 80) + "..."
+                    : attributes.image)
                 : "Not set"}
             </code>
           </div>

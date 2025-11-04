@@ -176,9 +176,18 @@ export type LoadLayoutFn = (pageid: string) => Promise<PageProps>;
 export type GoBackListFn = () => void;
 
 /**
+ * FileUploadOptions
+ */
+export interface FileUploadOptions {
+  onProgress?: (p: number) => void,
+  onError?: (err: Error) =>void,
+  options?: any
+}
+
+/**
  * Image, video, audio, file uploaded callback for server upload
  */
-export type FileUploadFn = (file: File) => Promise<string>;
+export type FileUploadFn = (file: File, props?: FileUploadOptions) => Promise<string>;
 
 /**
  * If component field name  include "/api", use this callback to get data

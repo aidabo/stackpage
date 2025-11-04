@@ -34,7 +34,8 @@ import {
   CustomActionFn,
   GetSelectOptionsFn,
   gridOptions,
-  subGridOptions
+  subGridOptions,
+  FileUploadOptions
 } from "./components/stackoptions";
 
 import "./styles/index.css";
@@ -56,6 +57,7 @@ export {
   type ApiCallFn,
   type CustomActionFn,
   type GetSelectOptionsFn,
+  type FileUploadOptions,
   gridOptions,
   subGridOptions
 };

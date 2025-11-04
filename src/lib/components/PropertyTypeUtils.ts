@@ -192,7 +192,8 @@ export const inferPropertySchema = (key: string, value: any): any => {
   const isFileField = isFileTypeField(key, value);
   if (isFileField) {
     baseSchema.type = "string";
-    baseSchema.format = "file";
+    // Use "uri" format instead of custom "file" format for RJSF compatibility
+    baseSchema.format = "uri";
     return baseSchema;
   }
   
@@ -202,12 +203,11 @@ export const inferPropertySchema = (key: string, value: any): any => {
     // Enhanced select field detection
     const isSelectField = detectSelectField(key, value);
     if (isSelectField) {
-      baseSchema.format = "select";
-
-      // Handle different types of select fields
+      // Don't use custom format for select fields, use enum instead
       if (value && value.startsWith("/api/")) {
         baseSchema.description = "API Endpoint";
-        baseSchema.format = "dynamic-select";
+        // Use a custom property instead of format for dynamic selects
+        baseSchema["x-dynamic-select"] = true;
       } else if (isStaticOptionsArray(value)) {
         // Parse static options from string like "[option1, option2]"
         const options = parseStaticOptionsFromString(value);
@@ -280,7 +280,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
               itemSchema.type = "string";
               // Check if it's a file field within the array object
               if (isFileTypeField(itemKey, itemValue)) {
-                itemSchema.format = "file";
+                itemSchema.format = "uri"; // Use uri format instead of file
               }
             } else if (itemType === "number") {
               itemSchema.type = "number";
@@ -294,8 +294,8 @@ export const inferPropertySchema = (key: string, value: any): any => {
             return acc;
           }, {} as any),
         };
-        // Use a custom format that we'll handle in the UI schema
-        baseSchema.format = "array-of-objects";
+        // Use a custom property instead of format for array-of-objects
+        baseSchema["x-array-of-objects"] = true;
       } else {
         // Fallback to JSON for complex objects
         baseSchema.items = { type: "object" };
@@ -308,7 +308,6 @@ export const inferPropertySchema = (key: string, value: any): any => {
         value.every((item) => typeof item === "string") &&
         value.length <= 10
       ) {
-        baseSchema.format = "select";
         baseSchema.enum = value;
       }
     } else {
@@ -353,8 +352,9 @@ export const generateUiSchema = (
     const property = schema.properties[key];
     const value = currentProps[key];
 
-    // Assign appropriate widgets based on schema
-    if (property.format === "file" || isFileTypeField(key, value)) {
+    // Assign appropriate widgets based on schema and custom properties
+    if (isFileTypeField(key, value)) {
+      // Use custom widget for file fields regardless of format
       uiSchema[key] = {
         "ui:widget": "FileWidget",
       };
@@ -369,20 +369,19 @@ export const generateUiSchema = (
           rows: 5,
         },
       };
-    } else if (
-      property.format === "select" ||
-      property.format === "dynamic-select"
-    ) {
+    } else if (property["x-dynamic-select"] || (property.enum && property.description === "API Endpoint")) {
+      // Handle dynamic select using custom property
+      uiSchema[key] = {
+        "ui:widget": "CustomSelectWidget",
+        "ui:options": {
+          isDynamic: true,
+        },
+      };
+    } else if (property.enum) {
+      // Handle static select with enum
       uiSchema[key] = {
         "ui:widget": "CustomSelectWidget",
       };
-
-      if (property.format === "dynamic-select") {
-        uiSchema[key]["ui:options"] = {
-          ...uiSchema[key]["ui:options"],
-          isDynamic: true,
-        };
-      }
     } else if (property.format === "date") {
       uiSchema[key] = {
         "ui:widget": "CustomDateWidget",
@@ -407,8 +406,8 @@ export const generateUiSchema = (
       uiSchema[key] = {
         "ui:widget": "CustomNumberWidget",
       };
-    } else if (property.format === "array-of-objects") {
-      // Handle array-of-objects format with our custom widget
+    } else if (property["x-array-of-objects"] || (property.format === "array" && property.items?.type === "object")) {
+      // Handle array-of-objects using custom property
       uiSchema[key] = {
         "ui:widget": "ArrayOfObjectsWidget",
         "ui:options": {
@@ -445,7 +444,7 @@ export const generateUiSchema = (
   return uiSchema;
 };
 
-// DataBinding Fieldの検出
+// DataBinding Field detection
 export const isDataBindingField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
   

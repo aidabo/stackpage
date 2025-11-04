@@ -1,7 +1,11 @@
 /* eslint-disable no-case-declarations */
 // PropertyWidgets.tsx
 import React from "react";
-import { getFileType, getFileAccept, inferPropertySchema } from "./PropertyTypeUtils";
+import {
+  getFileType,
+  getFileAccept,
+  inferPropertySchema,
+} from "./PropertyTypeUtils";
 
 // Custom field template for better layout
 export const CustomFieldTemplate = (props: any) => {
@@ -47,6 +51,7 @@ export const FileWidget = (props: any) => {
   const [currentValue, setCurrentValue] = React.useState(props.value || "");
   const [selectedFileName, setSelectedFileName] = React.useState("");
   const [blobUrls, setBlobUrls] = React.useState<Set<string>>(new Set());
+  const [uploadProgress, setUploadProgress] = React.useState(0);
 
   React.useEffect(() => {
     setCurrentValue(props.value || "");
@@ -74,12 +79,23 @@ export const FileWidget = (props: any) => {
     if (file) {
       setSelectedFileName(file.name);
       setUploading(true);
+      setUploadProgress(0);
+
       try {
         let fileUrl: string;
 
         if (props.onFileUpload) {
-          // Use the provided upload handler
-          fileUrl = await props.onFileUpload(file);
+          // Use the provided upload handler with progress tracking
+          fileUrl = await props.onFileUpload(file, {
+            onProgress: (progress: number) => {
+              setUploadProgress(progress);
+            },
+            onError: (error: Error) => {
+              alert(`Upload failed: ${error.message}`);
+              setUploading(false);
+              setUploadProgress(0);
+            },
+          });
         } else {
           // Generate blob URL or data URL for immediate preview
           if (file.type.startsWith("image/") && file.size < 5 * 1024 * 1024) {
@@ -97,13 +113,16 @@ export const FileWidget = (props: any) => {
         }
 
         setCurrentValue(fileUrl);
-        props.onChange(fileUrl);
+        props.onChange(fileUrl); // Fallback to RJSF's onChange
+        setUploading(false);
+        setUploadProgress(100);
       } catch (error) {
         console.error("File processing failed:", error);
         alert("File processing failed");
         setSelectedFileName("");
-      } finally {
         setUploading(false);
+        setUploadProgress(0);
+      } finally {
         // Clear the file input
         event.target.value = "";
       }
@@ -113,7 +132,7 @@ export const FileWidget = (props: any) => {
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setCurrentValue(newValue);
-    props.onChange(newValue);
+    props.onChange(newValue); // Fallback to RJSF's onChange
     // Clear selected file name when URL is manually changed
     setSelectedFileName("");
   };
@@ -131,7 +150,8 @@ export const FileWidget = (props: any) => {
 
     setCurrentValue("");
     setSelectedFileName("");
-    props.onChange("");
+    setUploadProgress(0);
+    props.onChange(""); // Fallback to RJSF's onChange
   };
 
   // Get file type for preview and accept attribute
@@ -204,15 +224,25 @@ export const FileWidget = (props: any) => {
                 onChange={handleFileChange}
                 disabled={uploading}
                 accept={acceptTypes}
-                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
               />
             </div>
             {uploading && (
               <div className="flex-shrink-0 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg text-sm flex items-center whitespace-nowrap">
-                {props.onFileUpload ? "Uploading..." : "Processing..."}
+                <span>Uploading... {uploadProgress}%</span>
               </div>
             )}
           </div>
+
+          {/* Progress bar */}
+          {uploading && (
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+          )}
 
           {/* Display selected file name on a new line below */}
           {displayFileName && (
@@ -246,6 +276,7 @@ export const FileWidget = (props: any) => {
             Preview
           </label>
           <div className="border border-gray-200 rounded-lg p-4 w-full overflow-hidden">
+            {/* Preview content remains the same */}
             {fileType === "image" && (
               <div className="flex flex-col items-center space-y-3 w-full">
                 <div className="w-full flex justify-center">
@@ -604,24 +635,49 @@ export const ArrayOfObjectsWidget = (props: any) => {
     new Set()
   );
   const [selectAll, setSelectAll] = React.useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
+  const [localChanges, setLocalChanges] = React.useState<any[]>(props.value || []);
 
   React.useEffect(() => {
-    setItems(props.value || []);
+    const initialItems = props.value || [];
+    setItems(initialItems);
+    setLocalChanges(initialItems);
     // Detect keys and their schemas
     const { keys, schemas } = detectObjectKeysAndSchemas(
       props.schema,
-      props.value
+      initialItems
     );
     setDetectedKeys(keys);
     setFieldSchemas(schemas);
-  }, [props.value, props.schema]);
+    setHasUnsavedChanges(false);
+  }, [props.schema, props.value?.length]);
 
-  // Item change handler - defined at the top level
+  // Item change handler - ONLY updates local state, doesn't call props.onChange
   const handleItemChange = (index: number, key: string, value: any) => {
-    const newItems = [...items];
+    const newItems = [...localChanges];
     newItems[index] = { ...newItems[index], [key]: value };
-    setItems(newItems);
-    props.onChange(newItems);
+    setLocalChanges(newItems);
+    setHasUnsavedChanges(true);
+    
+    // Also update the display items for immediate UI feedback
+    const displayItems = [...items];
+    displayItems[index] = { ...displayItems[index], [key]: value };
+    setItems(displayItems);
+  };
+
+  // Apply all changes at once
+  const handleApplyChanges = () => {
+    props.onChange(localChanges);
+    setItems(localChanges);
+    setHasUnsavedChanges(false);
+  };
+
+  // Reset to original props value
+  const handleResetChanges = () => {
+    const originalItems = props.value || [];
+    setLocalChanges(originalItems);
+    setItems(originalItems);
+    setHasUnsavedChanges(false);
   };
 
   // Detect object keys and their schemas using inferPropertySchema
@@ -656,20 +712,43 @@ export const ArrayOfObjectsWidget = (props: any) => {
     return { keys, schemas };
   };
 
-  // Get appropriate widget based on schema
-  const getFieldWidget = (key: string, schema: any, _value: any) => {
+  // Get appropriate widget based on schema - UPDATED TO BETTER DETECT FILE FIELDS
+  const getFieldWidget = (key: string, schema: any, value: any) => {
     const format = schema.format || "";
     const type = schema.type || "string";
 
-    if (format === "color") {
+    // Enhanced file detection
+    const isFileField = 
+      format === "file" || 
+      format === "uri" ||
+      key.toLowerCase().includes("url") ||
+      key.toLowerCase().includes("image") ||
+      key.toLowerCase().includes("video") ||
+      key.toLowerCase().includes("audio") ||
+      key.toLowerCase().includes("file") ||
+      key.toLowerCase().includes("src") ||
+      key.toLowerCase().includes("icon") ||
+      key.toLowerCase().includes("avatar") ||
+      key.toLowerCase().includes("logo") ||
+      key.toLowerCase().includes("thumbnail") ||
+      key.toLowerCase().includes("media") ||
+      (typeof value === "string" && (
+        value.startsWith("http") ||
+        value.startsWith("data:") ||
+        value.startsWith("blob:") ||
+        value.includes("/uploads/") ||
+        value.includes("/images/") ||
+        value.includes("/media/") ||
+        /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mp3|wav|pdf|doc|docx)$/i.test(value)
+      ));
+
+    if (isFileField) {
+      return "file";
+    } else if (format === "color") {
       return "color";
     } else if (format === "email") {
       return "email";
-    } else if (
-      format === "uri" ||
-      key.toLowerCase().includes("url") ||
-      key.toLowerCase().includes("link")
-    ) {
+    } else if (format === "uri" || format === "url") {
       return "url";
     } else if (format === "date") {
       return "date";
@@ -679,20 +758,20 @@ export const ArrayOfObjectsWidget = (props: any) => {
       return "number";
     } else if (format === "select" || format === "dynamic-select") {
       return "select";
-    } else if (format === "file") {
-      return "file";
     }
 
     return "text";
   };
 
-  // Updated SimpleFileWidget with preview in ArrayOfObjectsWidget
+  // Updated SimpleFileWidget for ArrayOfObjectsWidget - FIXED FUNCTION SIGNATURE
   const SimpleFileWidget = (fileProps: any) => {
     const [currentValue, setCurrentValue] = React.useState(
       fileProps.value || ""
     );
     const [selectedFileName, setSelectedFileName] = React.useState("");
     const [blobUrls, setBlobUrls] = React.useState<Set<string>>(new Set());
+    const [uploading, setUploading] = React.useState(false);
+    const [uploadProgress, setUploadProgress] = React.useState(0);
 
     React.useEffect(() => {
       setCurrentValue(fileProps.value || "");
@@ -718,10 +797,24 @@ export const ArrayOfObjectsWidget = (props: any) => {
       const file = event.target.files?.[0];
       if (file) {
         setSelectedFileName(file.name);
+        setUploading(true);
+        setUploadProgress(0);
+
         try {
           let fileUrl: string;
           if (fileProps.onFileUpload) {
-            fileUrl = await fileProps.onFileUpload(file);
+            // Use the provided upload handler with progress tracking
+            fileUrl = await fileProps.onFileUpload(file, {
+              onProgress: (progress: number) => {
+                setUploadProgress(progress);
+              },
+              onError: (error: Error) => {
+                console.error("Upload error:", error);
+                alert(`Upload failed: ${error.message}`);
+                setUploading(false);
+                setUploadProgress(0);
+              },
+            });
           } else {
             // Generate blob URL or data URL for immediate preview
             if (file.type.startsWith("image/") && file.size < 5 * 1024 * 1024) {
@@ -735,11 +828,16 @@ export const ArrayOfObjectsWidget = (props: any) => {
               setBlobUrls((prev) => new Set([...prev, fileUrl]));
             }
           }
+
           setCurrentValue(fileUrl);
-          fileProps.onChange(fileUrl);
+          fileProps.onChange(fileUrl); // This now only updates local state
+          setUploading(false);
+          setUploadProgress(100);
         } catch (error) {
           console.error("File processing failed:", error);
           setSelectedFileName("");
+          setUploading(false);
+          setUploadProgress(0);
         } finally {
           event.target.value = "";
         }
@@ -749,7 +847,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setCurrentValue(newValue);
-      fileProps.onChange(newValue);
+      fileProps.onChange(newValue); // This now only updates local state
       setSelectedFileName("");
     };
 
@@ -766,7 +864,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
 
       setCurrentValue("");
       setSelectedFileName("");
-      fileProps.onChange("");
+      setUploadProgress(0);
+      fileProps.onChange(""); // This now only updates local state
     };
 
     const getDisplayFileName = () => {
@@ -817,12 +916,38 @@ export const ArrayOfObjectsWidget = (props: any) => {
         {/* File Upload */}
         <div className="space-y-2 w-full">
           <div className="flex flex-col gap-2 w-full">
+
+            <div className="flex-1 min-w-0">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                disabled={uploading}
+                accept={acceptTypes}
+                className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+            </div>
+            {uploading && (
+              <div className="flex-shrink-0 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg text-sm flex items-center whitespace-nowrap">
+                <span>Uploading... {uploadProgress}%</span>
+              </div>
+            )}
+{/* 
             <input
               type="file"
               onChange={handleFileChange}
+              disabled={uploading}
               accept={acceptTypes}
-              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
             />
+
+            {uploading && (
+              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                ><span className="text-sm">Uploading...{uploadProgress}%</span></div>
+              </div>
+            )} */}
 
             {/* Display file name on new line */}
             {displayFileName && (
@@ -1038,11 +1163,12 @@ export const ArrayOfObjectsWidget = (props: any) => {
   const handleDeleteSelected = () => {
     if (selectedItems.size === 0) return;
 
-    const newItems = items.filter((_, index) => !selectedItems.has(index));
+    const newItems = localChanges.filter((_, index) => !selectedItems.has(index));
+    setLocalChanges(newItems);
     setItems(newItems);
     setSelectedItems(new Set());
     setSelectAll(false);
-    props.onChange(newItems);
+    setHasUnsavedChanges(true);
   };
 
   const handleAddItem = () => {
@@ -1052,27 +1178,30 @@ export const ArrayOfObjectsWidget = (props: any) => {
       return acc;
     }, {} as any);
 
-    const newItems = [...items, newItem];
+    const newItems = [...localChanges, newItem];
+    setLocalChanges(newItems);
     setItems(newItems);
-    props.onChange(newItems);
+    setHasUnsavedChanges(true);
   };
 
   const handleRemoveItem = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index);
+    const newItems = localChanges.filter((_, i) => i !== index);
+    setLocalChanges(newItems);
     setItems(newItems);
 
     const newSelected = new Set(selectedItems);
     newSelected.delete(index);
     setSelectedItems(newSelected);
 
-    props.onChange(newItems);
+    setHasUnsavedChanges(true);
   };
 
   const handleClearAll = () => {
+    setLocalChanges([]);
     setItems([]);
     setSelectedItems(new Set());
     setSelectAll(false);
-    props.onChange([]);
+    setHasUnsavedChanges(true);
   };
 
   // Get field description from schema
@@ -1086,7 +1215,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
 
   return (
     <div className="space-y-4 w-full">
-      {/* Simplified header with only actions */}
+      {/* Header with Apply button */}
       <div className="flex justify-between items-center">
         {/* Left side: Selection controls */}
         <div className="flex items-center space-x-4">
@@ -1115,8 +1244,33 @@ export const ArrayOfObjectsWidget = (props: any) => {
           )}
         </div>
 
-        {/* Right side: Add/Clear buttons */}
+        {/* Right side: Add/Clear/Apply buttons */}
         <div className="flex space-x-2">
+          {/* Apply Changes Button - Only show when there are unsaved changes */}
+          {hasUnsavedChanges && (
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={handleApplyChanges}
+                className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors flex items-center"
+              >
+                <span>Apply Changes</span>
+                {hasUnsavedChanges && (
+                  <span className="ml-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    ●
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetChanges}
+                className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+          
           <button
             type="button"
             onClick={handleAddItem}
@@ -1135,6 +1289,19 @@ export const ArrayOfObjectsWidget = (props: any) => {
           )}
         </div>
       </div>
+
+      {/* Unsaved Changes Indicator */}
+      {hasUnsavedChanges && (
+        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-yellow-700 text-sm">
+                ⚠️ You have unsaved changes. Click "Apply Changes" to save.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg w-full">
@@ -1250,7 +1417,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
         </div>
       )}
 
-      {/* Footer with stats */}
+      {/* Footer with stats and Apply button */}
       <div className="flex justify-between items-center text-sm text-gray-500 pt-2 border-t border-gray-200">
         <div className="flex space-x-4">
           <span>{items.length} item(s) total</span>
@@ -1259,11 +1426,41 @@ export const ArrayOfObjectsWidget = (props: any) => {
               {selectedItems.size} selected
             </span>
           )}
+          {hasUnsavedChanges && (
+            <span className="text-yellow-600 font-medium">Unsaved changes</span>
+          )}
         </div>
         {detectedKeys.length > 0 && (
           <span>{detectedKeys.length} fields detected</span>
         )}
       </div>
+
+      {/* Sticky Apply Button for large forms */}
+      {hasUnsavedChanges && items.length > 2 && (
+        <div className="sticky bottom-4 mt-6 p-4 bg-white border border-gray-300 rounded-lg shadow-lg">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-700">
+              You have unsaved changes in {items.length} items
+            </span>
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={handleResetChanges}
+                className="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
+              >
+                Discard Changes
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyChanges}
+                className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors font-medium"
+              >
+                Apply All Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
