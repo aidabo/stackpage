@@ -3,7 +3,11 @@ import React, { useMemo } from "react";
 import { SchemaEditor } from "./SchemaEditor";
 import { useStackPage } from "./StackPageContext";
 import { FieldType, FieldSchema, NamedList, DataSource } from "./types";
-import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
+import {
+  generateSchemaFromCurrentProps,
+  isFileTypeField,
+  getFileType,
+} from "./PropertyTypeUtils";
 
 interface SchemaTabProps {
   schema: any;
@@ -11,8 +15,6 @@ interface SchemaTabProps {
   onChange: (schema: any) => void;
 }
 
-// Convert JSON Schema to FieldSchema array format
-// SchemaTab.tsx - Improved conversion logic
 // Convert JSON Schema to FieldSchema array format
 const jsonSchemaToFieldSchema = (
   jsonSchema: any,
@@ -30,6 +32,13 @@ const jsonSchemaToFieldSchema = (
 
       // Get the actual value from componentProps to help with detection
       const actualValue = componentProps[key];
+
+      // Use PropertyTypeUtils to detect file types
+      const isFileField = isFileTypeField(key, actualValue);
+      let fileType: string | null = null;
+      if (isFileField) {
+        fileType = getFileType(key, actualValue);
+      }
 
       // Map JSON Schema types to FieldSchema types
       if (schemaDef.type === "boolean") {
@@ -76,15 +85,15 @@ const jsonSchemaToFieldSchema = (
       } else if (schemaDef["x-list-reference"]) {
         baseField.type = "select";
         baseField.listRef = schemaDef["x-list-reference"];
-      } else if (schemaDef.format === "uri") {
-        const keyLower = key.toLowerCase();
-        if (keyLower.includes("image")) {
+      } else if (schemaDef.format === "uri" || isFileField) {
+        // Enhanced media type detection using PropertyTypeUtils
+        if (fileType === "image") {
           baseField.type = "image";
-        } else if (keyLower.includes("video")) {
+        } else if (fileType === "video") {
           baseField.type = "video";
-        } else if (keyLower.includes("audio")) {
+        } else if (fileType === "audio") {
           baseField.type = "audio";
-        } else if (keyLower.includes("file")) {
+        } else {
           baseField.type = "file";
         }
       } else if (schemaDef.format === "email") {
@@ -157,11 +166,24 @@ const fieldSchemaToJsonSchema = (fieldSchemas: FieldSchema[]): any => {
         }
         break;
       case "image":
+        property.type = "string";
+        property.format = "uri";
+        property["x-media-type"] = "image";
+        break;
       case "video":
+        property.type = "string";
+        property.format = "uri";
+        property["x-media-type"] = "video";
+        break;
       case "audio":
+        property.type = "string";
+        property.format = "uri";
+        property["x-media-type"] = "audio";
+        break;
       case "file":
         property.type = "string";
         property.format = "uri";
+        property["x-media-type"] = "file";
         break;
       case "color":
         property.type = "string";

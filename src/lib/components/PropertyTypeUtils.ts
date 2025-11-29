@@ -400,7 +400,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
   return baseSchema;
 };
 
-// PropertyTypeUtils.ts - Fixed version
+// PropertyTypeUtils.ts - Enhanced generateSchemaFromCurrentProps
 export const generateSchemaFromCurrentProps = (props: any): any => {
   const properties: any = {};
   const required: string[] = [];
@@ -410,7 +410,23 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       title: key.charAt(0).toUpperCase() + key.slice(1),
     };
 
-    if (Array.isArray(value)) {
+    // Check for file types first using isFileTypeField
+    if (isFileTypeField(key, value)) {
+      property.type = "string";
+      property.format = "uri";
+
+      // Set specific media type hints based on detection
+      const fileType = getFileType(key, value);
+      if (fileType === "image") {
+        property["x-media-type"] = "image";
+      } else if (fileType === "video") {
+        property["x-media-type"] = "video";
+      } else if (fileType === "audio") {
+        property["x-media-type"] = "audio";
+      } else {
+        property["x-media-type"] = "file";
+      }
+    } else if (Array.isArray(value)) {
       if (value.length === 0) {
         // Empty array - default to string array
         property.type = "array";
@@ -431,12 +447,10 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
             type: "object",
             properties: generateSchemaFromCurrentProps(firstElement).properties,
           };
-          console.log(`Detected array of objects for ${key}:`, property);
         } else {
           // Array of simple types (string, number, boolean) - treat as select field
           property.type = "string";
           property.enum = value;
-          console.log(`Detected select field for ${key} with options:`, value);
         }
       }
     } else if (typeof value === "string") {
@@ -454,8 +468,16 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           keyLower.includes("photo")
         ) {
           property.format = "uri";
-        } else if (keyLower.includes("color")) {
-          property.format = "color";
+          property["x-media-type"] = "image";
+        } else if (keyLower.includes("video")) {
+          property.format = "uri";
+          property["x-media-type"] = "video";
+        } else if (keyLower.includes("audio")) {
+          property.format = "uri";
+          property["x-media-type"] = "audio";
+        } else if (keyLower.includes("file")) {
+          property.format = "uri";
+          property["x-media-type"] = "file";
         } else if (value.includes("@") && keyLower.includes("email")) {
           property.format = "email";
         } else if (keyLower.includes("date")) {

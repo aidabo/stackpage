@@ -649,7 +649,11 @@ const StackPageContent = ({
                 </div>
 
                 {/* Vertical Tab Bar */}
-                <div className="flex flex-col border-l border-gray-200 bg-gray-50 w-16">
+                <div
+                  className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
+                    isMobile ? "w-12" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                  }`}
+                >
                   {(
                     [
                       "components",
@@ -671,7 +675,19 @@ const StackPageContent = ({
                     >
                       {getTabIcon(tab)}
                       <span className="mt-1 capitalize">
-                        {tab === "datasource" ? "data" : tab}
+                        {isMobile
+                          ? // Shorter labels for mobile
+                            tab === "components"
+                            ? "comps"
+                            : tab === "properties"
+                            ? "props"
+                            : tab === "datasource"
+                            ? "data"
+                            : tab
+                          : // Full labels for desktop
+                          tab === "datasource"
+                          ? "data"
+                          : tab}
                       </span>
                     </button>
                   ))}
