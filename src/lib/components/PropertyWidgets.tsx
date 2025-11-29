@@ -359,199 +359,241 @@ export const FileWidget = (props: any) => {
 };
 
 // Enhanced custom select widget with improved schema handling
+// export const CustomSelectWidget = (props: any) => {
+//   const [options, setOptions] = React.useState<string[]>([]);
+//   const [loading, setLoading] = React.useState(false);
+//   const [isDynamic, setIsDynamic] = React.useState(false);
+//   const [error, setError] = React.useState<string>("");
+
+//   React.useEffect(() => {
+//     const checkDynamic = async () => {
+//       const dynamic =
+//         props.schema.description === "API Endpoint" ||
+//         (props.value &&
+//           typeof props.value === "string" &&
+//           props.value.startsWith("/api/")) ||
+//         props.schema.format === "dynamic-select";
+
+//       setIsDynamic(dynamic);
+
+//       if (dynamic && props.onGetSelectOptions) {
+//         await loadDynamicOptions();
+//       } else {
+//         // Handle static options from schema or value
+//         const staticOptions = parseStaticOptions(props.schema, props.value);
+//         setOptions(staticOptions);
+//       }
+//     };
+
+//     checkDynamic();
+//   }, [props.value, props.schema, props.onGetSelectOptions]);
+
+//   const loadDynamicOptions = async () => {
+//     if (!props.onGetSelectOptions) {
+//       setError("Dynamic options handler not available");
+//       return;
+//     }
+
+//     setLoading(true);
+//     setError("");
+//     try {
+//       const fetchedOptions = await props.onGetSelectOptions(
+//         props.name,
+//         props.componentType
+//       );
+//       setOptions(fetchedOptions || []);
+//     } catch (error) {
+//       console.error("Failed to load options:", error);
+//       setError("Failed to load options");
+//       setOptions([]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const parseStaticOptions = (schema: any, value: any): string[] => {
+//     // Check for enum in schema (highest priority)
+//     if (schema.enum && Array.isArray(schema.enum)) {
+//       return schema.enum.map((item: any) => String(item));
+//     }
+
+//     // Check for items enum for array types
+//     if (schema.items && schema.items.enum && Array.isArray(schema.items.enum)) {
+//       return schema.items.enum.map((item: any) => String(item));
+//     }
+
+//     // Check for oneOf in schema
+//     if (schema.oneOf && Array.isArray(schema.oneOf)) {
+//       return schema.oneOf
+//         .filter((item: any) => item.const !== undefined)
+//         .map((item: any) => String(item.const));
+//     }
+
+//     // Check for anyOf in schema
+//     if (schema.anyOf && Array.isArray(schema.anyOf)) {
+//       return schema.anyOf
+//         .filter((item: any) => item.const !== undefined)
+//         .map((item: any) => String(item.const));
+//     }
+
+//     // Parse from string value like "[option1, option2]"
+//     if (typeof value === "string") {
+//       const match = value.match(/^\[(.*)\]$/);
+//       if (match) {
+//         return match[1]
+//           .split(",")
+//           .map((opt) => opt.trim())
+//           .filter((opt) => opt.length > 0);
+//       }
+//     }
+
+//     // Check for options in schema extensions
+//     if (schema.options && Array.isArray(schema.options)) {
+//       return schema.options.map((item: any) => String(item));
+//     }
+
+//     return [];
+//   };
+
+//   const refreshOptions = () => {
+//     if (isDynamic) {
+//       loadDynamicOptions();
+//     }
+//   };
+
+//   const currentValue = isDynamic
+//     ? props.value
+//     : options.includes(props.value)
+//     ? props.value
+//     : "";
+
+//   // Determine if we should show the select based on available options
+//   const shouldShowSelect = options.length > 0 || isDynamic;
+
+//   return (
+//     <div className="space-y-3">
+//       {shouldShowSelect ? (
+//         <>
+//           <div className="flex space-x-3">
+//             <select
+//               value={currentValue || ""}
+//               onChange={(e) => props.onChange(e.target.value)}
+//               disabled={loading}
+//               className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+//             >
+//               <option value="">Select an option</option>
+//               {options.map((option) => (
+//                 <option key={option} value={option}>
+//                   {option}
+//                 </option>
+//               ))}
+//             </select>
+
+//             {isDynamic && (
+//               <button
+//                 type="button"
+//                 onClick={refreshOptions}
+//                 disabled={loading}
+//                 className="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-400 transition-colors whitespace-nowrap"
+//               >
+//                 {loading ? "..." : "Refresh"}
+//               </button>
+//             )}
+//           </div>
+
+//           <div className="text-xs text-gray-500 flex justify-between items-center">
+//             <span>
+//               {loading
+//                 ? "Loading options..."
+//                 : `${options.length} options available`}
+//             </span>
+//             {isDynamic && (
+//               <span className="text-blue-600 font-medium">Dynamic Select</span>
+//             )}
+//             {!isDynamic && options.length > 0 && (
+//               <span className="text-green-600 font-medium">Static Select</span>
+//             )}
+//           </div>
+//         </>
+//       ) : (
+//         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+//           <p className="text-sm text-yellow-800">
+//             No options available.{" "}
+//             {isDynamic
+//               ? "Try refreshing or check the API endpoint."
+//               : "Add options to the schema."}
+//           </p>
+//         </div>
+//       )}
+
+//       {error && (
+//         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+//           <p className="text-sm text-red-800">{error}</p>
+//         </div>
+//       )}
+
+//       {/* Schema debug info - only in development */}
+//       {process.env.NODE_ENV === "development" && (
+//         <details className="text-xs text-gray-500 border border-gray-200 rounded p-2">
+//           <summary className="cursor-pointer">Schema Info</summary>
+//           <pre className="mt-2 whitespace-pre-wrap">
+//             {JSON.stringify(
+//               {
+//                 name: props.name,
+//                 value: props.value,
+//                 schema: props.schema,
+//                 isDynamic,
+//                 optionsCount: options.length,
+//               },
+//               null,
+//               2
+//             )}
+//           </pre>
+//         </details>
+//       )}
+//     </div>
+//   );
+// };
+
+// In CustomSelectWidget (simplified example)
 export const CustomSelectWidget = (props: any) => {
-  const [options, setOptions] = React.useState<string[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [isDynamic, setIsDynamic] = React.useState(false);
-  const [error, setError] = React.useState<string>("");
+  const { schema, /*options,*/ value, onChange, onGetSelectOptions } = props;
+
+  // Use enum from schema if available (for static options)
+  const staticOptions = schema.enum || [];
+
+  // For dynamic options (API, lists), use the existing logic
+  const [dynamicOptions, setDynamicOptions] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    const checkDynamic = async () => {
-      const dynamic =
-        props.schema.description === "API Endpoint" ||
-        (props.value &&
-          typeof props.value === "string" &&
-          props.value.startsWith("/api/")) ||
-        props.schema.format === "dynamic-select";
-
-      setIsDynamic(dynamic);
-
-      if (dynamic && props.onGetSelectOptions) {
-        await loadDynamicOptions();
-      } else {
-        // Handle static options from schema or value
-        const staticOptions = parseStaticOptions(props.schema, props.value);
-        setOptions(staticOptions);
-      }
-    };
-
-    checkDynamic();
-  }, [props.value, props.schema, props.onGetSelectOptions]);
-
-  const loadDynamicOptions = async () => {
-    if (!props.onGetSelectOptions) {
-      setError("Dynamic options handler not available");
-      return;
+    if (
+      onGetSelectOptions &&
+      (schema["x-dynamic-select"] || schema["x-list-reference"])
+    ) {
+      // Fetch dynamic options based on schema configuration
+      const fetchOptions = async () => {
+        try {
+          const result = await onGetSelectOptions(schema);
+          setDynamicOptions(result || []);
+        } catch (error) {
+          console.error("Failed to fetch select options:", error);
+        }
+      };
+      fetchOptions();
     }
+  }, [schema, onGetSelectOptions]);
 
-    setLoading(true);
-    setError("");
-    try {
-      const fetchedOptions = await props.onGetSelectOptions(
-        props.name,
-        props.componentType
-      );
-      setOptions(fetchedOptions || []);
-    } catch (error) {
-      console.error("Failed to load options:", error);
-      setError("Failed to load options");
-      setOptions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const parseStaticOptions = (schema: any, value: any): string[] => {
-    // Check for enum in schema (highest priority)
-    if (schema.enum && Array.isArray(schema.enum)) {
-      return schema.enum.map((item: any) => String(item));
-    }
-
-    // Check for items enum for array types
-    if (schema.items && schema.items.enum && Array.isArray(schema.items.enum)) {
-      return schema.items.enum.map((item: any) => String(item));
-    }
-
-    // Check for oneOf in schema
-    if (schema.oneOf && Array.isArray(schema.oneOf)) {
-      return schema.oneOf
-        .filter((item: any) => item.const !== undefined)
-        .map((item: any) => String(item.const));
-    }
-
-    // Check for anyOf in schema
-    if (schema.anyOf && Array.isArray(schema.anyOf)) {
-      return schema.anyOf
-        .filter((item: any) => item.const !== undefined)
-        .map((item: any) => String(item.const));
-    }
-
-    // Parse from string value like "[option1, option2]"
-    if (typeof value === "string") {
-      const match = value.match(/^\[(.*)\]$/);
-      if (match) {
-        return match[1]
-          .split(",")
-          .map((opt) => opt.trim())
-          .filter((opt) => opt.length > 0);
-      }
-    }
-
-    // Check for options in schema extensions
-    if (schema.options && Array.isArray(schema.options)) {
-      return schema.options.map((item: any) => String(item));
-    }
-
-    return [];
-  };
-
-  const refreshOptions = () => {
-    if (isDynamic) {
-      loadDynamicOptions();
-    }
-  };
-
-  const currentValue = isDynamic
-    ? props.value
-    : options.includes(props.value)
-    ? props.value
-    : "";
-
-  // Determine if we should show the select based on available options
-  const shouldShowSelect = options.length > 0 || isDynamic;
+  const allOptions = [...staticOptions, ...dynamicOptions];
 
   return (
-    <div className="space-y-3">
-      {shouldShowSelect ? (
-        <>
-          <div className="flex space-x-3">
-            <select
-              value={currentValue || ""}
-              onChange={(e) => props.onChange(e.target.value)}
-              disabled={loading}
-              className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select an option</option>
-              {options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-
-            {isDynamic && (
-              <button
-                type="button"
-                onClick={refreshOptions}
-                disabled={loading}
-                className="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-400 transition-colors whitespace-nowrap"
-              >
-                {loading ? "..." : "Refresh"}
-              </button>
-            )}
-          </div>
-
-          <div className="text-xs text-gray-500 flex justify-between items-center">
-            <span>
-              {loading
-                ? "Loading options..."
-                : `${options.length} options available`}
-            </span>
-            {isDynamic && (
-              <span className="text-blue-600 font-medium">Dynamic Select</span>
-            )}
-            {!isDynamic && options.length > 0 && (
-              <span className="text-green-600 font-medium">Static Select</span>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
-            No options available.{" "}
-            {isDynamic
-              ? "Try refreshing or check the API endpoint."
-              : "Add options to the schema."}
-          </p>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
-
-      {/* Schema debug info - only in development */}
-      {process.env.NODE_ENV === "development" && (
-        <details className="text-xs text-gray-500 border border-gray-200 rounded p-2">
-          <summary className="cursor-pointer">Schema Info</summary>
-          <pre className="mt-2 whitespace-pre-wrap">
-            {JSON.stringify(
-              {
-                name: props.name,
-                value: props.value,
-                schema: props.schema,
-                isDynamic,
-                optionsCount: options.length,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </details>
-      )}
-    </div>
+    <select value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Select an option</option>
+      {allOptions.map((option, index) => (
+        <option key={index} value={option.value || option}>
+          {option.label || option}
+        </option>
+      ))}
+    </select>
   );
 };
 
@@ -636,7 +678,9 @@ export const ArrayOfObjectsWidget = (props: any) => {
   );
   const [selectAll, setSelectAll] = React.useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
-  const [localChanges, setLocalChanges] = React.useState<any[]>(props.value || []);
+  const [localChanges, setLocalChanges] = React.useState<any[]>(
+    props.value || []
+  );
 
   React.useEffect(() => {
     const initialItems = props.value || [];
@@ -658,7 +702,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
     newItems[index] = { ...newItems[index], [key]: value };
     setLocalChanges(newItems);
     setHasUnsavedChanges(true);
-    
+
     // Also update the display items for immediate UI feedback
     const displayItems = [...items];
     displayItems[index] = { ...displayItems[index], [key]: value };
@@ -718,8 +762,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
     const type = schema.type || "string";
 
     // Enhanced file detection
-    const isFileField = 
-      format === "file" || 
+    const isFileField =
+      format === "file" ||
       format === "uri" ||
       key.toLowerCase().includes("url") ||
       key.toLowerCase().includes("image") ||
@@ -732,15 +776,16 @@ export const ArrayOfObjectsWidget = (props: any) => {
       key.toLowerCase().includes("logo") ||
       key.toLowerCase().includes("thumbnail") ||
       key.toLowerCase().includes("media") ||
-      (typeof value === "string" && (
-        value.startsWith("http") ||
-        value.startsWith("data:") ||
-        value.startsWith("blob:") ||
-        value.includes("/uploads/") ||
-        value.includes("/images/") ||
-        value.includes("/media/") ||
-        /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mp3|wav|pdf|doc|docx)$/i.test(value)
-      ));
+      (typeof value === "string" &&
+        (value.startsWith("http") ||
+          value.startsWith("data:") ||
+          value.startsWith("blob:") ||
+          value.includes("/uploads/") ||
+          value.includes("/images/") ||
+          value.includes("/media/") ||
+          /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mp3|wav|pdf|doc|docx)$/i.test(
+            value
+          )));
 
     if (isFileField) {
       return "file";
@@ -916,7 +961,6 @@ export const ArrayOfObjectsWidget = (props: any) => {
         {/* File Upload */}
         <div className="space-y-2 w-full">
           <div className="flex flex-col gap-2 w-full">
-
             <div className="flex-1 min-w-0">
               <input
                 type="file"
@@ -931,7 +975,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
                 <span>Uploading... {uploadProgress}%</span>
               </div>
             )}
-{/* 
+            {/* 
             <input
               type="file"
               onChange={handleFileChange}
@@ -1163,7 +1207,9 @@ export const ArrayOfObjectsWidget = (props: any) => {
   const handleDeleteSelected = () => {
     if (selectedItems.size === 0) return;
 
-    const newItems = localChanges.filter((_, index) => !selectedItems.has(index));
+    const newItems = localChanges.filter(
+      (_, index) => !selectedItems.has(index)
+    );
     setLocalChanges(newItems);
     setItems(newItems);
     setSelectedItems(new Set());
@@ -1270,7 +1316,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
               </button>
             </div>
           )}
-          
+
           <button
             type="button"
             onClick={handleAddItem}

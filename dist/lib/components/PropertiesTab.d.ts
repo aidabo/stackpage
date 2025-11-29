@@ -6,4 +6,4 @@ interface PropertiesTabProps {
     onGetSelectOptions?: GetSelectOptionsFn;
 }
 export declare const PropertiesTab: ({ onFileUpload, onApiCall, onCustomAction, onGetSelectOptions, }: PropertiesTabProps) => import("react/jsx-runtime").JSX.Element;
-export {};
+export default PropertiesTab;

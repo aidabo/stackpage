@@ -10,6 +10,11 @@ import {
   ArrowLeftCircleIcon,
   PencilIcon,
   InformationCircleIcon,
+  CubeIcon,
+  CogIcon,
+  DocumentTextIcon,
+  ListBulletIcon,
+  CircleStackIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -43,6 +48,8 @@ import { useStackPage } from "./StackPageContext";
 import { PropertiesTab } from "./PropertiesTab";
 import { ComponentsTab } from "./ComponentsTab";
 import { PageTab } from "./PageTab";
+import { ListTab } from "./ListTab";
+import { DataSourceTab } from "./DataSourceTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 
@@ -86,6 +93,25 @@ const useMobile = () => {
   }, []);
 
   return isMobile;
+};
+
+// Helper function to get icons for tabs
+const getTabIcon = (tab: string) => {
+  const iconClass = "w-5 h-5";
+  switch (tab) {
+    case "components":
+      return <CubeIcon className={iconClass} />;
+    case "properties":
+      return <CogIcon className={iconClass} />;
+    case "page":
+      return <DocumentTextIcon className={iconClass} />;
+    case "list":
+      return <ListBulletIcon className={iconClass} />;
+    case "datasource":
+      return <CircleStackIcon className={iconClass} />;
+    default:
+      return <CubeIcon className={iconClass} />;
+  }
 };
 
 // Main StackPage Content Component
@@ -385,7 +411,7 @@ const StackPageContent = ({
         zIndex: 101 /** just greater than grid-stack */,
       }
     : {
-        width: `400px`,
+        width: `500px`,
         minWidth: "300px",
         height: "calc(100% - var(--stackpage-top-spacing, 60px))",
         top: "var(--stackpage-top-spacing, 60px)",
@@ -560,7 +586,7 @@ const StackPageContent = ({
 
               {/* Panel */}
               <div
-                className={`flex flex-col bg-white shadow-lg border-l border-gray-200 ${
+                className={`flex flex-row bg-white shadow-lg border-l border-gray-200 ${
                   isMobile
                     ? "fixed right-0 bottom-0 transform transition-transform duration-300"
                     : "relative"
@@ -578,25 +604,6 @@ const StackPageContent = ({
                     </button>
                   </div>
                 )}
-
-                {/* Tab Header */}
-                <div className="flex border-b border-gray-200 pt-4 px-4">
-                  {(["components", "properties", "page"] as const).map(
-                    (tab) => (
-                      <button
-                        key={tab}
-                        className={`flex-1 py-3 px-4 text-sm font-medium capitalize transition-colors ${
-                          activeTab === tab
-                            ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
-                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                        }`}
-                        onClick={() => setActiveTab(tab)}
-                      >
-                        {tab}
-                      </button>
-                    )
-                  )}
-                </div>
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-y-auto pb-4">
@@ -627,6 +634,47 @@ const StackPageContent = ({
                   >
                     <PageTab onFileUpload={onFileUpload} />
                   </div>
+                  <div
+                    style={{ display: activeTab === "list" ? "block" : "none" }}
+                  >
+                    <ListTab />
+                  </div>
+                  <div
+                    style={{
+                      display: activeTab === "datasource" ? "block" : "none",
+                    }}
+                  >
+                    <DataSourceTab />
+                  </div>
+                </div>
+
+                {/* Vertical Tab Bar */}
+                <div className="flex flex-col border-l border-gray-200 bg-gray-50 w-16">
+                  {(
+                    [
+                      "components",
+                      "properties",
+                      "page",
+                      "list",
+                      "datasource",
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${
+                        activeTab === tab
+                          ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setActiveTab(tab)}
+                      title={tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    >
+                      {getTabIcon(tab)}
+                      <span className="mt-1 capitalize">
+                        {tab === "datasource" ? "data" : tab}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
             </>

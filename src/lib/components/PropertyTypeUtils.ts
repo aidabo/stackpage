@@ -1,6 +1,3 @@
-// PropertyTypeUtils.ts
-// Utility functions for property type detection and schema generation
-
 // Helper functions for file type detection
 export const getFileType = (
   name: string,
@@ -22,14 +19,39 @@ export const getFileType = (
   const extension = value.split(".").pop()?.toLowerCase() || "";
 
   const imageExtensions = [
-    "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico", "tiff",
+    "jpg",
+    "jpeg",
+    "png",
+    "gif",
+    "webp",
+    "bmp",
+    "svg",
+    "ico",
+    "tiff",
   ];
   const videoExtensions = [
-    "mp4", "mov", "avi", "webm", "mkv", "flv", "wmv", "m4v", "3gp",
+    "mp4",
+    "mov",
+    "avi",
+    "webm",
+    "mkv",
+    "flv",
+    "wmv",
+    "m4v",
+    "3gp",
   ];
   const audioExtensions = ["mp3", "wav", "ogg", "aac", "flac", "m4a", "wma"];
   const documentExtensions = [
-    "pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "ppt", "pptx",
+    "pdf",
+    "doc",
+    "docx",
+    "txt",
+    "rtf",
+    "odt",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
   ];
 
   if (imageExtensions.includes(extension)) return "image";
@@ -108,8 +130,20 @@ export const isFileTypeField = (key: string, value: any): boolean => {
 
   // Check for special field names that should be file fields
   const fileFieldNames = [
-    "src", "source", "file", "image", "url", "avatar", "logo", "icon",
-    "video", "audio", "media", "background", "poster", "thumbnail",
+    "src",
+    "source",
+    "file",
+    "image",
+    "url",
+    "avatar",
+    "logo",
+    "icon",
+    "video",
+    "audio",
+    "media",
+    "background",
+    "poster",
+    "thumbnail",
   ];
 
   const isFileByName = fileFieldNames.some((fileName) =>
@@ -157,8 +191,16 @@ export const detectSelectField = (key: string, value: any): boolean => {
 
   // Field name indicators for select fields
   const selectFieldNames = [
-    "select", "option", "choice", "dropdown", "picker", "type", 
-    "category", "status", "state", "mode",
+    "select",
+    "option",
+    "choice",
+    "dropdown",
+    "picker",
+    "type",
+    "category",
+    "status",
+    "state",
+    "mode",
   ];
 
   const isSelectByName = selectFieldNames.some((name) =>
@@ -174,6 +216,41 @@ export const detectSelectField = (key: string, value: any): boolean => {
       (value.includes(",") && value.split(",").length <= 10)); // Comma-separated values
 
   return isSelectByName || isSelectByValue;
+};
+
+// Helper to check if a field should use list reference
+export const shouldUseListReference = (
+  /*key: string,*/ value: any
+): boolean => {
+  return (
+    typeof value === "string" &&
+    value.startsWith("{{list.") &&
+    value.endsWith("}}")
+  );
+};
+
+// Helper to check if a field should use data source reference
+export const shouldUseDataSourceReference = (
+  /*key: string,*/
+  value: any
+): boolean => {
+  return (
+    typeof value === "string" &&
+    value.startsWith("{{dataSource.") &&
+    value.endsWith("}}")
+  );
+};
+
+// Extract list name from reference
+export const extractListReference = (value: string): string | null => {
+  const match = value.match(/^{{list\.(.+)}}$/);
+  return match ? match[1] : null;
+};
+
+// Extract data source name from reference
+export const extractDataSourceReference = (value: string): string | null => {
+  const match = value.match(/^{{dataSource\.(.+)}}$/);
+  return match ? match[1] : null;
 };
 
 // Enhanced property schema inference with better array-of-objects handling
@@ -196,7 +273,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
     baseSchema.format = "uri";
     return baseSchema;
   }
-  
+
   if (type === "string") {
     baseSchema.type = "string";
 
@@ -269,7 +346,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
             // Use a simplified schema inference for array items
             const itemValue = firstItem[itemKey];
             const itemType = typeof itemValue;
-            
+
             const itemSchema: any = {
               title: itemKey
                 .replace(/([A-Z])/g, " $1")
@@ -323,123 +400,141 @@ export const inferPropertySchema = (key: string, value: any): any => {
   return baseSchema;
 };
 
-// Generate JSON schema from currentProps with enhanced select item detection
-export const generateSchemaFromCurrentProps = (currentProps: Record<string, any>) => {
-  const schema: any = {
-    type: "object",
-    properties: {},
-    required: [],
-  };
+// PropertyTypeUtils.ts - Fixed version
+export const generateSchemaFromCurrentProps = (props: any): any => {
+  const properties: any = {};
+  const required: string[] = [];
 
-  Object.entries(currentProps).forEach(([key, value]) => {
-    schema.properties[key] = inferPropertySchema(key, value);
+  Object.entries(props).forEach(([key, value]) => {
+    const property: any = {
+      title: key.charAt(0).toUpperCase() + key.slice(1),
+    };
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        // Empty array - default to string array
+        property.type = "array";
+        property.items = { type: "string" };
+      } else {
+        // Check the type of the first element
+        const firstElement = value[0];
+
+        // Check if it's an object (but not null or array)
+        if (
+          typeof firstElement === "object" &&
+          firstElement !== null &&
+          !Array.isArray(firstElement)
+        ) {
+          // Array of objects - treat as true array
+          property.type = "array";
+          property.items = {
+            type: "object",
+            properties: generateSchemaFromCurrentProps(firstElement).properties,
+          };
+          console.log(`Detected array of objects for ${key}:`, property);
+        } else {
+          // Array of simple types (string, number, boolean) - treat as select field
+          property.type = "string";
+          property.enum = value;
+          console.log(`Detected select field for ${key} with options:`, value);
+        }
+      }
+    } else if (typeof value === "string") {
+      property.type = "string";
+      // Check for specific string formats
+      if (
+        value.startsWith("http") ||
+        value.startsWith("/") ||
+        value.includes(".")
+      ) {
+        const keyLower = key.toLowerCase();
+        if (
+          keyLower.includes("image") ||
+          keyLower.includes("avatar") ||
+          keyLower.includes("photo")
+        ) {
+          property.format = "uri";
+        } else if (keyLower.includes("color")) {
+          property.format = "color";
+        } else if (value.includes("@") && keyLower.includes("email")) {
+          property.format = "email";
+        } else if (keyLower.includes("date")) {
+          property.format = "date";
+        }
+      }
+    } else if (typeof value === "number") {
+      property.type = "number";
+    } else if (typeof value === "boolean") {
+      property.type = "boolean";
+    } else if (typeof value === "object" && value !== null) {
+      property.type = "object";
+      property.properties = generateSchemaFromCurrentProps(value).properties;
+    } else {
+      property.type = "string";
+    }
+
+    properties[key] = property;
   });
 
-  return schema;
+  return {
+    type: "object",
+    properties,
+    required,
+  };
 };
 
-// Generate UI schema with proper widget assignment
-export const generateUiSchema = (
-  currentProps: Record<string, any>, 
-  schema: any,
-  onFileUpload?: (file: File) => Promise<string>
-) => {
-  const uiSchema: any = {
-    "ui:order": Object.keys(schema.properties || {}),
-  };
+// PropertyTypeUtils.ts - Ensure generateUiSchema works correctly
+export const generateUiSchema = (schema: any): any => {
+  const uiSchema: any = {};
 
-  Object.keys(schema.properties || {}).forEach((key) => {
-    const property = schema.properties[key];
-    const value = currentProps[key];
+  Object.entries(schema.properties || {}).forEach(
+    ([key, property]: [string, any]) => {
+      uiSchema[key] = {};
 
-    // Assign appropriate widgets based on schema and custom properties
-    if (isFileTypeField(key, value)) {
-      // Use custom widget for file fields regardless of format
-      uiSchema[key] = {
-        "ui:widget": "FileWidget",
-      };
-    } else if (property.type === "object" || property.format === "json") {
-      uiSchema[key] = {
-        "ui:widget": "JsonWidget",
-      };
-    } else if (property.format === "textarea") {
-      uiSchema[key] = {
-        "ui:widget": "CustomTextareaWidget",
-        "ui:options": {
-          rows: 5,
-        },
-      };
-    } else if (property["x-dynamic-select"] || (property.enum && property.description === "API Endpoint")) {
-      // Handle dynamic select using custom property
-      uiSchema[key] = {
-        "ui:widget": "CustomSelectWidget",
-        "ui:options": {
-          isDynamic: true,
-        },
-      };
-    } else if (property.enum) {
-      // Handle static select with enum
-      uiSchema[key] = {
-        "ui:widget": "CustomSelectWidget",
-      };
-    } else if (property.format === "date") {
-      uiSchema[key] = {
-        "ui:widget": "CustomDateWidget",
-      };
-    } else if (property.format === "datetime") {
-      uiSchema[key] = {
-        "ui:widget": "CustomDateTimeWidget",
-      };
-    } else if (property.format === "email") {
-      uiSchema[key] = {
-        "ui:widget": "CustomEmailWidget",
-      };
-    } else if (property.format === "color") {
-      uiSchema[key] = {
-        "ui:widget": "CustomColorWidget",
-      };
-    } else if (property.type === "boolean") {
-      uiSchema[key] = {
-        "ui:widget": "CustomCheckboxWidget",
-      };
-    } else if (property.type === "number") {
-      uiSchema[key] = {
-        "ui:widget": "CustomNumberWidget",
-      };
-    } else if (property["x-array-of-objects"] || (property.format === "array" && property.items?.type === "object")) {
-      // Handle array-of-objects using custom property
-      uiSchema[key] = {
-        "ui:widget": "ArrayOfObjectsWidget",
-        "ui:options": {
-          onFileUpload: onFileUpload,
-        },
-      };
-    } else {
-      // Default to text widget for other string fields
-      uiSchema[key] = {
-        "ui:widget": "CustomTextWidget",
-      };
+      // Handle array types
+      if (property.type === "array") {
+        if (property.items && property.items.type === "object") {
+          // Array of objects - use ArrayOfObjectsWidget
+          uiSchema[key]["ui:widget"] = "ArrayOfObjectsWidget";
+        } else {
+          // Simple array - use default array widget
+          uiSchema[key]["ui:widget"] = "array";
+        }
+      }
+
+      // Handle other widget assignments
+      else if (property.format === "uri") {
+        const keyLower = key.toLowerCase();
+        if (
+          keyLower.includes("image") ||
+          keyLower.includes("avatar") ||
+          keyLower.includes("photo")
+        ) {
+          uiSchema[key]["ui:widget"] = "FileWidget";
+        } else if (keyLower.includes("video")) {
+          uiSchema[key]["ui:widget"] = "FileWidget";
+        } else if (keyLower.includes("audio")) {
+          uiSchema[key]["ui:widget"] = "FileWidget";
+        } else {
+          uiSchema[key]["ui:widget"] = "FileWidget";
+        }
+      } else if (property.format === "color") {
+        uiSchema[key]["ui:widget"] = "CustomColorWidget";
+      } else if (property.enum) {
+        uiSchema[key]["ui:widget"] = "CustomSelectWidget";
+      } else if (property.type === "boolean") {
+        uiSchema[key]["ui:widget"] = "CustomCheckboxWidget";
+      } else if (property.format === "textarea") {
+        uiSchema[key]["ui:widget"] = "CustomTextareaWidget";
+      } else if (property.type === "number") {
+        uiSchema[key]["ui:widget"] = "CustomNumberWidget";
+      } else if (property.format === "email") {
+        uiSchema[key]["ui:widget"] = "CustomEmailWidget";
+      } else if (property.format === "date") {
+        uiSchema[key]["ui:widget"] = "CustomDateWidget";
+      }
     }
-
-    // Add descriptions for special fields
-    if (value && typeof value === "string" && value.startsWith("/api/")) {
-      uiSchema[key] = {
-        ...uiSchema[key],
-        "ui:description": `API Endpoint: ${value}`,
-      };
-    }
-
-    if (
-      value &&
-      typeof value === "string" &&
-      value.toLowerCase().startsWith("/customaction/")
-    ) {
-      uiSchema[key] = {
-        ...uiSchema[key],
-        "ui:description": `Custom Action: ${value}`,
-      };
-    }
-  });
+  );
 
   return uiSchema;
 };
@@ -447,29 +542,29 @@ export const generateUiSchema = (
 // DataBinding Field detection
 export const isDataBindingField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
-  
+
   const bindingFieldNames = [
     "binding",
     "datasource",
-    "dataSource", 
+    "dataSource",
     "api",
     "endpoint",
     "url",
     "source",
   ];
 
-  const isBindingByName = bindingFieldNames.some(name =>
+  const isBindingByName = bindingFieldNames.some((name) =>
     keyLower.includes(name)
   );
 
   const isBindingByValue =
     typeof value === "string" &&
     (value.startsWith("/api/") ||
-     value.startsWith("http://") ||
-     value.startsWith("https://") ||
-     value.startsWith("data://") ||
-     value.includes("${") || // Template literal
-     value.startsWith("{")); // JSON-like
+      value.startsWith("http://") ||
+      value.startsWith("https://") ||
+      value.startsWith("data://") ||
+      value.includes("${") || // Template literal
+      value.startsWith("{")); // JSON-like
 
   return isBindingByName || isBindingByValue;
 };

@@ -1,39 +1,27 @@
 // PropertiesTab.tsx
-import { useEffect, useRef } from "react";
-import Form from "@rjsf/core";
-import validator from "@rjsf/validator-ajv8";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useStackPage } from "./StackPageContext";
 import { useWidgetProps } from "./StackPageWidgetProps";
-import { 
-  generateSchemaFromCurrentProps, 
-  generateUiSchema,
-  getFileType,
-  getFileAccept 
-} from "./PropertyTypeUtils";
+import { DataTab } from "./DataTab";
+import { SchemaTab } from "./SchemaTab";
+import { BindingTab } from "./BindingTab";
+import { JsonTab } from "./JsonTab";
+import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import {
-  CustomFieldTemplate,
-  FileWidget,
-  CustomSelectWidget,
-  JsonWidget,
-  ArrayOfObjectsWidget,
-  CustomTextWidget,
-  CustomTextareaWidget,
-  CustomNumberWidget,
-  CustomDateWidget,
-  CustomDateTimeWidget,
-  CustomEmailWidget,
-  CustomURLWidget,
-  CustomColorWidget,
-  CustomCheckboxWidget,
-} from "./PropertyWidgets";
-import { ApiCallFn, CustomActionFn, FileUploadFn, GetSelectOptionsFn } from "..";
+  ApiCallFn,
+  CustomActionFn,
+  FileUploadFn,
+  GetSelectOptionsFn,
+} from "..";
 
 interface PropertiesTabProps {
-  onFileUpload?: FileUploadFn,
-  onApiCall?: ApiCallFn,
-  onCustomAction?: CustomActionFn,
-  onGetSelectOptions?: GetSelectOptionsFn
+  onFileUpload?: FileUploadFn;
+  onApiCall?: ApiCallFn;
+  onCustomAction?: CustomActionFn;
+  onGetSelectOptions?: GetSelectOptionsFn;
 }
+
+type PropertiesSubTab = "data" | "schema" | "binding" | "json";
 
 export const PropertiesTab = ({
   onFileUpload,
@@ -47,158 +35,167 @@ export const PropertiesTab = ({
     setSelectedInstance,
     setSelectedComponent,
   } = useStackPage();
-  const { updateProps, getProps } = useWidgetProps(selectedInstance?.id);
 
-  // Use a ref to preserve selection across re-renders
-  const selectionRef = useRef<{ instanceId: string | null, component: string | null }>({
+  const { updateProps, getProps } = useWidgetProps(selectedInstance?.id);
+  const [activeSubTab, setActiveSubTab] = useState<PropertiesSubTab>("data");
+  const initializedSchemas = useRef(new Set<string>()); // Track which instances have been initialized
+
+  const selectionRef = useRef<{
+    instanceId: string | null;
+    component: string | null;
+  }>({
     instanceId: selectedInstance?.id || null,
-    component: selectedComponent
+    component: selectedComponent,
   });
 
-  // Update ref when selection changes
   useEffect(() => {
     selectionRef.current = {
       instanceId: selectedInstance?.id || null,
-      component: selectedComponent
+      component: selectedComponent,
     };
   }, [selectedInstance, selectedComponent]);
-
-  if (!selectedInstance && !selectedComponent) {
-    return (
-      <div className="p-6 text-center text-gray-500">
-        <div className="mb-3 text-2xl">👈</div>
-        <p className="text-base">
-          Select a component from the Components tab or click on a placed
-          component to edit its properties
-        </p>
-      </div>
-    );
-  }
 
   const componentType = selectedInstance?.type || selectedComponent;
   const currentInstanceProps = selectedInstance?.props || {};
   const updatedPropsFromContext = getProps() || {};
   const currentProps = { ...currentInstanceProps, ...updatedPropsFromContext };
 
-  // Add error handling for schema generation
-  let schema, uiSchema;
-  try {
-    schema = generateSchemaFromCurrentProps(currentProps);
-    uiSchema = generateUiSchema(currentProps, schema, onFileUpload);
-  } catch (error) {
-    console.error("Error generating schema:", error);
+  // Extract schema and filter it out from the props that go to DataTab
+  const { __schema, ...componentPropsWithoutSchema } = currentProps;
+
+  // Initialize schema for new components
+  useEffect(() => {
+    if (
+      selectedInstance &&
+      !initializedSchemas.current.has(selectedInstance.id)
+    ) {
+      // If no schema exists, generate one and save it
+      if (!__schema) {
+        const generatedSchema = generateSchemaFromCurrentProps(
+          componentPropsWithoutSchema
+        );
+        const updatedProps = {
+          ...componentPropsWithoutSchema,
+          __schema: generatedSchema,
+        };
+
+        const updatedInstance = {
+          ...selectedInstance,
+          props: updatedProps,
+        };
+
+        setSelectedInstance(updatedInstance);
+        updateProps(updatedProps);
+      }
+
+      // Mark this instance as initialized
+      initializedSchemas.current.add(selectedInstance.id);
+    }
+  }, [
+    selectedInstance,
+    __schema,
+    componentPropsWithoutSchema,
+    setSelectedInstance,
+    updateProps,
+  ]);
+
+  // Get the schema - use existing or generate from current props
+  const componentSchema = useMemo(() => {
+    if (__schema) {
+      return __schema;
+    }
+    // Generate default schema if none exists (fallback)
+    return generateSchemaFromCurrentProps(componentPropsWithoutSchema);
+  }, [__schema, componentPropsWithoutSchema]);
+
+  // Handle prop changes for Data tab
+  const handlePropertyChange = useCallback(
+    (data: any) => {
+      if (data.formData && selectedInstance) {
+        // Merge the new formData with the existing schema
+        const updatedProps = {
+          ...data.formData,
+          __schema: componentSchema, // Preserve the schema
+        };
+        const updatedInstance = {
+          ...selectedInstance,
+          props: updatedProps,
+        };
+        setSelectedInstance(updatedInstance);
+        updateProps(updatedProps);
+      }
+    },
+    [selectedInstance, componentSchema, setSelectedInstance, updateProps]
+  );
+
+  // Handle schema changes for Schema tab
+  const handleSchemaChange = useCallback(
+    (newSchema: any) => {
+      if (selectedInstance) {
+        // Update only the schema, preserve other props
+        const updatedProps = {
+          ...componentPropsWithoutSchema,
+          __schema: newSchema,
+        };
+        const updatedInstance = {
+          ...selectedInstance,
+          props: updatedProps,
+        };
+        setSelectedInstance(updatedInstance);
+        updateProps(updatedProps);
+      }
+    },
+    [
+      selectedInstance,
+      componentPropsWithoutSchema,
+      setSelectedInstance,
+      updateProps,
+    ]
+  );
+
+  // Handle JSON changes for JSON tab
+  const handleJsonChange = useCallback(
+    (newProps: any) => {
+      if (selectedInstance) {
+        const updatedInstance = {
+          ...selectedInstance,
+          props: newProps,
+        };
+        setSelectedInstance(updatedInstance);
+        updateProps(newProps);
+
+        // If the JSON includes a schema, mark as initialized
+        if (
+          newProps.__schema &&
+          !initializedSchemas.current.has(selectedInstance.id)
+        ) {
+          initializedSchemas.current.add(selectedInstance.id);
+        }
+      }
+    },
+    [selectedInstance, setSelectedInstance, updateProps]
+  );
+
+  if (!selectedInstance && !selectedComponent) {
     return (
-      <div className="p-6 text-center text-red-500">
-        <div className="mb-3 text-2xl">❌</div>
-        <p className="text-base">Error generating properties form</p>
-        <p className="text-sm mt-2">Please check the console for details</p>
+      <div className="h-full flex items-center justify-center bg-zinc-200">
+        <div className="text-center text-gray-500">
+          <div className="mb-3 text-2xl">👈</div>
+          <p className="text-base">
+            Select a component from the Components tab or click on a placed
+            component to edit its properties
+          </p>
+        </div>
       </div>
     );
   }
 
-  const handlePropertyChange = (data: any) => {
-    if (data.formData && selectedInstance) {
-      const updatedProps = { ...currentProps, ...data.formData };
-      const updatedInstance = {
-        ...selectedInstance,
-        props: updatedProps,
-      };
-      setSelectedInstance(updatedInstance);
-      updateProps(updatedProps);
-    }
-  };
-
-  // Updated widgets with consistent FileUploadFn signature
-  const widgets = {
-    FileWidget: (props: any) => (
-      <FileWidget 
-        {...props} 
-        onFileUpload={onFileUpload ? (file: File) => {
-          // Get file type information
-          const fileType = getFileType(props.name, props.value);
-          const acceptTypes = getFileAccept(props.name, props.value);          
-          // Call with proper FileUploadOptions
-          return onFileUpload(file, {
-            onProgress: (progress) => {
-              console.log(`Upload progress: ${progress}%`);
-              // You could add a progress indicator here if needed
-            },
-            onError: (error) => {
-              console.error('Upload error:', error);
-              alert(`Upload failed: ${error.message}`);
-            },
-            options: {
-              fileType: fileType,
-              fieldName: props.name,
-              acceptTypes: acceptTypes,
-              componentType: componentType
-            }
-          });
-        } : undefined}
-      />
-    ),
-    CustomSelectWidget: (props: any) => (
-      <CustomSelectWidget
-        {...props}
-        onGetSelectOptions={onGetSelectOptions}
-        componentType={componentType}
-        uiSchema={uiSchema[props.name]}
-      />
-    ),
-    JsonWidget,
-    ArrayOfObjectsWidget: (props: any) => (
-      <ArrayOfObjectsWidget 
-        {...props} 
-        onFileUpload={onFileUpload ? (file: File, fieldName?: string, fieldType?: string) => {
-          return onFileUpload(file, {
-            onProgress: (progress) => {
-              console.log(`Upload progress: ${progress}%`);
-            },
-            onError: (error) => {
-              console.error('Upload error:', error);
-              alert(`Upload failed: ${error.message}`);
-            },
-            options: {
-              fieldName: fieldName || props.name,
-              fieldType: fieldType || 'file',
-              componentType: componentType,
-              isArrayItem: true
-            }
-          });
-        } : undefined}
-      />
-    ),
-    CustomTextWidget,
-    CustomTextareaWidget,
-    CustomNumberWidget,
-    CustomDateWidget,
-    CustomDateTimeWidget,
-    CustomEmailWidget,
-    CustomURLWidget,
-    CustomColorWidget,
-    CustomCheckboxWidget,
-  };
-
-  const templates = {
-    FieldTemplate: CustomFieldTemplate,
-  };
-
-  const isApiField = (value: any): boolean => {
-    if (typeof value !== "string") return false;
-    return value.startsWith("/api/");
-  };
-
-  const isCustomActionField = (value: any): boolean => {
-    if (typeof value !== "string") return false;
-    return value.toLowerCase().startsWith("/customaction/");
-  };
-
   return (
-    <div className="h-full p-4 space-y-4 max-h-[calc(100vh-48*0.25rem)] bg-zinc-200 overflow-y-auto">
+    <div className="h-full flex flex-col bg-zinc-200">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-transparent p-6 sticky top-0 z-10">
+      <div className="border-b border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900">
             {componentType}
             {selectedInstance && (
               <span className="text-sm text-gray-500 ml-2 font-normal">
@@ -209,198 +206,90 @@ export const PropertiesTab = ({
         </div>
       </div>
 
-      <div className="p-6">
-        {/* RJSF Form */}
-        <div className="properties-form">
-          <Form
-            key={selectedInstance?.id}
-            schema={schema}
-            uiSchema={uiSchema}
-            formData={currentProps}
-            onChange={handlePropertyChange}
-            validator={validator}
-            widgets={widgets}
-            templates={templates}
-            liveValidate
-          >
-            <div style={{ display: "none" }} />
-          </Form>
-        </div>
-
-        {/* Quick Actions */}
-        {(onApiCall || onCustomAction) && (
-          <div className="mt-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-medium text-gray-800 mb-4">
-              Quick Actions
-            </h4>
-            <div className="flex flex-wrap gap-3">
-              {onApiCall &&
-                Object.entries(currentProps).some(([_, value]) =>
-                  isApiField(value)
-                ) && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const apiEndpoints = Object.entries(
-                          currentProps
-                        ).filter(([_, value]) => isApiField(value));
-
-                        for (const [key, endpoint] of apiEndpoints) {
-                          await handleApiCall(key, endpoint, onApiCall);
-                        }
-
-                        if (apiEndpoints.length === 0) {
-                          alert("No API endpoints found");
-                        } else {
-                          alert(
-                            `Called ${apiEndpoints.length} API endpoint(s)`
-                          );
-                        }
-                      } catch (error) {
-                        console.error("Failed to call APIs:", error);
-                        alert("Failed to call APIs");
-                      }
-                    }}
-                    className="px-4 py-3 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
-                  >
-                    Call All API Endpoints
-                  </button>
-                )}
-
-              {onCustomAction &&
-                Object.entries(currentProps).some(([_, value]) =>
-                  isCustomActionField(value)
-                ) && (
-                  <button
-                    onClick={async () => {
-                      try {
-                        const customActions = Object.entries(
-                          currentProps
-                        ).filter(([_, value]) => isCustomActionField(value));
-
-                        for (const [key, actionValue] of customActions) {
-                          const actionName = actionValue.replace(
-                            "/customaction/",
-                            ""
-                          );
-                          await handleCustomAction(
-                            key,
-                            actionName,
-                            currentProps,
-                            onCustomAction
-                          );
-                        }
-
-                        if (customActions.length === 0) {
-                          alert("No custom actions found");
-                        } else {
-                          alert(
-                            `Executed ${customActions.length} custom action(s)`
-                          );
-                        }
-                      } catch (error) {
-                        console.error(
-                          "Failed to execute custom actions:",
-                          error
-                        );
-                        alert("Failed to execute actions");
-                      }
-                    }}
-                    className="px-4 py-3 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium"
-                  >
-                    Execute All Custom Actions
-                  </button>
-                )}
-            </div>
-          </div>
-        )}
-
-        {/* No properties message */}
-        {Object.keys(currentProps).length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <div className="text-5xl mb-4">📝</div>
-            <p className="text-base mb-2">
-              No properties available for this component
-            </p>
-            <p className="text-sm">
-              Properties will appear here when the component has configurable
-              options
-            </p>
-          </div>
-        )}
+      {/* Subtabs Navigation */}
+      <div className="flex border-b border-gray-300 bg-white">
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeSubTab === "data"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveSubTab("data")}
+        >
+          Data
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeSubTab === "schema"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveSubTab("schema")}
+        >
+          Schema
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeSubTab === "binding"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveSubTab("binding")}
+        >
+          Binding
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeSubTab === "json"
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700"
+          }`}
+          onClick={() => setActiveSubTab("json")}
+        >
+          JSON
+        </button>
       </div>
 
-      {/* Clear selection button */}
-      {(selectedInstance || selectedComponent) && (
-        <div className="border-t border-gray-200 bg-transparent p-6 sticky bottom-0">
-          <div className="flex space-x-3">
-            <button
-              onClick={() => {
-                setSelectedInstance(null);
-                setSelectedComponent(null);
-              }}
-              className="flex-1 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-            >
-              Clear Selection
-            </button>
-            <button
-              onClick={() => {
-                const resetProps = Object.keys(currentProps).reduce(
-                  (acc, key) => {
-                    const value = currentProps[key];
-                    if (typeof value === "number") acc[key] = 0;
-                    else if (typeof value === "boolean") acc[key] = false;
-                    else if (Array.isArray(value)) acc[key] = [];
-                    else if (typeof value === "object") acc[key] = {};
-                    else acc[key] = "";
-                    return acc;
-                  },
-                  {} as Record<string, any>
-                );
+      {/* Tab Content */}
+      <div className="flex-1 overflow-auto">
+        {activeSubTab === "data" && (
+          <DataTab
+            selectedInstance={selectedInstance}
+            componentType={componentType as any}
+            componentProps={componentPropsWithoutSchema}
+            currentProps={componentPropsWithoutSchema}
+            onPropertyChange={handlePropertyChange}
+            onFileUpload={onFileUpload}
+            onApiCall={onApiCall}
+            onCustomAction={onCustomAction}
+            onGetSelectOptions={onGetSelectOptions}
+            setSelectedInstance={setSelectedInstance}
+            setSelectedComponent={setSelectedComponent}
+            componentSchema={componentSchema as any}
+          />
+        )}
 
-                handlePropertyChange({ formData: resetProps });
-              }}
-              className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
-            >
-              Reset
-            </button>
-          </div>
-        </div>
-      )}
+        {activeSubTab === "schema" && (
+          <SchemaTab
+            schema={componentSchema}
+            componentProps={componentPropsWithoutSchema}
+            onChange={handleSchemaChange}
+          />
+        )}
+
+        {activeSubTab === "binding" && (
+          <BindingTab
+            componentProps={componentPropsWithoutSchema}
+            onPropertyChange={handlePropertyChange}
+          />
+        )}
+
+        {activeSubTab === "json" && (
+          <JsonTab componentProps={currentProps} onChange={handleJsonChange} />
+        )}
+      </div>
     </div>
   );
 };
 
-// Helper functions for API calls and custom actions
-const handleApiCall = async (
-  _property: string,
-  endpoint: string,
-  onApiCall?: (endpoint: string, data?: any) => Promise<any>
-) => {
-  if (onApiCall) {
-    try {
-      const result = await onApiCall(endpoint);
-      return result;
-    } catch (error) {
-      console.error("API call failed:", error);
-      throw error;
-    }
-  }
-};
-
-const handleCustomAction = async (
-  _property: string,
-  action: string,
-  data: any,
-  onCustomAction?: (action: string, data: any) => Promise<any>
-) => {
-  if (onCustomAction) {
-    try {
-      const result = await onCustomAction(action, data);
-      return result;
-    } catch (error) {
-      console.error("Custom action failed:", error);
-      throw error;
-    }
-  }
-};
+export default PropertiesTab;

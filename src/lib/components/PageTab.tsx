@@ -3,7 +3,7 @@ import { useStackPage } from "./StackPageContext";
 import { useState, useRef } from "react";
 
 interface PageTabProps {
-  onFileUpload?: FileUploadFn
+  onFileUpload?: FileUploadFn;
 }
 
 // Page Tab Component
@@ -26,11 +26,13 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
     handlePageAttributeChange("image", url);
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      setProgress(0)
+      setProgress(0);
       try {
         let finalImageUrl = URL.createObjectURL(file); // Temporary local URL
         // Upload to server if callback provided
@@ -38,20 +40,20 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           finalImageUrl = await onFileUpload(file, {
             onProgress: (p) => setProgress(p),
             onError: (error) => alert(error.message),
-            options: {}
+            options: {},
           });
         }
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
-        handlePageAttributeChange("image", finalImageUrl);  
-        // Update the attributes with the final image URL        
+        handlePageAttributeChange("image", finalImageUrl);
+        // Update the attributes with the final image URL
       } catch (error) {
         console.error("Failed to upload image:", error);
         alert("Failed to upload image. Please try again.");
       } finally {
         setIsUploading(false);
-        setProgress(0);        
+        setProgress(0);
       }
     }
   };
@@ -64,6 +66,13 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
   };
 
   const statusOptions = ["draft", "published"];
+
+  // Calculate total items across all lists
+  const totalListItems =
+    attributes.lists?.reduce(
+      (total: number, list: any) => total + (list.items?.length || 0),
+      0
+    ) || 0;
 
   return (
     <div className="h-full p-4 space-y-4 max-h-[calc(100vh-48*0.25rem)] bg-zinc-200 overflow-y-auto">
@@ -78,7 +87,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Page Image
           </label>
-          
+
           {/* URL Input Box */}
           <div className="mb-6 space-y-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -109,7 +118,8 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                       className="w-64 h-64 object-contain rounded-lg shadow-lg"
                       onError={(e) => {
                         // If image fails to load, show error placeholder
-                        e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='16' fill='%239ca3af'%3EImage Error%3C/text%3E%3C/svg%3E";
+                        e.currentTarget.src =
+                          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-size='16' fill='%239ca3af'%3EImage Error%3C/text%3E%3C/svg%3E";
                       }}
                     />
                     <button
@@ -121,11 +131,13 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                       ×
                     </button>
                   </div>
-                  
+
                   {/* Image Info */}
                   <div className="text-center space-y-1">
                     <p className="text-sm text-gray-600 truncate max-w-xs">
-                      {attributes.image.startsWith('blob:') ? 'Temporary Preview' : 'Saved Image'}
+                      {attributes.image.startsWith("blob:")
+                        ? "Temporary Preview"
+                        : "Saved Image"}
                     </p>
                     {attributes.image.length > 60 && (
                       <p className="text-xs text-gray-500 break-all">
@@ -147,12 +159,14 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                     )}
                   </div>
                   <p className="text-gray-500 text-sm text-center">
-                    {isUploading ? "Processing your image..." : "No image selected"}
+                    {isUploading
+                      ? "Processing your image..."
+                      : "No image selected"}
                   </p>
                 </div>
               )}
             </div>
-            
+
             {/* Upload Button */}
             <div className="flex flex-col items-center space-y-3 w-full max-w-md">
               <input
@@ -174,7 +188,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
               >
                 {isUploading ? "Uploading..." : "Choose Image File"}
               </label>
-              
+
               {/* Upload Status */}
               <div className="text-center space-y-1">
                 {isUploading && (
@@ -313,14 +327,21 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
         </div>
       </div>
 
+      {/* Current Page Configuration */}
       <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl">
         <h4 className="font-medium text-blue-800 mb-3 text-lg">
-          Current Page Settings
+          Current Page Configuration
         </h4>
         <div className="text-sm text-blue-700 grid grid-cols-2 gap-3">
           <div className="flex items-center space-x-2">
             <span className="font-medium">Menu Bar:</span>
-            <code className={`px-2 py-1 rounded ${attributes.showMenubar ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+            <code
+              className={`px-2 py-1 rounded ${
+                attributes.showMenubar
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
               {attributes.showMenubar ? "Visible" : "Hidden"}
             </code>
           </div>
@@ -348,17 +369,110 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
               {attributes.background || "Not set"}
             </code>
           </div>
+
+          {/* New: Lists Summary */}
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Lists:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {attributes.lists?.length || 0} lists, {totalListItems} items
+            </code>
+          </div>
+
+          {/* New: Data Sources Summary */}
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Data Sources:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {attributes.dataSources?.length || 0} configured
+            </code>
+          </div>
+
           <div className="col-span-2 flex items-start space-x-2">
             <span className="font-medium whitespace-nowrap">Image:</span>
             <code className="px-2 py-1 rounded bg-gray-100 break-all flex-1">
               {attributes.image
-                ? (attributes.image.length > 80 
-                    ? attributes.image.substring(0, 80) + "..."
-                    : attributes.image)
+                ? attributes.image.length > 80
+                  ? attributes.image.substring(0, 80) + "..."
+                  : attributes.image
                 : "Not set"}
             </code>
           </div>
         </div>
+
+        {/* Quick Statistics */}
+        {((attributes as any).lists?.length > 0 ||
+          (attributes as any).dataSources?.length > 0) && (
+          <div className="mt-4 pt-4 border-t border-blue-200">
+            <h5 className="font-medium text-blue-800 mb-2 text-sm">
+              Quick Statistics
+            </h5>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {(attributes as any).lists?.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Total Lists:</span>
+                  <span className="font-medium">
+                    {(attributes as any).lists.length}
+                  </span>
+                </div>
+              )}
+              {totalListItems > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Total List Items:</span>
+                  <span className="font-medium">{totalListItems}</span>
+                </div>
+              )}
+              {(attributes as any).dataSources?.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">API Data Sources:</span>
+                  <span className="font-medium">
+                    {
+                      (attributes as any).dataSources.filter(
+                        (ds: any) => ds.type === "api"
+                      ).length
+                    }
+                  </span>
+                </div>
+              )}
+              {(attributes as any).dataSources?.length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Static Data Sources:</span>
+                  <span className="font-medium">
+                    {
+                      (attributes as any).dataSources.filter(
+                        (ds: any) => ds.type === "static"
+                      ).length
+                    }
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Usage Tips */}
+      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <h4 className="font-medium text-green-800 mb-2 text-sm">
+          💡 Usage Tips
+        </h4>
+        <ul className="text-xs text-green-700 space-y-1">
+          <li>
+            • Use the <strong>List tab</strong> to create dropdown options,
+            radio choices, etc.
+          </li>
+          <li>
+            • Use the <strong>Data Source tab</strong> to configure APIs for
+            dynamic content
+          </li>
+          <li>
+            • Reference lists in components with:{" "}
+            <code>{"{{list.your_list_name}}"}</code>
+          </li>
+          <li>
+            • Reference data sources with:{" "}
+            <code>{"{{dataSource.source_name.field}}"}</code>
+          </li>
+          <li>• All configurations are automatically saved with your page</li>
+        </ul>
       </div>
     </div>
   );

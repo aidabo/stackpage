@@ -3,6 +3,8 @@ import {
   StackPageContext,
   StackPageContextType,
   ComponentInstance,
+  ListDefinition,
+  DataSource,
 } from "./StackPageContext";
 
 // Props for the provider
@@ -20,15 +22,17 @@ export function StackPageProvider({ children }: StackPageProviderProps) {
   const [attributes, setPageAttributes] = useState<any>({
     type: "page",
     title: "Untitled Page",
-    status: "draft", // Add this
+    status: "draft",
     margin: "5",
     padding: "10px",
     background: "#ffffff",
     showMenubar: true,
-    image: "", // Add this    
+    image: "",
+    lists: [] as ListDefinition[],
+    dataSources: [] as DataSource[],
   });
   const [activeTab, setActiveTab] = useState<
-    "components" | "properties" | "page"
+    "components" | "properties" | "page" | "list" | "datasource"
   >("components");
   const [widgetProps, setWidgetProps] = useState<Map<string, object>>(
     new Map()
