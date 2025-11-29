@@ -1,3 +1,5 @@
+import { format, parse, isValid, parseISO } from "date-fns";
+
 /* eslint-disable no-case-declarations */
 // PropertyWidgets.tsx
 import React from "react";
@@ -357,203 +359,6 @@ export const FileWidget = (props: any) => {
     </div>
   );
 };
-
-// Enhanced custom select widget with improved schema handling
-// export const CustomSelectWidget = (props: any) => {
-//   const [options, setOptions] = React.useState<string[]>([]);
-//   const [loading, setLoading] = React.useState(false);
-//   const [isDynamic, setIsDynamic] = React.useState(false);
-//   const [error, setError] = React.useState<string>("");
-
-//   React.useEffect(() => {
-//     const checkDynamic = async () => {
-//       const dynamic =
-//         props.schema.description === "API Endpoint" ||
-//         (props.value &&
-//           typeof props.value === "string" &&
-//           props.value.startsWith("/api/")) ||
-//         props.schema.format === "dynamic-select";
-
-//       setIsDynamic(dynamic);
-
-//       if (dynamic && props.onGetSelectOptions) {
-//         await loadDynamicOptions();
-//       } else {
-//         // Handle static options from schema or value
-//         const staticOptions = parseStaticOptions(props.schema, props.value);
-//         setOptions(staticOptions);
-//       }
-//     };
-
-//     checkDynamic();
-//   }, [props.value, props.schema, props.onGetSelectOptions]);
-
-//   const loadDynamicOptions = async () => {
-//     if (!props.onGetSelectOptions) {
-//       setError("Dynamic options handler not available");
-//       return;
-//     }
-
-//     setLoading(true);
-//     setError("");
-//     try {
-//       const fetchedOptions = await props.onGetSelectOptions(
-//         props.name,
-//         props.componentType
-//       );
-//       setOptions(fetchedOptions || []);
-//     } catch (error) {
-//       console.error("Failed to load options:", error);
-//       setError("Failed to load options");
-//       setOptions([]);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const parseStaticOptions = (schema: any, value: any): string[] => {
-//     // Check for enum in schema (highest priority)
-//     if (schema.enum && Array.isArray(schema.enum)) {
-//       return schema.enum.map((item: any) => String(item));
-//     }
-
-//     // Check for items enum for array types
-//     if (schema.items && schema.items.enum && Array.isArray(schema.items.enum)) {
-//       return schema.items.enum.map((item: any) => String(item));
-//     }
-
-//     // Check for oneOf in schema
-//     if (schema.oneOf && Array.isArray(schema.oneOf)) {
-//       return schema.oneOf
-//         .filter((item: any) => item.const !== undefined)
-//         .map((item: any) => String(item.const));
-//     }
-
-//     // Check for anyOf in schema
-//     if (schema.anyOf && Array.isArray(schema.anyOf)) {
-//       return schema.anyOf
-//         .filter((item: any) => item.const !== undefined)
-//         .map((item: any) => String(item.const));
-//     }
-
-//     // Parse from string value like "[option1, option2]"
-//     if (typeof value === "string") {
-//       const match = value.match(/^\[(.*)\]$/);
-//       if (match) {
-//         return match[1]
-//           .split(",")
-//           .map((opt) => opt.trim())
-//           .filter((opt) => opt.length > 0);
-//       }
-//     }
-
-//     // Check for options in schema extensions
-//     if (schema.options && Array.isArray(schema.options)) {
-//       return schema.options.map((item: any) => String(item));
-//     }
-
-//     return [];
-//   };
-
-//   const refreshOptions = () => {
-//     if (isDynamic) {
-//       loadDynamicOptions();
-//     }
-//   };
-
-//   const currentValue = isDynamic
-//     ? props.value
-//     : options.includes(props.value)
-//     ? props.value
-//     : "";
-
-//   // Determine if we should show the select based on available options
-//   const shouldShowSelect = options.length > 0 || isDynamic;
-
-//   return (
-//     <div className="space-y-3">
-//       {shouldShowSelect ? (
-//         <>
-//           <div className="flex space-x-3">
-//             <select
-//               value={currentValue || ""}
-//               onChange={(e) => props.onChange(e.target.value)}
-//               disabled={loading}
-//               className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-//             >
-//               <option value="">Select an option</option>
-//               {options.map((option) => (
-//                 <option key={option} value={option}>
-//                   {option}
-//                 </option>
-//               ))}
-//             </select>
-
-//             {isDynamic && (
-//               <button
-//                 type="button"
-//                 onClick={refreshOptions}
-//                 disabled={loading}
-//                 className="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-400 transition-colors whitespace-nowrap"
-//               >
-//                 {loading ? "..." : "Refresh"}
-//               </button>
-//             )}
-//           </div>
-
-//           <div className="text-xs text-gray-500 flex justify-between items-center">
-//             <span>
-//               {loading
-//                 ? "Loading options..."
-//                 : `${options.length} options available`}
-//             </span>
-//             {isDynamic && (
-//               <span className="text-blue-600 font-medium">Dynamic Select</span>
-//             )}
-//             {!isDynamic && options.length > 0 && (
-//               <span className="text-green-600 font-medium">Static Select</span>
-//             )}
-//           </div>
-//         </>
-//       ) : (
-//         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-//           <p className="text-sm text-yellow-800">
-//             No options available.{" "}
-//             {isDynamic
-//               ? "Try refreshing or check the API endpoint."
-//               : "Add options to the schema."}
-//           </p>
-//         </div>
-//       )}
-
-//       {error && (
-//         <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-//           <p className="text-sm text-red-800">{error}</p>
-//         </div>
-//       )}
-
-//       {/* Schema debug info - only in development */}
-//       {process.env.NODE_ENV === "development" && (
-//         <details className="text-xs text-gray-500 border border-gray-200 rounded p-2">
-//           <summary className="cursor-pointer">Schema Info</summary>
-//           <pre className="mt-2 whitespace-pre-wrap">
-//             {JSON.stringify(
-//               {
-//                 name: props.name,
-//                 value: props.value,
-//                 schema: props.schema,
-//                 isDynamic,
-//                 optionsCount: options.length,
-//               },
-//               null,
-//               2
-//             )}
-//           </pre>
-//         </details>
-//       )}
-//     </div>
-//   );
-// };
 
 // In CustomSelectWidget (simplified example)
 export const CustomSelectWidget = (props: any) => {
@@ -1549,64 +1354,127 @@ export const CustomNumberWidget = (props: any) => {
 };
 
 export const CustomDateWidget = (props: any) => {
-  const formatDateForInput = (date: any) => {
-    if (!date) return "";
-    if (typeof date === "string") {
-      // Try to parse the date string
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString().split("T")[0];
-      }
-      return date;
+  // Common date formats to try parsing
+  const dateFormats = [
+    "yyyy-MM-dd", // ISO format
+    "yyyy/MM/dd", // YYYY/MM/DD
+    "MM/dd/yyyy", // MM/DD/YYYY
+    "dd/MM/yyyy", // DD/MM/YYYY
+    "yyyy年MM月dd日", // YYYY年MM月DD日
+    "MMM dd, yyyy", // Jan 01, 2024
+    "MMMM dd, yyyy", // January 01, 2024
+  ];
+
+  const formatDateForInput = (dateValue: any): string => {
+    if (!dateValue) return "";
+
+    let date: Date;
+
+    // If it's already a Date object
+    if (dateValue instanceof Date && isValid(dateValue)) {
+      date = dateValue;
     }
-    return date;
+    // If it's a string, try to parse it
+    else if (typeof dateValue === "string") {
+      // Try ISO format first
+      date = parseISO(dateValue);
+
+      // If ISO parsing failed, try other formats
+      if (!isValid(date)) {
+        for (const formatStr of dateFormats) {
+          date = parse(dateValue, formatStr, new Date());
+          if (isValid(date)) break;
+        }
+      }
+
+      // If all parsing failed, try native Date constructor
+      if (!isValid(date)) {
+        date = new Date(dateValue);
+      }
+    }
+    // If it's a timestamp
+    else if (typeof dateValue === "number") {
+      date = new Date(dateValue);
+    } else {
+      return String(dateValue);
+    }
+
+    // Format for HTML date input (YYYY-MM-DD)
+    return isValid(date) ? format(date, "yyyy-MM-dd") : "";
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    props.onChange(e.target.value);
+    const newValue = e.target.value;
+    props.onChange(newValue);
   };
 
+  const currentValue = formatDateForInput(props.value);
+
   return (
-    <input
-      type="date"
-      value={formatDateForInput(props.value)}
-      onChange={handleChange}
-      className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-    />
+    <div className="space-y-2">
+      <input
+        type="date"
+        value={currentValue}
+        onChange={handleChange}
+        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      />
+
+      {/* Show current formatted value for debugging */}
+      {props.value && currentValue && (
+        <div className="text-xs text-gray-500">
+          Displaying: {currentValue} | Original: {String(props.value)}
+        </div>
+      )}
+    </div>
   );
 };
 
+// PropertyWidgets.tsx - Enhanced CustomDateTimeWidget with date-fns
 export const CustomDateTimeWidget = (props: any) => {
-  const formatDateTimeForInput = (date: any) => {
-    if (!date) return "";
-    if (typeof date === "string") {
-      // Try to parse the date string
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        // Convert to local datetime string in the format YYYY-MM-DDTHH:mm
-        const year = parsed.getFullYear();
-        const month = String(parsed.getMonth() + 1).padStart(2, "0");
-        const day = String(parsed.getDate()).padStart(2, "0");
-        const hours = String(parsed.getHours()).padStart(2, "0");
-        const minutes = String(parsed.getMinutes()).padStart(2, "0");
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const formatDateTimeForInput = (dateValue: any): string => {
+    if (!dateValue) return "";
+
+    let date: Date;
+
+    if (dateValue instanceof Date && isValid(dateValue)) {
+      date = dateValue;
+    } else if (typeof dateValue === "string") {
+      date = parseISO(dateValue);
+
+      if (!isValid(date)) {
+        date = new Date(dateValue);
       }
-      return date;
+    } else if (typeof dateValue === "number") {
+      date = new Date(dateValue);
+    } else {
+      return String(dateValue);
     }
-    return date;
+
+    // Format for HTML datetime-local input
+    return isValid(date) ? format(date, "yyyy-MM-dd'T'HH:mm") : "";
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     props.onChange(e.target.value);
   };
 
+  const currentValue = formatDateTimeForInput(props.value);
+
   return (
-    <input
-      type="datetime-local"
-      value={formatDateTimeForInput(props.value)}
-      onChange={handleChange}
-      className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-    />
+    <div className="space-y-2">
+      <input
+        type="datetime-local"
+        value={currentValue}
+        onChange={handleChange}
+        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      />
+
+      {props.value && currentValue && (
+        <div className="text-xs text-gray-500">
+          Displaying: {currentValue} | Original: {String(props.value)}
+        </div>
+      )}
+    </div>
   );
 };
 

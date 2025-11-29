@@ -165,6 +165,47 @@ export const isFileTypeField = (key: string, value: any): boolean => {
   return isFileByName || (isFileByValue as any);
 };
 
+export const isDateField = (key: string, value: any): boolean => {
+  const keyLower = key.toLowerCase();
+
+  // Field name indicators for date fields
+  const dateFieldNames = [
+    "date",
+    "time",
+    "created",
+    "updated",
+    "published",
+    "birth",
+    "start",
+    "end",
+    "deadline",
+    "expiry",
+    "due",
+  ];
+
+  const isDateByName = dateFieldNames.some((name) => keyLower.includes(name));
+
+  // Value pattern indicators for common date formats
+  const isDateByValue =
+    typeof value === "string" &&
+    // YYYY-MM-DD
+    (/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      // YYYY/MM/DD
+      /^\d{4}\/\d{2}\/\d{2}$/.test(value) ||
+      // MM/DD/YYYY
+      /^\d{2}\/\d{2}\/\d{4}$/.test(value) ||
+      // DD/MM/YYYY
+      /^\d{2}\/\d{2}\/\d{4}$/.test(value) ||
+      // YYYY年MM月DD日
+      /^\d{4}年\d{1,2}月\d{1,2}日$/.test(value) ||
+      // ISO date format
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value) ||
+      // Timestamp (numeric string)
+      (/^\d+$/.test(value) && value.length >= 8 && value.length <= 13));
+
+  return isDateByName || isDateByValue;
+};
+
 // Check if string represents static options array
 export const isStaticOptionsArray = (value: string): boolean => {
   return typeof value === "string" && /^\[.*\]$/.test(value);
@@ -253,7 +294,6 @@ export const extractDataSourceReference = (value: string): string | null => {
   return match ? match[1] : null;
 };
 
-// Enhanced property schema inference with better array-of-objects handling
 export const inferPropertySchema = (key: string, value: any): any => {
   const type = typeof value;
   const keyLower = key.toLowerCase();
@@ -265,11 +305,17 @@ export const inferPropertySchema = (key: string, value: any): any => {
     default: value,
   };
 
-  // Check for file fields first (highest priority)
+  // Check for date fields first
+  if (isDateField(key, value)) {
+    baseSchema.type = "string";
+    baseSchema.format = "date";
+    return baseSchema;
+  }
+
+  // Check for file fields
   const isFileField = isFileTypeField(key, value);
   if (isFileField) {
     baseSchema.type = "string";
-    // Use "uri" format instead of custom "file" format for RJSF compatibility
     baseSchema.format = "uri";
     return baseSchema;
   }
@@ -410,23 +456,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       title: key.charAt(0).toUpperCase() + key.slice(1),
     };
 
-    // Check for file types first using isFileTypeField
-    if (isFileTypeField(key, value)) {
-      property.type = "string";
-      property.format = "uri";
-
-      // Set specific media type hints based on detection
-      const fileType = getFileType(key, value);
-      if (fileType === "image") {
-        property["x-media-type"] = "image";
-      } else if (fileType === "video") {
-        property["x-media-type"] = "video";
-      } else if (fileType === "audio") {
-        property["x-media-type"] = "audio";
-      } else {
-        property["x-media-type"] = "file";
-      }
-    } else if (Array.isArray(value)) {
+    if (Array.isArray(value)) {
       if (value.length === 0) {
         // Empty array - default to string array
         property.type = "array";
@@ -453,6 +483,26 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           property.enum = value;
         }
       }
+      // Check for file types first using isFileTypeField
+    } else if (isFileTypeField(key, value)) {
+      property.type = "string";
+      property.format = "uri";
+
+      // Set specific media type hints based on detection
+      const fileType = getFileType(key, value as any);
+      if (fileType === "image") {
+        property["x-media-type"] = "image";
+      } else if (fileType === "video") {
+        property["x-media-type"] = "video";
+      } else if (fileType === "audio") {
+        property["x-media-type"] = "audio";
+      } else {
+        property["x-media-type"] = "file";
+      }
+      // Check for date types first
+    } else if (isDateField(key, value)) {
+      property.type = "string";
+      property.format = "date";
     } else if (typeof value === "string") {
       property.type = "string";
       // Check for specific string formats
