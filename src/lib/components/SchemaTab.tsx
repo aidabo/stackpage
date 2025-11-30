@@ -47,7 +47,33 @@ const jsonSchemaToFieldSchema = (
       if (schemaDef.type === "boolean") {
         baseField.type = "checkbox";
       } else if (schemaDef.type === "array") {
-        // ... existing array handling
+        // Check the actual value to determine if it's a select or array
+        if (Array.isArray(actualValue) && actualValue.length > 0) {
+          const firstElement = actualValue[0];
+
+          if (typeof firstElement === "object" && firstElement !== null) {
+            // Array of objects - treat as array field
+            baseField.type = "array";
+            if (schemaDef.items && schemaDef.items.properties) {
+              baseField.itemSchema = jsonSchemaToFieldSchema(
+                schemaDef.items,
+                firstElement
+              );
+            }
+          } else {
+            // Array of simple types - treat as select field
+            baseField.type = "select";
+            baseField.options = actualValue;
+          }
+        } else {
+          // Empty array or no actual value - check schema definition
+          if (schemaDef.items && schemaDef.items.enum) {
+            baseField.type = "select";
+            baseField.options = schemaDef.items.enum;
+          } else {
+            baseField.type = "array";
+          }
+        }
       } else if (schemaDef.enum) {
         baseField.type = "select";
         baseField.options = schemaDef.enum;
