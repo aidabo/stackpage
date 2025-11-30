@@ -8,6 +8,7 @@ import {
   isFileTypeField,
   getFileType,
   isDateField,
+  isNumberField,
 } from "./PropertyTypeUtils";
 
 interface SchemaTabProps {
@@ -34,7 +35,7 @@ const jsonSchemaToFieldSchema = (
       // Get the actual value from componentProps to help with detection
       const actualValue = componentProps[key];
 
-      // Use PropertyTypeUtils to detect file types and date types
+      // Use PropertyTypeUtils to detect field types
       const isFileField = isFileTypeField(key, actualValue);
       let fileType: string | null = null;
       if (isFileField) {
@@ -42,10 +43,13 @@ const jsonSchemaToFieldSchema = (
       }
 
       const isDateFieldValue = isDateField(key, actualValue);
+      const isNumberFieldValue = isNumberField(key, actualValue);
 
       // Map JSON Schema types to FieldSchema types
       if (schemaDef.type === "boolean") {
         baseField.type = "checkbox";
+      } else if (schemaDef.type === "number" || isNumberFieldValue) {
+        baseField.type = "number";
       } else if (schemaDef.type === "array") {
         // Check the actual value to determine if it's a select or array
         if (Array.isArray(actualValue) && actualValue.length > 0) {
@@ -167,6 +171,10 @@ const fieldSchemaToJsonSchema = (fieldSchemas: FieldSchema[]): any => {
         property.type = "boolean";
         property.default = false;
         break;
+      case "number":
+        property.type = "number";
+        property.default = 0;
+        break;
       case "array":
         property.type = "array";
         if (field.itemSchema && field.itemSchema.length > 0) {
@@ -238,6 +246,8 @@ const getDefaultValue = (type: FieldType): any => {
       return false;
     case "select":
       return "";
+    case "number":
+      return 0;
     case "color":
       return "#000000";
     case "date":
@@ -345,6 +355,10 @@ export const SchemaTab: React.FC<SchemaTabProps> = ({
           <li>
             • <strong>Text Types</strong>: text, textarea, richtext, email, tel,
             password
+          </li>
+          <li>
+            • <strong>Number Type</strong>: For numeric values like count,
+            price, size
           </li>
           <li>
             • <strong>Media Types</strong>: image, video, audio, file

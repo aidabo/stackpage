@@ -165,6 +165,60 @@ export const isFileTypeField = (key: string, value: any): boolean => {
   return isFileByName || (isFileByValue as any);
 };
 
+// Number field detection function
+export const isNumberField = (key: string, value: any): boolean => {
+  const keyLower = key.toLowerCase();
+
+  // Field name indicators for number fields
+  const numberFieldNames = [
+    "number",
+    "count",
+    "quantity",
+    "amount",
+    "price",
+    "cost",
+    "total",
+    "size",
+    "width",
+    "height",
+    "length",
+    "depth",
+    "radius",
+    "percentage",
+    "percent",
+    "rate",
+    "score",
+    "age",
+    "year",
+    "month",
+    "day",
+    "hour",
+    "minute",
+    "second",
+    "duration",
+    "delay",
+    "interval",
+    "index",
+    "id",
+    "order",
+    "priority",
+    "level",
+    "step",
+    "limit",
+    "max",
+    "min",
+    "average",
+    "sum",
+  ];
+
+  const isNumberByName = numberFieldNames.some((name) => keyLower == name);
+
+  // Value pattern indicators
+  const isNumberByValue = typeof value === "number";
+
+  return isNumberByName || isNumberByValue;
+};
+
 export const isDateField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
 
@@ -305,7 +359,13 @@ export const inferPropertySchema = (key: string, value: any): any => {
     default: value,
   };
 
-  // Check for date fields first
+  // Check for number fields first (before date and file)
+  if (isNumberField(key, value)) {
+    baseSchema.type = "number";
+    return baseSchema;
+  }
+
+  // Check for date fields
   if (isDateField(key, value)) {
     baseSchema.type = "string";
     baseSchema.format = "date";
@@ -460,7 +520,13 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       title: key.charAt(0).toUpperCase() + key.slice(1),
     };
 
-    if (Array.isArray(value)) {
+    // Check for number fields first
+    if (isNumberField(key, value)) {
+      property.type = "number";
+      property.default = value || 0;
+    }
+    // Then check arrays
+    else if (Array.isArray(value)) {
       if (value.length === 0) {
         // Empty array - default to string array
         property.type = "array";
@@ -487,8 +553,9 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           property.enum = value;
         }
       }
-      // Check for file types first using isFileTypeField
-    } else if (isFileTypeField(key, value)) {
+    }
+    // Then check file types
+    else if (isFileTypeField(key, value)) {
       property.type = "string";
       property.format = "uri";
 
@@ -503,11 +570,14 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       } else {
         property["x-media-type"] = "file";
       }
-      // Check for date types first
-    } else if (isDateField(key, value)) {
+    }
+    // Then check date types
+    else if (isDateField(key, value)) {
       property.type = "string";
       property.format = "date";
-    } else if (typeof value === "string") {
+    }
+    // Then handle other types
+    else if (typeof value === "string") {
       property.type = "string";
       // Check for specific string formats
       if (
@@ -544,6 +614,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       }
     } else if (typeof value === "number") {
       property.type = "number";
+      property.default = value || 0;
     } else if (typeof value === "boolean") {
       property.type = "boolean";
     } else if (typeof value === "object" && value !== null) {
@@ -581,7 +652,10 @@ export const generateUiSchema = (schema: any): any => {
           uiSchema[key]["ui:widget"] = "array";
         }
       }
-
+      // Handle number type
+      else if (property.type === "number") {
+        uiSchema[key]["ui:widget"] = "CustomNumberWidget";
+      }
       // Handle other widget assignments
       else if (property.format === "uri") {
         const keyLower = key.toLowerCase();
@@ -606,8 +680,6 @@ export const generateUiSchema = (schema: any): any => {
         uiSchema[key]["ui:widget"] = "CustomCheckboxWidget";
       } else if (property.format === "textarea") {
         uiSchema[key]["ui:widget"] = "CustomTextareaWidget";
-      } else if (property.type === "number") {
-        uiSchema[key]["ui:widget"] = "CustomNumberWidget";
       } else if (property.format === "email") {
         uiSchema[key]["ui:widget"] = "CustomEmailWidget";
       } else if (property.format === "date") {

@@ -5,6 +5,7 @@ export type FieldType =
   | "richtext"
   | "select"
   | "checkbox"
+  | "number"
   | "image"
   | "video"
   | "audio"

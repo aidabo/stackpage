@@ -14,8 +14,9 @@ const FIELD_TYPES: FieldType[] = [
   "text",
   "textarea",
   "richtext",
-  "select", // This is for fields with predefined options
+  "select",
   "checkbox",
+  "number",
   "image",
   "video",
   "audio",
@@ -25,10 +26,8 @@ const FIELD_TYPES: FieldType[] = [
   "email",
   "password",
   "date",
-  "array", // This is for fields that contain multiple items/objects
+  "array",
 ];
-
-// ... OptionsEditor component remains the same ...
 
 interface OptionsEditorProps {
   options?: string[];
