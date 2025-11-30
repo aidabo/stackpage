@@ -322,6 +322,10 @@ export const inferPropertySchema = (key: string, value: any): any => {
 
   if (type === "string") {
     baseSchema.type = "string";
+    // Enhanced textarea detection - if value length > 80, set as textarea
+    if (value && value && value.length > 80) {
+      baseSchema.format = "textarea";
+    }
 
     // Enhanced select field detection
     const isSelectField = detectSelectField(key, value);
@@ -533,6 +537,10 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
         } else if (keyLower.includes("date")) {
           property.format = "date";
         }
+      }
+      // Enhanced textarea detection - if value length > 80, set as textarea
+      if (value && value.length > 80) {
+        property.format = "textarea";
       }
     } else if (typeof value === "number") {
       property.type = "number";

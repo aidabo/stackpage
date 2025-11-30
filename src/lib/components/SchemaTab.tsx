@@ -36,7 +36,11 @@ const jsonSchemaToFieldSchema = (
 
       // Use PropertyTypeUtils to detect file types and date types
       const isFileField = isFileTypeField(key, actualValue);
-      const fileType = getFileType(key, actualValue);
+      let fileType: string | null = null;
+      if (isFileField) {
+        fileType = getFileType(key, actualValue);
+      }
+
       const isDateFieldValue = isDateField(key, actualValue);
 
       // Map JSON Schema types to FieldSchema types
@@ -80,6 +84,15 @@ const jsonSchemaToFieldSchema = (
         baseField.type = "tel";
       } else if (key.toLowerCase().includes("password")) {
         baseField.type = "password";
+      }
+      // Enhanced textarea detection - check if string value is long
+      else if (
+        schemaDef.type === "string" &&
+        actualValue &&
+        typeof actualValue === "string" &&
+        actualValue.length > 80
+      ) {
+        baseField.type = "textarea";
       }
 
       return baseField;
