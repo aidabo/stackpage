@@ -142,6 +142,8 @@ const StackPageContent = ({
     setActiveTab,
     attributes,
     setPageAttributes,
+    source,
+    setSource,
     setSelectedInstance,
     setSelectedComponent,
     widgetProps, // Add this to get widgetProps from context
@@ -203,6 +205,15 @@ const StackPageContent = ({
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
       setPageAttributes(pageProps.attributes || attributes);
+
+      if (pageProps.source) {
+        setSource(pageProps.source);
+      } else {
+        setSource({
+          lists: [],
+          dataSources: [],
+        });
+      }
       return pageProps.layout;
     },
     [onLoadLayout]
@@ -306,6 +317,7 @@ const StackPageContent = ({
       id: pageid,
       layout: layout,
       attributes: attributes,
+      source: source,
       type: attributes.type,
       title: attributes.title,
       status: attributes.status,

@@ -1,4 +1,5 @@
 import { GridStackOptions, GridStackWidget } from "gridstack";
+import { DataSource, ListDefinition } from "./types";
 import { ComponentMap } from "..";
 import Text from "./Text";
 
@@ -85,9 +86,14 @@ export interface PageProps {
   excerpt?: string;
   image?: string;
   published_at?: Date | null;
-  status?: 'draft' | 'published';
+  status?: "draft" | "published";
   attributes?: any;
   layout: GridStackOptions | GridStackWidget[] | undefined;
+  source?: {
+    // Top-level source
+    lists: ListDefinition[];
+    dataSources: DataSource[];
+  };
 }
 
 /**
@@ -161,9 +167,7 @@ export const getComponentProps = (
  * Save page layout, if pageid is not the same as pageProps.id, it will as created a new page
  * @param pageProps - The properties of the page to save
  */
-export type SaveLayoutFn = (pageProps: PageProps
-) => Promise<void>;
-
+export type SaveLayoutFn = (pageProps: PageProps) => Promise<void>;
 
 /**
  * Load page layout function
@@ -179,15 +183,18 @@ export type GoBackListFn = () => void;
  * FileUploadOptions
  */
 export interface FileUploadOptions {
-  onProgress?: (p: number) => void,
-  onError?: (err: Error) =>void,
-  options?: any
+  onProgress?: (p: number) => void;
+  onError?: (err: Error) => void;
+  options?: any;
 }
 
 /**
  * Image, video, audio, file uploaded callback for server upload
  */
-export type FileUploadFn = (file: File, props?: FileUploadOptions) => Promise<string>;
+export type FileUploadFn = (
+  file: File,
+  props?: FileUploadOptions
+) => Promise<string>;
 
 /**
  * If component field name  include "/api", use this callback to get data
@@ -202,5 +209,7 @@ export type CustomActionFn = (action: string, data: any) => Promise<any>;
 /**
  * New callback for dynamic select options
  */
-export type GetSelectOptionsFn = (propertyName: string, componentType: string) => Promise<string[]>;
-  
+export type GetSelectOptionsFn = (
+  propertyName: string,
+  componentType: string
+) => Promise<string[]>;

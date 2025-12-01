@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useStackPage, DataSource } from "./StackPageContext";
+import { useStackPage } from "./StackPageContext";
+import { DataSource } from "./types";
 import {
   TrashIcon,
   PlayIcon,
@@ -39,7 +40,7 @@ const deepEqual = (a: any, b: any): boolean => {
 ------------------------------------------------------------------- */
 
 export const DataSourceTab = () => {
-  const { attributes, setPageAttributes } = useStackPage();
+  const { source, setSource } = useStackPage();
 
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const dataSourcesRef = useRef(dataSources);
@@ -61,27 +62,14 @@ export const DataSourceTab = () => {
   const [isTesting, setIsTesting] = useState(false);
 
   /* ------------------------------------------------------------------
-     Safe load from attributes -> local state (prevents flashing)
+     Safe load from source -> local state (prevents flashing)
   ------------------------------------------------------------------- */
   useEffect(() => {
-    const incoming = attributes.dataSources || [];
+    const incoming = source.dataSources || [];
     if (!deepEqual(incoming, dataSourcesRef.current)) {
       setDataSources(Array.isArray(incoming) ? incoming : []);
     }
-  }, [attributes.dataSources]);
-
-  /* ------------------------------------------------------------------
-     Safe save to attributes (prevents render loop)
-  ------------------------------------------------------------------- */
-  useEffect(() => {
-    const current = attributes.dataSources || [];
-    if (!deepEqual(current, dataSources)) {
-      setPageAttributes((prev: any) => ({
-        ...prev,
-        dataSources,
-      }));
-    }
-  }, [dataSources, attributes.dataSources, setPageAttributes]);
+  }, [source.dataSources]);
 
   /* ------------------------------------------------------------------
      Create Data Source
@@ -102,7 +90,14 @@ export const DataSourceTab = () => {
       refreshInterval: newDataSource.refreshInterval || 0,
     };
 
-    setDataSources((prev) => [...prev, ds]);
+    // Update both local state and context in one go
+    const newDataSources = [...dataSources, ds];
+    setDataSources(newDataSources);
+    setSource((prev) => ({
+      ...prev,
+      dataSources: newDataSources,
+    }));
+
     setExpandedDataSource(ds.id);
 
     // Reset new data source form
@@ -114,17 +109,22 @@ export const DataSourceTab = () => {
       mapping: {},
       refreshInterval: 0,
     });
-  }, [newDataSource]);
+  }, [newDataSource, dataSources, setSource]);
 
   /* ------------------------------------------------------------------
      Delete Data Source
   ------------------------------------------------------------------- */
   const handleDeleteDataSource = useCallback(
     (id: string) => {
-      setDataSources((prev) => prev.filter((ds) => ds.id !== id));
+      const newDataSources = dataSources.filter((ds) => ds.id !== id);
+      setDataSources(newDataSources);
+      setSource((prev) => ({
+        ...prev,
+        dataSources: newDataSources,
+      }));
       if (expandedDataSource === id) setExpandedDataSource(null);
     },
-    [expandedDataSource]
+    [dataSources, expandedDataSource, setSource]
   );
 
   /* ------------------------------------------------------------------
@@ -132,11 +132,16 @@ export const DataSourceTab = () => {
   ------------------------------------------------------------------- */
   const handleUpdateDataSource = useCallback(
     (id: string, updates: Partial<DataSource>) => {
-      setDataSources((prev) =>
-        prev.map((ds) => (ds.id === id ? { ...ds, ...updates } : ds))
+      const newDataSources = dataSources.map((ds) =>
+        ds.id === id ? { ...ds, ...updates } : ds
       );
+      setDataSources(newDataSources);
+      setSource((prev) => ({
+        ...prev,
+        dataSources: newDataSources,
+      }));
     },
-    []
+    [dataSources, setSource]
   );
 
   /* ------------------------------------------------------------------

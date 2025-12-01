@@ -1,36 +1,18 @@
-import { useState, useCallback, ReactNode } from "react";
-import {
-  StackPageContext,
-  StackPageContextType,
-  ComponentInstance,
-  ListDefinition,
-  DataSource,
-} from "./StackPageContext";
+// StackPageProvider.tsx
+import React, { useState, ReactNode } from "react";
+import { StackPageContext, SourceData } from "./StackPageContext";
 
-// Props for the provider
 interface StackPageProviderProps {
   children: ReactNode;
 }
 
-// Provider component
-export function StackPageProvider({ children }: StackPageProviderProps) {
+export const StackPageProvider: React.FC<StackPageProviderProps> = ({
+  children,
+}) => {
   const [selectedComponent, setSelectedComponent] = useState<string | null>(
     null
   );
-  const [selectedInstance, setSelectedInstance] =
-    useState<ComponentInstance | null>(null);
-  const [attributes, setPageAttributes] = useState<any>({
-    type: "page",
-    title: "Untitled Page",
-    status: "draft",
-    margin: "5",
-    padding: "10px",
-    background: "#ffffff",
-    showMenubar: true,
-    image: "",
-    lists: [] as ListDefinition[],
-    dataSources: [] as DataSource[],
-  });
+  const [selectedInstance, setSelectedInstance] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<
     "components" | "properties" | "page" | "list" | "datasource"
   >("components");
@@ -38,21 +20,37 @@ export function StackPageProvider({ children }: StackPageProviderProps) {
     new Map()
   );
 
-  const updateWidgetProps = useCallback((widgetId: string, props: object) => {
-    setWidgetProps((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(widgetId, props);
-      return newMap;
-    });
-  }, []);
+  const [attributes, setPageAttributes] = useState({
+    type: "page",
+    title: "untitled page",
+    excerpt: "",
+    image: "",
+    status: "draft" as "draft" | "published",
+    published_at: null as Date | null,
+    margin: "0px",
+    padding: "0px",
+    background: "#ffffff",
+    showMenubar: true,
+  });
 
-  const contextValue: StackPageContextType = {
+  const [source, setSource] = useState<SourceData>({
+    lists: [],
+    dataSources: [],
+  });
+
+  const updateWidgetProps = (widgetId: string, props: object) => {
+    setWidgetProps((prev) => new Map(prev).set(widgetId, props));
+  };
+
+  const value = {
     selectedComponent,
     setSelectedComponent,
     selectedInstance,
     setSelectedInstance,
     attributes,
     setPageAttributes,
+    source, // Top level source
+    setSource, // Setter for source
     activeTab,
     setActiveTab,
     widgetProps,
@@ -60,8 +58,8 @@ export function StackPageProvider({ children }: StackPageProviderProps) {
   };
 
   return (
-    <StackPageContext.Provider value={contextValue}>
+    <StackPageContext.Provider value={value}>
       {children}
     </StackPageContext.Provider>
   );
-}
+};

@@ -5,7 +5,6 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useStackPage, ListDefinition, ListItem } from "./StackPageContext";
 import {
   TrashIcon,
   PlusIcon,
@@ -13,117 +12,152 @@ import {
   ChevronUpIcon,
   Bars3Icon,
 } from "@heroicons/react/24/outline";
+import { useStackPage } from "./StackPageContext";
+import { ListDefinition, ListItem } from "./types";
 
-/**
- * Utility: shallow/deep equal for typical JSON-able structures.
- * Optimized for small arrays/objects used in UI state (lists).
- */
-const deepEqual = (a: any, b: any): boolean => {
+/** Utility deep equality for small JSON-like objects */
+const deepEqual = (a: unknown, b: unknown): boolean => {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
   if (a == null || b == null) return a === b;
 
   if (Array.isArray(a)) {
-    if (!Array.isArray(b) || a.length !== b.length) return false;
+    if (!Array.isArray(b) || a.length !== (b as unknown[]).length) return false;
     for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
+      if (!deepEqual(a[i], (b as unknown[])[i])) return false;
     }
     return true;
   }
 
   if (typeof a === "object") {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj);
+    const bKeys = Object.keys(bObj);
     if (aKeys.length !== bKeys.length) return false;
     for (const k of aKeys) {
-      if (!b.hasOwnProperty(k) || !deepEqual(a[k], b[k])) return false;
+      if (
+        !Object.prototype.hasOwnProperty.call(bObj, k) ||
+        !deepEqual(aObj[k], bObj[k])
+      )
+        return false;
     }
     return true;
   }
 
-  // primitives
   return a === b;
 };
 
-export const ListTab: React.FC = () => {
-  const { attributes, setPageAttributes } = useStackPage();
+export const ListTab: React.FC = (): JSX.Element => {
+  const { source, setSource } = useStackPage();
+
   const [lists, setLists] = useState<ListDefinition[]>([]);
   const [expandedList, setExpandedList] = useState<string | null>(null);
-  const [newListName, setNewListName] = useState("");
-  const [newListDescription, setNewListDescription] = useState("");
+  const [newListName, setNewListName] = useState<string>("");
+  const [newListDescription, setNewListDescription] = useState<string>("");
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
 
-  const listsRef = useRef(lists);
+  const listsRef = useRef<ListDefinition[]>(lists);
   listsRef.current = lists;
 
-  // Load lists from attributes on component mount / attribute change, but only if different
+  /** A stable hash of source.lists, so we only load when backend changes */
+  const [loadedHash, setLoadedHash] = useState<string>("");
+
+  /** Safely generate an id (prefer crypto.randomUUID if available) */
+  const genId = useCallback((): string => {
+    try {
+      return typeof crypto !== "undefined" &&
+        typeof (crypto as any).randomUUID === "function"
+        ? (crypto as any).randomUUID()
+        : `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    } catch {
+      return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+  }, []);
+
+  /** Load lists from source when source.lists changes (backend / parent update) */
   useEffect(() => {
-    const incoming = attributes?.lists || [];
-    if (!deepEqual(incoming, listsRef.current)) {
+    const incoming = (source?.lists as ListDefinition[]) || [];
+    const newHash = JSON.stringify(incoming);
+
+    // Load only if backend changed lists
+    if (newHash !== loadedHash) {
       setLists(Array.isArray(incoming) ? incoming : []);
+      setLoadedHash(newHash);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attributes?.lists]);
+  }, [source?.lists, loadedHash]);
 
-  // Save lists to attributes whenever they truly change
+  /** Save lists to source ONLY when lists truly differ */
   useEffect(() => {
-    const currentAttrs = attributes?.lists || [];
-    if (!deepEqual(currentAttrs, lists)) {
-      setPageAttributes((prev: any) => ({
+    const current = (source?.lists as ListDefinition[]) || [];
+    if (!deepEqual(current, lists)) {
+      setSource((prev: any) => ({
         ...prev,
-        lists: lists,
+        lists,
       }));
+      setLoadedHash(JSON.stringify(lists)); // Sync hash to prevent reloading loop
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lists]);
 
-  // Helpers
+  /** Helpers */
   const createNewListObject = useCallback(
     (name: string, description: string): ListDefinition => ({
-      id: `list_${Date.now()}`,
+      id: genId(),
       name,
       description,
       items: [],
     }),
-    []
+    [genId]
   );
 
-  // CRUD handlers (memoized)
-  const handleCreateList = useCallback(() => {
+  /** CRUD handlers */
+  const handleCreateList = useCallback((): void => {
     if (!newListName.trim()) return;
-    const newList = createNewListObject(newListName.trim(), newListDescription);
-    setLists((prev) => {
-      const next = [...prev, newList];
-      return next;
-    });
+    const newList: ListDefinition = createNewListObject(
+      newListName.trim(),
+      newListDescription
+    );
+
+    setLists((prev: ListDefinition[]) => [...prev, newList]);
     setNewListName("");
     setNewListDescription("");
     setExpandedList(newList.id);
   }, [newListName, newListDescription, createNewListObject]);
 
-  const handleDeleteList = useCallback((listId: string) => {
-    setLists((prev) => prev.filter((list) => list.id !== listId));
+  const handleDeleteList = useCallback((listId: string): void => {
+    setLists((prev: ListDefinition[]) => prev.filter((l) => l.id !== listId));
     setExpandedList((prev) => (prev === listId ? null : prev));
   }, []);
 
-  const handleAddItem = useCallback((listId: string) => {
-    const newItem: ListItem = {
-      id: `item_${Date.now()}`,
-      label: "New Item",
-      value: "new_item",
-    };
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId ? { ...list, items: [...list.items, newItem] } : list
-      )
-    );
-    // Expand the list if not already
-    setExpandedList(listId);
-  }, []);
+  const handleAddItem = useCallback(
+    (listId: string): void => {
+      const newItem: ListItem = {
+        id: genId(),
+        label: "New Item",
+        value: "new_item",
+      };
+      setLists((prev: ListDefinition[]) =>
+        prev.map((list) =>
+          list.id === listId
+            ? { ...list, items: [...list.items, newItem] }
+            : list
+        )
+      );
+      setExpandedList(listId);
+    },
+    [genId]
+  );
 
   const handleUpdateItem = useCallback(
-    (listId: string, itemId: string, field: keyof ListItem, value: string) => {
-      setLists((prev) =>
+    (
+      listId: string,
+      itemId: string,
+      field: keyof ListItem,
+      value: string
+    ): void => {
+      setLists((prev: ListDefinition[]) =>
         prev.map((list) =>
           list.id === listId
             ? {
@@ -139,19 +173,22 @@ export const ListTab: React.FC = () => {
     []
   );
 
-  const handleDeleteItem = useCallback((listId: string, itemId: string) => {
-    setLists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? { ...list, items: list.items.filter((i) => i.id !== itemId) }
-          : list
-      )
-    );
-  }, []);
+  const handleDeleteItem = useCallback(
+    (listId: string, itemId: string): void => {
+      setLists((prev: ListDefinition[]) =>
+        prev.map((list) =>
+          list.id === listId
+            ? { ...list, items: list.items.filter((i) => i.id !== itemId) }
+            : list
+        )
+      );
+    },
+    []
+  );
 
-  // Reordering helpers
+  /** Reorder Utils */
   const reorderArray = useCallback(
-    (array: any[], fromIndex: number, toIndex: number) => {
+    <T,>(array: T[], fromIndex: number, toIndex: number): T[] => {
       if (fromIndex === toIndex) return array;
       const newArr = array.slice();
       const [removed] = newArr.splice(fromIndex, 1);
@@ -162,11 +199,14 @@ export const ListTab: React.FC = () => {
   );
 
   const handleReorderItem = useCallback(
-    (listId: string, fromIndex: number, toIndex: number) => {
-      setLists((prev) =>
+    (listId: string, fromIndex: number, toIndex: number): void => {
+      setLists((prev: ListDefinition[]) =>
         prev.map((list) =>
           list.id === listId
-            ? { ...list, items: reorderArray(list.items, fromIndex, toIndex) }
+            ? {
+                ...list,
+                items: reorderArray<ListItem>(list.items, fromIndex, toIndex),
+              }
             : list
         )
       );
@@ -174,23 +214,38 @@ export const ListTab: React.FC = () => {
     [reorderArray]
   );
 
-  // Drag & Drop handlers
-  const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
-    setDraggingItem(itemId);
-    // Set data to allow drop in Firefox
-    try {
-      e.dataTransfer.setData("text/plain", itemId);
-    } catch {}
-    e.dataTransfer.effectAllowed = "move";
-  }, []);
+  /** Drag & Drop */
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, itemId: string): void => {
+      setDraggingItem(itemId);
+      try {
+        e.dataTransfer.setData("text/plain", itemId);
+      } catch {
+        // ignore
+      }
+      e.dataTransfer.effectAllowed = "move";
+    },
+    []
+  );
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  }, []);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>): void => {
+      e.preventDefault();
+      try {
+        e.dataTransfer.dropEffect = "move";
+      } catch {
+        // ignore
+      }
+    },
+    []
+  );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent, listId: string, targetIndex: number) => {
+    (
+      e: React.DragEvent<HTMLDivElement>,
+      listId: string,
+      targetIndex: number
+    ): void => {
       e.preventDefault();
       const draggingId =
         draggingItem ||
@@ -201,7 +256,9 @@ export const ListTab: React.FC = () => {
             return null;
           }
         })();
+
       if (!draggingId) return;
+
       const list = listsRef.current.find((l) => l.id === listId);
       if (!list) return;
       const fromIndex = list.items.findIndex((item) => item.id === draggingId);
@@ -212,16 +269,16 @@ export const ListTab: React.FC = () => {
     [draggingItem, handleReorderItem]
   );
 
-  // Memoized mapping of lists for stable renders
   const renderedLists = useMemo(() => lists, [lists]);
 
   return (
     <div className="h-full p-4 space-y-4 bg-zinc-200 overflow-y-auto scrollbar-thin">
       <h3 className="text-lg font-medium mb-3">List Manager</h3>
 
-      {/* Create New List Section - Top */}
+      {/* Create New List */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h4 className="font-medium text-gray-800 mb-3">Create New List</h4>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -235,6 +292,7 @@ export const ListTab: React.FC = () => {
               className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -248,6 +306,7 @@ export const ListTab: React.FC = () => {
             />
           </div>
         </div>
+
         <button
           onClick={handleCreateList}
           disabled={!newListName.trim()}
@@ -257,7 +316,7 @@ export const ListTab: React.FC = () => {
         </button>
       </div>
 
-      {/* Existing Lists Section */}
+      {/* Existing Lists */}
       <div className="space-y-3">
         <h4 className="font-medium text-gray-800">
           Your Lists ({lists.length})
@@ -272,12 +331,12 @@ export const ListTab: React.FC = () => {
         ) : (
           renderedLists.map((list) => {
             const isExpanded = expandedList === list.id;
+
             return (
               <div
                 key={list.id}
                 className="bg-white rounded-lg border border-gray-200 overflow-hidden"
               >
-                {/* List Header */}
                 <div
                   className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 transition-colors duration-200 group"
                   onClick={() =>
@@ -292,6 +351,7 @@ export const ListTab: React.FC = () => {
                     ) : (
                       <ChevronDownIcon className="w-4 h-4 text-gray-500" />
                     )}
+
                     <div>
                       <h5 className="font-medium text-gray-900 text-sm">
                         {list.name}
@@ -302,19 +362,19 @@ export const ListTab: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteList(list.id);
                     }}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                    className="p-1 text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition"
                     aria-label={`Delete ${list.name}`}
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Expanded Content - Simple show/hide without max-height transitions */}
                 {isExpanded && (
                   <div
                     className="border-t border-gray-200 p-3"
@@ -325,9 +385,10 @@ export const ListTab: React.FC = () => {
                       <span className="text-sm font-medium text-gray-700">
                         List Items
                       </span>
+
                       <button
                         onClick={() => handleAddItem(list.id)}
-                        className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium transition-colors duration-200"
+                        className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium"
                       >
                         <PlusIcon className="w-4 h-4" />
                         Add Item
@@ -343,55 +404,48 @@ export const ListTab: React.FC = () => {
                         list.items.map((item, index) => (
                           <div
                             key={item.id}
-                            className="flex items-center space-x-2 p-2 border border-gray-200 rounded bg-gray-50 group transition-colors duration-200"
+                            className="flex items-center space-x-2 p-2 border border-gray-200 rounded bg-gray-50 group"
                             draggable
                             onDragStart={(e) => handleDragStart(e, item.id)}
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, list.id, index)}
                           >
-                            {/* Drag Handle */}
-                            <Bars3Icon className="w-4 h-4 text-gray-400 cursor-move flex-shrink-0" />
+                            <Bars3Icon className="w-4 h-4 text-gray-400 flex-shrink-0 cursor-move" />
 
-                            {/* Item Inputs */}
                             <div className="grid grid-cols-2 gap-2 flex-1 min-w-0">
-                              <div className="min-w-0">
-                                <input
-                                  type="text"
-                                  value={item.label}
-                                  onChange={(e) =>
-                                    handleUpdateItem(
-                                      list.id,
-                                      item.id,
-                                      "label",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Label"
-                                  className="w-full p-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                              </div>
-                              <div className="min-w-0">
-                                <input
-                                  type="text"
-                                  value={item.value}
-                                  onChange={(e) =>
-                                    handleUpdateItem(
-                                      list.id,
-                                      item.id,
-                                      "value",
-                                      e.target.value
-                                    )
-                                  }
-                                  placeholder="Value"
-                                  className="w-full p-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                              </div>
+                              <input
+                                type="text"
+                                value={item.label}
+                                onChange={(e) =>
+                                  handleUpdateItem(
+                                    list.id,
+                                    item.id,
+                                    "label",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Label"
+                                className="w-full p-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                              <input
+                                type="text"
+                                value={item.value}
+                                onChange={(e) =>
+                                  handleUpdateItem(
+                                    list.id,
+                                    item.id,
+                                    "value",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Value"
+                                className="w-full p-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
                             </div>
 
-                            {/* Delete Item Button */}
                             <button
                               onClick={() => handleDeleteItem(list.id, item.id)}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100 flex-shrink-0"
+                              className="p-1 text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition"
                               aria-label={`Delete item ${item.label}`}
                             >
                               <TrashIcon className="w-4 h-4" />

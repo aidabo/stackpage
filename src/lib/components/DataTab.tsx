@@ -1,5 +1,5 @@
 // DataTab.tsx
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import Form from "@rjsf/core";
 import validator from "@rjsf/validator-ajv8";
 import {
@@ -60,6 +60,9 @@ export const DataTab: React.FC<DataTabProps> = ({
   setSelectedComponent,
   componentSchema,
 }) => {
+  const formRef = useRef<any>(null);
+  const previousSchemaRef = useRef<any>(null);
+
   // Use the provided componentSchema for form structure, but ensure it can handle arrays
   const { schema, uiSchema } = useMemo(() => {
     try {
@@ -87,6 +90,88 @@ export const DataTab: React.FC<DataTabProps> = ({
       return { schema: fallbackSchema, uiSchema: fallbackUiSchema };
     }
   }, [componentSchema, componentProps, onFileUpload]);
+
+  // Clear form errors when schema changes
+  useEffect(() => {
+    const currentSchema = JSON.stringify(schema);
+    const previousSchema = JSON.stringify(previousSchemaRef.current);
+
+    if (previousSchemaRef.current && currentSchema !== previousSchema) {
+      // Schema has changed - clear form errors and reset incompatible data
+      if (formRef.current) {
+        // Clear RJSF form errors
+        const formElement = formRef.current.formElement;
+        if (formElement) {
+          // Clear validation errors
+          const errorElements = formElement.querySelectorAll(
+            '.errors, .error-detail, [role="alert"]'
+          );
+          errorElements.forEach((element: Element) => {
+            if (element.parentNode) {
+              element.parentNode.removeChild(element);
+            }
+          });
+        }
+
+        // Reset form data for incompatible types
+        const cleanedProps = cleanFormDataForSchema(componentProps, schema);
+        if (JSON.stringify(cleanedProps) !== JSON.stringify(componentProps)) {
+          onPropertyChange({ formData: cleanedProps });
+        }
+      }
+    }
+
+    // Update previous schema reference
+    previousSchemaRef.current = schema;
+  }, [schema, componentProps, onPropertyChange]);
+
+  // Helper function to clean form data when schema changes
+  const cleanFormDataForSchema = (formData: any, currentSchema: any): any => {
+    if (!formData || !currentSchema || !currentSchema.properties) {
+      return formData;
+    }
+
+    const cleanedData = { ...formData };
+    const schemaProperties = currentSchema.properties;
+
+    Object.keys(schemaProperties).forEach((key) => {
+      const fieldSchema = schemaProperties[key];
+      const currentValue = cleanedData[key];
+
+      // Reset values that are incompatible with the new schema type
+      if (
+        fieldSchema.type === "number" &&
+        typeof currentValue !== "number" &&
+        currentValue !== ""
+      ) {
+        // If schema expects number but we have non-numeric string, reset to 0
+        if (
+          typeof currentValue === "string" &&
+          currentValue.trim() !== "" &&
+          isNaN(Number(currentValue))
+        ) {
+          cleanedData[key] = 0;
+        }
+      } else if (
+        fieldSchema.type === "string" &&
+        typeof currentValue === "number"
+      ) {
+        // If schema expects string but we have number, convert to string
+        cleanedData[key] = String(currentValue);
+      } else if (
+        fieldSchema.type === "boolean" &&
+        typeof currentValue !== "boolean"
+      ) {
+        // If schema expects boolean but we have other type, set to false
+        cleanedData[key] = false;
+      } else if (fieldSchema.type === "array" && !Array.isArray(currentValue)) {
+        // If schema expects array but we have other type, set to empty array
+        cleanedData[key] = [];
+      }
+    });
+
+    return cleanedData;
+  };
 
   // Updated widgets with consistent FileUploadFn signature
   const widgets = {
@@ -243,6 +328,7 @@ export const DataTab: React.FC<DataTabProps> = ({
         {/* RJSF Form */}
         <div className="properties-form">
           <Form
+            ref={formRef}
             key={selectedInstance?.id}
             schema={schema}
             uiSchema={uiSchema}

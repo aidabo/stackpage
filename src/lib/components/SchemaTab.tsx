@@ -264,7 +264,7 @@ export const SchemaTab: React.FC<SchemaTabProps> = ({
   componentProps,
   onChange,
 }) => {
-  const { attributes } = useStackPage();
+  const { source } = useStackPage();
 
   // Update the useMemo to pass componentProps
   const fieldSchemas = useMemo(() => {
@@ -272,13 +272,10 @@ export const SchemaTab: React.FC<SchemaTabProps> = ({
   }, [schema, componentProps]);
 
   // Get lists and data sources from context
-  const lists: NamedList[] = useMemo(
-    () => attributes.lists || [],
-    [attributes.lists]
-  );
+  const lists: NamedList[] = useMemo(() => source.lists || [], [source.lists]);
   const dataSources: DataSource[] = useMemo(
-    () => attributes.dataSources || [],
-    [attributes.dataSources]
+    () => source.dataSources || [],
+    [source.dataSources]
   );
 
   const handleSchemaChange = (newFieldSchemas: FieldSchema[]) => {

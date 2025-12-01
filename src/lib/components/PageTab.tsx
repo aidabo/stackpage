@@ -8,7 +8,7 @@ interface PageTabProps {
 
 // Page Tab Component
 export const PageTab = ({ onFileUpload }: PageTabProps) => {
-  const { attributes, setPageAttributes } = useStackPage();
+  const { attributes, setPageAttributes, source } = useStackPage();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -69,7 +69,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
 
   // Calculate total items across all lists
   const totalListItems =
-    attributes.lists?.reduce(
+    source.lists?.reduce(
       (total: number, list: any) => total + (list.items?.length || 0),
       0
     ) || 0;
@@ -374,7 +374,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <div className="flex items-center space-x-2">
             <span className="font-medium">Lists:</span>
             <code className="px-2 py-1 rounded bg-gray-100">
-              {attributes.lists?.length || 0} lists, {totalListItems} items
+              {source.lists?.length || 0} lists, {totalListItems} items
             </code>
           </div>
 
@@ -382,7 +382,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <div className="flex items-center space-x-2">
             <span className="font-medium">Data Sources:</span>
             <code className="px-2 py-1 rounded bg-gray-100">
-              {attributes.dataSources?.length || 0} configured
+              {source.dataSources?.length || 0} configured
             </code>
           </div>
 
@@ -399,19 +399,16 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
         </div>
 
         {/* Quick Statistics */}
-        {((attributes as any).lists?.length > 0 ||
-          (attributes as any).dataSources?.length > 0) && (
+        {(source.lists?.length > 0 || source.dataSources?.length > 0) && (
           <div className="mt-4 pt-4 border-t border-blue-200">
             <h5 className="font-medium text-blue-800 mb-2 text-sm">
               Quick Statistics
             </h5>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              {(attributes as any).lists?.length > 0 && (
+              {source.lists?.length > 0 && (
                 <div className="flex justify-between">
                   <span className="text-blue-700">Total Lists:</span>
-                  <span className="font-medium">
-                    {(attributes as any).lists.length}
-                  </span>
+                  <span className="font-medium">{source.lists.length}</span>
                 </div>
               )}
               {totalListItems > 0 && (
@@ -420,24 +417,23 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                   <span className="font-medium">{totalListItems}</span>
                 </div>
               )}
-              {(attributes as any).dataSources?.length > 0 && (
+              {source.dataSources?.length > 0 && (
                 <div className="flex justify-between">
                   <span className="text-blue-700">API Data Sources:</span>
                   <span className="font-medium">
                     {
-                      (attributes as any).dataSources.filter(
-                        (ds: any) => ds.type === "api"
-                      ).length
+                      source.dataSources.filter((ds: any) => ds.type === "api")
+                        .length
                     }
                   </span>
                 </div>
               )}
-              {(attributes as any).dataSources?.length > 0 && (
+              {source.dataSources?.length > 0 && (
                 <div className="flex justify-between">
                   <span className="text-blue-700">Static Data Sources:</span>
                   <span className="font-medium">
                     {
-                      (attributes as any).dataSources.filter(
+                      source.dataSources.filter(
                         (ds: any) => ds.type === "static"
                       ).length
                     }

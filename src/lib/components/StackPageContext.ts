@@ -1,4 +1,6 @@
+// StackPageContext.ts
 import { createContext, useContext } from "react";
+import { DataSource, ListDefinition } from "./types";
 
 // Types for components in the layout
 export interface ComponentInstance {
@@ -7,33 +9,10 @@ export interface ComponentInstance {
   props: Record<string, any>;
 }
 
-// List and DataSource types
-export interface ListItem {
-  id: string;
-  label: string;
-  value: string;
-}
-
-export interface ListDefinition {
-  id: string;
-  name: string;
-  description: string;
-  items: ListItem[];
-}
-
-export interface DataSource {
-  id: string;
-  name: string;
-  description: string;
-  type: "api" | "static" | "function";
-  endpoint: string;
-  method: "GET" | "POST" | "PUT" | "DELETE";
-  headers: Record<string, string>;
-  parameters: Record<string, any>;
-  mapping: Record<string, string>;
-  refreshInterval: number;
-  lastFetched?: string;
-  data?: any;
+// Source structure
+export interface SourceData {
+  lists: ListDefinition[];
+  dataSources: DataSource[];
 }
 
 // Context interface
@@ -53,10 +32,13 @@ export interface StackPageContextType {
     padding: string;
     background: string;
     showMenubar: boolean;
-    lists?: ListDefinition[];
-    dataSources?: DataSource[];
+    // Removed lists and dataSources from here
   };
+  source: SourceData; // Moved to top level
   setPageAttributes: (attributes: any) => void;
+  //setSource: (source: SourceData) => void; // New setter for source
+  // FIXED TYPE HERE
+  setSource: React.Dispatch<React.SetStateAction<SourceData>>;
   activeTab: "components" | "properties" | "page" | "list" | "datasource";
   setActiveTab: (
     tab: "components" | "properties" | "page" | "list" | "datasource"
