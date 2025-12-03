@@ -634,13 +634,32 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
   };
 };
 
-// PropertyTypeUtils.ts - Ensure generateUiSchema works correctly
+// PropertyTypeUtils.ts - 修复generateUiSchema函数
 export const generateUiSchema = (schema: any): any => {
   const uiSchema: any = {};
+
+  if (!schema || !schema.properties) {
+    return uiSchema;
+  }
 
   Object.entries(schema.properties || {}).forEach(
     ([key, property]: [string, any]) => {
       uiSchema[key] = {};
+
+      // 传递扩展属性
+      if (property["x-active-select-source"]) {
+        uiSchema[key]["x-active-select-source"] =
+          property["x-active-select-source"];
+      }
+      if (property["x-list-reference"]) {
+        uiSchema[key]["x-list-reference"] = property["x-list-reference"];
+      }
+      if (property["x-dynamic-select"]) {
+        uiSchema[key]["x-dynamic-select"] = property["x-dynamic-select"];
+      }
+      if (property["x-media-type"]) {
+        uiSchema[key]["x-media-type"] = property["x-media-type"];
+      }
 
       // Handle array types
       if (property.type === "array") {
@@ -674,7 +693,11 @@ export const generateUiSchema = (schema: any): any => {
         }
       } else if (property.format === "color") {
         uiSchema[key]["ui:widget"] = "CustomColorWidget";
-      } else if (property.enum) {
+      } else if (
+        property.enum ||
+        property["x-list-reference"] ||
+        property["x-dynamic-select"]
+      ) {
         uiSchema[key]["ui:widget"] = "CustomSelectWidget";
       } else if (property.type === "boolean") {
         uiSchema[key]["ui:widget"] = "CustomCheckboxWidget";

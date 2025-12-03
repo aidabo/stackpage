@@ -1,9 +1,8 @@
-// PropertiesTab.tsx
+// PropertiesTab.tsx - 移除SchemaTab引用
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useStackPage } from "./StackPageContext";
 import { useWidgetProps } from "./StackPageWidgetProps";
 import { DataTab } from "./DataTab";
-import { SchemaTab } from "./SchemaTab";
 import { BindingTab } from "./BindingTab";
 import { JsonTab } from "./JsonTab";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
@@ -21,7 +20,7 @@ interface PropertiesTabProps {
   onGetSelectOptions?: GetSelectOptionsFn;
 }
 
-type PropertiesSubTab = "data" | "schema" | "binding" | "json";
+type PropertiesSubTab = "data" | "binding" | "json";
 
 export const PropertiesTab = ({
   onFileUpload,
@@ -128,7 +127,7 @@ export const PropertiesTab = ({
     [selectedInstance, componentSchema, setSelectedInstance, updateProps]
   );
 
-  // Handle schema changes for Schema tab
+  // Handle schema changes from DataTab
   const handleSchemaChange = useCallback(
     (newSchema: any) => {
       if (selectedInstance) {
@@ -206,7 +205,7 @@ export const PropertiesTab = ({
         </div>
       </div>
 
-      {/* Subtabs Navigation */}
+      {/* Subtabs Navigation - 移除了Schema标签 */}
       <div className="flex border-b border-gray-300 bg-white">
         <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -217,16 +216,6 @@ export const PropertiesTab = ({
           onClick={() => setActiveSubTab("data")}
         >
           Data
-        </button>
-        <button
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-            activeSubTab === "schema"
-              ? "border-blue-500 text-blue-600"
-              : "border-transparent text-gray-500 hover:text-gray-700"
-          }`}
-          onClick={() => setActiveSubTab("schema")}
-        >
-          Schema
         </button>
         <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -266,14 +255,7 @@ export const PropertiesTab = ({
             setSelectedInstance={setSelectedInstance}
             setSelectedComponent={setSelectedComponent}
             componentSchema={componentSchema as any}
-          />
-        )}
-
-        {activeSubTab === "schema" && (
-          <SchemaTab
-            schema={componentSchema}
-            componentProps={componentPropsWithoutSchema}
-            onChange={handleSchemaChange}
+            onSchemaChange={handleSchemaChange} // 新增：传递schema变更处理函数
           />
         )}
 

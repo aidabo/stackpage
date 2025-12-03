@@ -71,6 +71,9 @@ export interface FieldSchema {
   dataSourceLabelKey?: string; // Property to use as label (e.g., 'name')
   dataSourceValueKey?: string; // Property to use as value (e.g., 'id')
 
+  // Select Field Active Source
+  activeSelectSource?: "options" | "list" | "api"; // 新增：当前激活的select配置源
+
   // Array Configuration
   itemSchema?: FieldSchema[]; // For 'array' type: define the shape of list items
 
