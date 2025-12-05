@@ -114,6 +114,15 @@ const getTabIcon = (tab: string) => {
   }
 };
 
+// Tab label mapping
+const TAB_LABELS: Record<string, string> = {
+  components: "comps",
+  properties: "props",
+  page: "page",
+  list: "list",
+  datasource: "source",
+};
+
 // Main StackPage Content Component
 const StackPageContent = ({
   pageid,
@@ -663,7 +672,7 @@ const StackPageContent = ({
                 {/* Vertical Tab Bar */}
                 <div
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
-                    isMobile ? "w-12" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    isMobile ? "w-12" : "w-14 mx-[5px]" // Decreased width for mobile, keep margin for desktop
                   }`}
                 >
                   {(
@@ -687,19 +696,7 @@ const StackPageContent = ({
                     >
                       {getTabIcon(tab)}
                       <span className="mt-1 capitalize">
-                        {isMobile
-                          ? // Shorter labels for mobile
-                            tab === "components"
-                            ? "comps"
-                            : tab === "properties"
-                            ? "props"
-                            : tab === "datasource"
-                            ? "data"
-                            : tab
-                          : // Full labels for desktop
-                          tab === "datasource"
-                          ? "data"
-                          : tab}
+                        {TAB_LABELS[tab] || tab}
                       </span>
                     </button>
                   ))}
