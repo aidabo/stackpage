@@ -3,7 +3,29 @@ export const getFileType = (
   name: string,
   value: string
 ): "image" | "video" | "audio" | "document" | "file" => {
-  if (!value) return "image";
+  if (!value) {
+    // If no value, try to detect from name
+    const nameLower = name.toLowerCase();
+    if (
+      nameLower.includes("image") ||
+      nameLower.includes("avatar") ||
+      nameLower.includes("logo") ||
+      nameLower.includes("icon")
+    ) {
+      return "image";
+    }
+    if (nameLower.includes("video")) return "video";
+    if (nameLower.includes("audio") || nameLower.includes("sound"))
+      return "audio";
+    if (
+      nameLower.includes("document") ||
+      nameLower.includes("pdf") ||
+      nameLower.includes("doc")
+    ) {
+      return "document";
+    }
+    return "file";
+  }
 
   const nameLower = name.toLowerCase();
 
@@ -162,13 +184,14 @@ export const isFileTypeField = (key: string, value: any): boolean => {
         /\/[^/]+\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|avi|webm|mkv|mp3|wav|ogg|pdf|doc|docx|txt|rtf)(\?.*)?$/i
       )); // URL with file extension
 
-  return isFileByName || (isFileByValue as any);
+  return isFileByName || (isFileByValue as boolean);
 };
 
 // Number field detection function
 export const isNumberField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
 
+  // Field name indicators for number fields
   // Field name indicators for number fields
   const numberFieldNames = [
     "number",
@@ -178,12 +201,12 @@ export const isNumberField = (key: string, value: any): boolean => {
     "price",
     "cost",
     "total",
-    "size",
-    "width",
-    "height",
-    "length",
-    "depth",
-    "radius",
+    // "size", // Ambiguous (CSS vs Count)
+    // "width", // Ambiguous (CSS units)
+    // "height", // Ambiguous (CSS units)
+    // "length", // Ambiguous
+    // "depth",
+    // "radius",
     "percentage",
     "percent",
     "rate",
@@ -199,19 +222,28 @@ export const isNumberField = (key: string, value: any): boolean => {
     "delay",
     "interval",
     "index",
-    "id",
+    // "id", // Ambiguous (UUID vs Int)
     "order",
     "priority",
     "level",
     "step",
     "limit",
-    "max",
-    "min",
+    // "max", // Can be CSS
+    // "min", // Can be CSS
     "average",
     "sum",
   ];
 
   const isNumberByName = numberFieldNames.some((name) => keyLower == name);
+
+  // If it's a string (and not empty), it's likely not a number field (e.g. "100%")
+  // unless we want to convert it, but schema generation usually strictly follows types.
+  if (typeof value === "string" && value.trim() !== "") {
+    // Check if it's purely numeric string?
+    // If it's "100", it could be number. If "100px", definitely not.
+    // For safety, if it's a string type, treat as string in schema to be safe.
+    return false;
+  }
 
   // Value pattern indicators
   const isNumberByValue = typeof value === "number";
@@ -305,6 +337,8 @@ export const detectSelectField = (key: string, value: any): boolean => {
   // Value pattern indicators
   const isSelectByValue =
     typeof value === "string" &&
+    !value.startsWith("data:") && // Exclude data URIs
+    !value.startsWith("blob:") && // Exclude blob URIs
     (value.startsWith("/api/") || // API endpoint
       isStaticOptionsArray(value) || // Static options array
       value.includes("|") || // Pipe-separated values

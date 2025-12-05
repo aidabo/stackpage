@@ -481,6 +481,12 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
             field.type = "email";
           } else if (schemaDef.format === "date") {
             field.type = "date";
+          } else if (schemaDef["x-media-type"]) {
+            field.type = schemaDef["x-media-type"];
+          } else if (schemaDef.format === "uri") {
+            // Try to detect from name if format is uri but no x-media-type
+            const fileType = getFileType(key, "");
+            field.type = fileType === "document" ? "file" : fileType;
           } else if (schemaDef["x-list-reference"]) {
             field.type = "select";
             field.listRef = schemaDef["x-list-reference"];

@@ -105,7 +105,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       return { schema: finalSchema, uiSchema: generatedUiSchema };
     } catch (error) {
       console.error("Error generating schema:", error);
-      setFormError(`Error generating schema: ${error}`);
+      // setFormError(`Error generating schema: ${error}`); // Don't set state during render
       // 回退到生成的schema
       const fallbackSchema = generateSchemaFromCurrentProps(componentProps);
       const fallbackUiSchema = generateUiSchema(fallbackSchema);
@@ -128,26 +128,13 @@ export const DataTab: React.FC<DataTabProps> = ({
     if (previousSchemaRef.current && currentSchema !== previousSchema) {
       // Schema已变更 - 清理表单错误并重置不兼容的数据
       setFormError(null);
-      if (formRef.current) {
-        // 清理RJSF表单错误
-        const formElement = formRef.current.formElement;
-        if (formElement) {
-          // 清理验证错误
-          const errorElements = formElement.querySelectorAll(
-            '.errors, .error-detail, [role="alert"]'
-          );
-          errorElements.forEach((element: Element) => {
-            if (element.parentNode) {
-              element.parentNode.removeChild(element);
-            }
-          });
-        }
-
-        // 为不兼容的类型重置表单数据
-        const cleanedProps = cleanFormDataForSchema(componentProps, schema);
-        if (JSON.stringify(cleanedProps) !== JSON.stringify(componentProps)) {
-          onPropertyChange({ formData: cleanedProps });
-        }
+      
+      // 为不兼容的类型重置表单数据
+      const cleanedProps = cleanFormDataForSchema(componentProps, schema);
+      if (JSON.stringify(cleanedProps) !== JSON.stringify(componentProps)) {
+        // Fix: Don't auto-update props on selection/schema change to avoid "ghost" updates
+        // onPropertyChange({ formData: cleanedProps });
+        console.warn("Form data mismatch with schema:", { cleanedProps, componentProps });
       }
     }
 
@@ -401,6 +388,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   return (
     <>
       <ErrorBoundary
+        key={selectedInstance?.id || componentType}
         fallback={
           <div className="p-6 text-center text-red-500">
             <div className="mb-3 text-2xl">❌</div>

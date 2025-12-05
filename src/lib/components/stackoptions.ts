@@ -109,11 +109,12 @@ export interface ComponentProps {
  */
 const defaultComponentProps: ComponentProps = {
   Text: {
+    title: "This is text card",
     content: `Any content other than text are what we call cards. Cards can be accessed by clicking the ➕ button or typing / at the beginning of a paragraph.
 Even better, continue typing to find the card you're looking for, hit enter, and avoid dragging your mouse altogether.
 Some cards have a handy little shortcut, to keep you on track and in flow. Use --- to divide your paragraphs with a line, or \`\`\` to add a code block. You can also drag and drop images directly into the editor to bypass the menu. 
 Any content other than text are what we call cards. Cards can be accessed by clicking the ➕ button or typing / at the beginning of a paragraph.`,
-    title: "This is text card",
+    image: "https://images.unsplash.com/vector-1757332570592-7eeb3d335ef1?q=80&w=1160&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3Dlder.com/150",
   },
 };
 
