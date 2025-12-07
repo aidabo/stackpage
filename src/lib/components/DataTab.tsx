@@ -237,6 +237,11 @@ export const DataTab: React.FC<DataTabProps> = ({
 
   // 移除的widgets代码保持不变...
   const widgets = {
+    // Map custom widgets to standard RJSF widget names to ensure they are used by default
+    TextWidget: CustomTextWidget,
+    TextareaWidget: CustomTextareaWidget,    
+    CheckboxWidget: CustomCheckboxWidget,
+    // Keep the named exports for specific references if needed
     FileWidget: (props: any) => (
       <FileWidget
         {...props}
@@ -272,6 +277,8 @@ export const DataTab: React.FC<DataTabProps> = ({
         componentType={componentType}
         uiSchema={uiSchema[props.name]}
         schema={{...props.schema, ...uiSchema[props.name]}}
+        lists={source.lists}
+        name={props.name}
       />
     ),
     JsonWidget,
