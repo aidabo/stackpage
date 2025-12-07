@@ -245,6 +245,7 @@ export const PropertiesTab = ({
       <div className="flex-1 overflow-auto">
         {activeSubTab === "data" && (
           <DataTab
+            key={selectedInstance?.id || selectedComponent}
             selectedInstance={selectedInstance}
             componentType={componentType as any}
             componentProps={componentPropsWithoutSchema}
