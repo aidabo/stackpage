@@ -52,6 +52,7 @@ export const PropertiesTab = ({
       instanceId: selectedInstance?.id || null,
       component: selectedComponent,
     };
+    setActiveSubTab("data"); // Reset to Data tab on selection change
   }, [selectedInstance, selectedComponent]);
 
   const componentType = selectedInstance?.type || selectedComponent;

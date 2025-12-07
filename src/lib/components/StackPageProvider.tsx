@@ -39,6 +39,7 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
   });
 
   const updateWidgetProps = (widgetId: string, props: object) => {
+    console.log("Updating widget props for:", widgetId, props);
     setWidgetProps((prev) => new Map(prev).set(widgetId, props));
   };
 
