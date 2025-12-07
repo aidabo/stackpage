@@ -413,7 +413,7 @@ export const DataTab: React.FC<DataTabProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
-                  {componentType} Properties
+                  {/*componentType*/} Properties
                 </h3>
                 <p className="text-sm text-gray-500">
                   Edit component properties and schema

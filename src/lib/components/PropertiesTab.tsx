@@ -197,6 +197,7 @@ export const PropertiesTab = ({
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">
             {componentType}
+            <br />
             {selectedInstance && (
               <span className="text-sm text-gray-500 ml-2 font-normal">
                 (ID: {selectedInstance.id})

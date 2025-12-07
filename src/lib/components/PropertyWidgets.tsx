@@ -247,7 +247,7 @@ export const FileWidget = (props: any) => {
           )}
 
           {/* Display selected file name on a new line below */}
-          {displayFileName && (
+          {false && displayFileName && (
             <div className="w-full">
               <div
                 className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded border truncate w-full"
@@ -259,16 +259,18 @@ export const FileWidget = (props: any) => {
           )}
         </div>
 
-        <div className="text-xs text-gray-500 flex flex-col sm:flex-row sm:justify-between gap-1">
-          <span className="truncate">
-            Accepted: {acceptTypes === "*/*" ? "All files" : acceptTypes}
-          </span>
-          {!props.onFileUpload && (
-            <span className="text-orange-600 font-medium whitespace-nowrap">
-              Local preview only
+        {false && (
+          <div className="text-xs text-gray-500 flex flex-col sm:flex-row sm:justify-between gap-1">
+            <span className="truncate">
+              Accepted: {acceptTypes === "*/*" ? "All files" : acceptTypes}
             </span>
-          )}
-        </div>
+            {!props.onFileUpload && (
+              <span className="text-orange-600 font-medium whitespace-nowrap">
+                Local preview only
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Preview - Only show media preview, no URLs */}
@@ -799,7 +801,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
             )} */}
 
             {/* Display file name on new line */}
-            {displayFileName && (
+            {false && displayFileName && (
               <div className="w-full">
                 <div
                   className="text-sm text-gray-600 bg-gray-100 px-3 py-2 rounded border truncate"
@@ -811,14 +813,16 @@ export const ArrayOfObjectsWidget = (props: any) => {
             )}
           </div>
 
-          <div className="text-xs text-gray-500 flex justify-between">
-            <span>
-              Accepted: {acceptTypes === "*/*" ? "All files" : acceptTypes}
-            </span>
-            {!fileProps.onFileUpload && (
-              <span className="text-orange-600">Local preview only</span>
-            )}
-          </div>
+          {false && (
+            <div className="text-xs text-gray-500 flex justify-between">
+              <span>
+                Accepted: {acceptTypes === "*/*" ? "All files" : acceptTypes}
+              </span>
+              {!fileProps.onFileUpload && (
+                <span className="text-orange-600">Local preview only</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Compact Preview - Only show for media files */}
