@@ -271,6 +271,7 @@ export const DataTab: React.FC<DataTabProps> = ({
         onGetSelectOptions={onGetSelectOptions}
         componentType={componentType}
         uiSchema={uiSchema[props.name]}
+        schema={{...props.schema, ...uiSchema[props.name]}}
       />
     ),
     JsonWidget,
