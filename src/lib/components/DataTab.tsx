@@ -128,13 +128,16 @@ export const DataTab: React.FC<DataTabProps> = ({
     if (previousSchemaRef.current && currentSchema !== previousSchema) {
       // Schema已变更 - 清理表单错误并重置不兼容的数据
       setFormError(null);
-      
+
       // 为不兼容的类型重置表单数据
       const cleanedProps = cleanFormDataForSchema(componentProps, schema);
       if (JSON.stringify(cleanedProps) !== JSON.stringify(componentProps)) {
         // Fix: Don't auto-update props on selection/schema change to avoid "ghost" updates
         // onPropertyChange({ formData: cleanedProps });
-        console.warn("Form data mismatch with schema:", { cleanedProps, componentProps });
+        console.warn("Form data mismatch with schema:", {
+          cleanedProps,
+          componentProps,
+        });
       }
     }
 

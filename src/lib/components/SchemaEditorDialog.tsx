@@ -90,9 +90,35 @@ const getMediaType = (fieldType: FieldType): string | undefined => {
       return "video";
     case "audio":
       return "audio";
+    case "file":
+      return "file";
     default:
       return undefined;
   }
+};
+
+// 辅助函数：获取媒体类型的显示标签
+const getMediaTypeLabel = (fieldType: FieldType, fieldKey: string): string => {
+  const keyLower = fieldKey.toLowerCase();
+
+  if (fieldType === "image") {
+    if (keyLower.includes("avatar")) return "Avatar";
+    if (keyLower.includes("logo")) return "Logo";
+    if (keyLower.includes("icon")) return "Icon";
+    if (keyLower.includes("thumbnail")) return "Thumbnail";
+    if (keyLower.includes("poster")) return "Poster";
+    return "Image";
+  } else if (fieldType === "video") {
+    return "Video";
+  } else if (fieldType === "audio") {
+    return "Audio";
+  } else if (fieldType === "file") {
+    if (keyLower.includes("document")) return "Document";
+    if (keyLower.includes("pdf")) return "PDF";
+    if (keyLower.includes("attachment")) return "Attachment";
+    return "File";
+  }
+  return fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1);
 };
 
 // 自定义选项编辑器组件
@@ -202,10 +228,18 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
   const handleAddField = () => {
     if (!newFieldKey.trim()) return;
 
+    const fieldType = newFieldType;
+    let fieldLabel = newFieldLabel.trim() || newFieldKey.trim();
+
+    // 如果是媒体类型，自动设置合适的标签
+    if (["image", "video", "audio", "file"].includes(fieldType)) {
+      fieldLabel = getMediaTypeLabel(fieldType, newFieldKey.trim());
+    }
+
     const newField: FieldSchema = {
       key: newFieldKey.trim(),
-      label: newFieldLabel.trim() || newFieldKey.trim(),
-      type: newFieldType,
+      label: fieldLabel,
+      type: fieldType,
     };
 
     const updatedItems = [...items, newField];
@@ -230,7 +264,64 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
     value: any
   ) => {
     const updatedItems = [...items];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+    if (field === "type") {
+      // 保存旧值以便比较
+      const oldType = updatedItems[index].type;
+      const fieldKey = updatedItems[index].key;
+      const currentLabel = updatedItems[index].label;
+
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+      // 如果是媒体类型，确保有正确的标签
+      if (["image", "video", "audio", "file"].includes(value)) {
+        // 如果标签是默认的或者与旧类型相关，则更新标签
+        if (
+          oldType !== value || // 类型改变了
+          currentLabel === fieldKey || // 标签与键名相同
+          currentLabel ===
+            fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1) || // 标签是默认的大写形式
+          (oldType === "text" &&
+            ["image", "video", "audio", "file"].includes(value)) // 从文本类型变为媒体类型
+        ) {
+          updatedItems[index].label = getMediaTypeLabel(value, fieldKey);
+        }
+      }
+
+      // 如果不是媒体类型，但之前是媒体类型，重置标签为默认格式
+      if (
+        !["image", "video", "audio", "file"].includes(value) &&
+        ["image", "video", "audio", "file"].includes(oldType)
+      ) {
+        updatedItems[index].label =
+          fieldKey.charAt(0).toUpperCase() + fieldKey.slice(1);
+      }
+    } else if (field === "key") {
+      // 如果键名改变，检查是否需要更新标签
+      const currentType = updatedItems[index].type;
+      const currentLabel = updatedItems[index].label;
+      const oldKey = items[index].key;
+
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+
+      // 如果是媒体类型，且标签是基于旧键名生成的，则更新标签
+      if (["image", "video", "audio", "file"].includes(currentType)) {
+        const oldKeyBasedLabel = getMediaTypeLabel(currentType, oldKey);
+        if (currentLabel === oldKeyBasedLabel) {
+          updatedItems[index].label = getMediaTypeLabel(currentType, value);
+        }
+      } else if (
+        currentLabel ===
+        oldKey.charAt(0).toUpperCase() + oldKey.slice(1)
+      ) {
+        // 如果是默认标签格式，更新
+        updatedItems[index].label =
+          value.charAt(0).toUpperCase() + value.slice(1);
+      }
+    } else {
+      updatedItems[index] = { ...updatedItems[index], [field]: value };
+    }
+
     setItems(updatedItems);
     onChange(updatedItems);
   };
@@ -415,6 +506,46 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
   const [showSelectConfig, setShowSelectConfig] = useState(false);
   const [showArrayConfig, setShowArrayConfig] = useState(false);
 
+  // 辅助函数：推断数组项字段类型
+  const inferArrayItemType = (key: string, value: any): FieldType => {
+    // 使用相同的推断逻辑，但专门用于数组项
+    if (typeof value === "boolean") return "checkbox";
+    if (typeof value === "number") return "number";
+
+    if (typeof value === "string") {
+      // 检查是否是文件类型
+      if (isFileTypeField(key, value)) {
+        const fileType = getFileType(key, value);
+        switch (fileType) {
+          case "image":
+            return "image";
+          case "video":
+            return "video";
+          case "audio":
+            return "audio";
+          default:
+            return "file";
+        }
+      }
+
+      // 检查特殊格式
+      const keyLower = key.toLowerCase();
+      if (keyLower.includes("email")) return "email";
+      if (keyLower.includes("password")) return "password";
+      if (keyLower.includes("tel") || keyLower.includes("phone")) return "tel";
+      if (keyLower.includes("color")) return "color";
+      if (keyLower.includes("date")) return "date";
+      if (value.length > 100) return "textarea";
+
+      // 检查是否是选项数组字符串（如 "[option1, option2]"）
+      if (value.startsWith("[") && value.endsWith("]")) {
+        return "select";
+      }
+    }
+
+    return "text";
+  };
+
   // 初始化：如果有当前schema，使用它；否则从props推断
   useEffect(() => {
     if (currentSchema && currentSchema.properties) {
@@ -461,6 +592,13 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                     itemField.type = "date";
                   } else if (itemSchemaDef.format === "color") {
                     itemField.type = "color";
+                  } else if (itemSchemaDef["x-media-type"]) {
+                    itemField.type = itemSchemaDef["x-media-type"];
+                  } else if (itemSchemaDef.format === "uri") {
+                    // 尝试从名称推断媒体类型
+                    const fileType = getFileType(itemKey, "");
+                    itemField.type =
+                      fileType === "document" ? "file" : fileType;
                   }
 
                   return itemField;
@@ -517,6 +655,28 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
           type: inferTypeFromValue(defaultProps[key], key),
           label: key.charAt(0).toUpperCase() + key.slice(1),
         };
+
+        // 特殊处理：如果值是数组，进一步检测数组项的类型
+        if (
+          field.type === "array" &&
+          Array.isArray(defaultProps[key]) &&
+          defaultProps[key].length > 0
+        ) {
+          const firstItem = defaultProps[key][0];
+          if (typeof firstItem === "object" && firstItem !== null) {
+            // 从第一个对象项推断字段结构
+            field.itemSchema = Object.keys(firstItem).map((itemKey) => {
+              const itemValue = firstItem[itemKey];
+              const itemType = inferArrayItemType(itemKey, itemValue);
+
+              return {
+                key: itemKey,
+                label: getMediaTypeLabel(itemType, itemKey),
+                type: itemType,
+              };
+            });
+          }
+        }
 
         // 如果是select类型，初始化activeSelectSource
         if (field.type === "select") {
@@ -824,6 +984,12 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                 const itemFormat = fieldTypeToJsonSchemaFormat(itemField.type);
                 if (itemFormat) {
                   itemProp.format = itemFormat;
+                }
+
+                // 添加媒体类型信息
+                const mediaType = getMediaType(itemField.type);
+                if (mediaType) {
+                  itemProp["x-media-type"] = mediaType;
                 }
 
                 if (itemField.type === "select" && itemField.options) {
@@ -1329,12 +1495,26 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                             type: "object",
                             properties: field.itemSchema.reduce(
                               (itemAcc, itemField) => {
-                                itemAcc[itemField.key] = {
+                                const itemProp: any = {
                                   title: itemField.label,
                                   type: fieldTypeToJsonSchemaType(
                                     itemField.type
                                   ),
                                 };
+
+                                const itemFormat = fieldTypeToJsonSchemaFormat(
+                                  itemField.type
+                                );
+                                if (itemFormat) {
+                                  itemProp.format = itemFormat;
+                                }
+
+                                const mediaType = getMediaType(itemField.type);
+                                if (mediaType) {
+                                  itemProp["x-media-type"] = mediaType;
+                                }
+
+                                itemAcc[itemField.key] = itemProp;
                                 return itemAcc;
                               },
                               {} as any

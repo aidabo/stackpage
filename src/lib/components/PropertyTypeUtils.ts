@@ -1,3 +1,4 @@
+// PropertyTypeUtils.ts - 增强版本，包含更好的数组项媒体类型检测
 // Helper functions for file type detection
 export const getFileType = (
   name: string,
@@ -166,6 +167,8 @@ export const isFileTypeField = (key: string, value: any): boolean => {
     "background",
     "poster",
     "thumbnail",
+    "photo",
+    "picture",
   ];
 
   const isFileByName = fileFieldNames.some((fileName) =>
@@ -192,7 +195,6 @@ export const isNumberField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
 
   // Field name indicators for number fields
-  // Field name indicators for number fields
   const numberFieldNames = [
     "number",
     "count",
@@ -201,12 +203,6 @@ export const isNumberField = (key: string, value: any): boolean => {
     "price",
     "cost",
     "total",
-    // "size", // Ambiguous (CSS vs Count)
-    // "width", // Ambiguous (CSS units)
-    // "height", // Ambiguous (CSS units)
-    // "length", // Ambiguous
-    // "depth",
-    // "radius",
     "percentage",
     "percent",
     "rate",
@@ -222,14 +218,11 @@ export const isNumberField = (key: string, value: any): boolean => {
     "delay",
     "interval",
     "index",
-    // "id", // Ambiguous (UUID vs Int)
     "order",
     "priority",
     "level",
     "step",
     "limit",
-    // "max", // Can be CSS
-    // "min", // Can be CSS
     "average",
     "sum",
   ];
@@ -239,9 +232,6 @@ export const isNumberField = (key: string, value: any): boolean => {
   // If it's a string (and not empty), it's likely not a number field (e.g. "100%")
   // unless we want to convert it, but schema generation usually strictly follows types.
   if (typeof value === "string" && value.trim() !== "") {
-    // Check if it's purely numeric string?
-    // If it's "100", it could be number. If "100px", definitely not.
-    // For safety, if it's a string type, treat as string in schema to be safe.
     return false;
   }
 
@@ -411,6 +401,19 @@ export const inferPropertySchema = (key: string, value: any): any => {
   if (isFileField) {
     baseSchema.type = "string";
     baseSchema.format = "uri";
+
+    // 添加媒体类型信息
+    const fileType = getFileType(key, value);
+    if (fileType === "image") {
+      baseSchema["x-media-type"] = "image";
+    } else if (fileType === "video") {
+      baseSchema["x-media-type"] = "video";
+    } else if (fileType === "audio") {
+      baseSchema["x-media-type"] = "audio";
+    } else {
+      baseSchema["x-media-type"] = "file";
+    }
+
     return baseSchema;
   }
 
@@ -502,6 +505,17 @@ export const inferPropertySchema = (key: string, value: any): any => {
               // Check if it's a file field within the array object
               if (isFileTypeField(itemKey, itemValue)) {
                 itemSchema.format = "uri"; // Use uri format instead of file
+                // 添加媒体类型信息
+                const fileType = getFileType(itemKey, itemValue);
+                if (fileType === "image") {
+                  itemSchema["x-media-type"] = "image";
+                } else if (fileType === "video") {
+                  itemSchema["x-media-type"] = "video";
+                } else if (fileType === "audio") {
+                  itemSchema["x-media-type"] = "audio";
+                } else {
+                  itemSchema["x-media-type"] = "file";
+                }
               }
             } else if (itemType === "number") {
               itemSchema.type = "number";
@@ -577,9 +591,59 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
         ) {
           // Array of objects - treat as true array
           property.type = "array";
+
+          // 为数组项生成详细的 schema
           property.items = {
             type: "object",
-            properties: generateSchemaFromCurrentProps(firstElement).properties,
+            properties: Object.keys(firstElement).reduce((acc, itemKey) => {
+              const itemValue = firstElement[itemKey];
+              const itemProp: any = {
+                title: itemKey.charAt(0).toUpperCase() + itemKey.slice(1),
+              };
+
+              // 检查数组项中的媒体类型
+              if (isFileTypeField(itemKey, itemValue)) {
+                itemProp.type = "string";
+                itemProp.format = "uri";
+
+                const fileType = getFileType(itemKey, itemValue);
+                if (fileType === "image") {
+                  itemProp["x-media-type"] = "image";
+                } else if (fileType === "video") {
+                  itemProp["x-media-type"] = "video";
+                } else if (fileType === "audio") {
+                  itemProp["x-media-type"] = "audio";
+                } else {
+                  itemProp["x-media-type"] = "file";
+                }
+              }
+              // 检查数组项中的数字类型
+              else if (isNumberField(itemKey, itemValue)) {
+                itemProp.type = "number";
+              }
+              // 检查数组项中的日期类型
+              else if (isDateField(itemKey, itemValue)) {
+                itemProp.type = "string";
+                itemProp.format = "date";
+              }
+              // 处理其他类型
+              else if (typeof itemValue === "string") {
+                itemProp.type = "string";
+                // 长文本检测
+                if (itemValue.length > 80) {
+                  itemProp.format = "textarea";
+                }
+              } else if (typeof itemValue === "number") {
+                itemProp.type = "number";
+              } else if (typeof itemValue === "boolean") {
+                itemProp.type = "boolean";
+              } else {
+                itemProp.type = "string";
+              }
+
+              acc[itemKey] = itemProp;
+              return acc;
+            }, {} as any),
           };
         } else {
           // Array of simple types (string, number, boolean) - treat as select field
