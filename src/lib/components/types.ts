@@ -42,6 +42,7 @@ export interface ListDefinition {
   items: ListItem[];
 }
 
+// types.ts
 export interface DataSource {
   id: string;
   name: string;
@@ -55,6 +56,7 @@ export interface DataSource {
   refreshInterval: number;
   lastFetched?: string;
   data?: any;
+  category?: string; // 添加这个字段
 }
 
 export interface FieldSchema {
