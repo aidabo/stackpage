@@ -1,4 +1,10 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import {
   XMarkIcon,
   TableCellsIcon,
@@ -12,11 +18,18 @@ import {
   ExclamationTriangleIcon,
   CodeBracketSquareIcon,
   ClipboardDocumentCheckIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
 } from "@heroicons/react/24/outline";
 import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSource } from "./types";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { get } from "../utils/get";
+import { transformers as transformerRegistry } from "../utils/transformers";
+import {
+  validateBindingAgainstSchema,
+  getTypeCompatibilityDisplay,
+} from "../utils/bindingValidation";
 
 interface DataExplorerDialogProps {
   isOpen: boolean;
@@ -25,7 +38,7 @@ interface DataExplorerDialogProps {
   onApplyMappings: (
     mappings: Record<string, string>,
     dataSourceId: string,
-    _data?: any, // Renamed 'data' to '_data' to avoid lint warnings if unused
+    _data?: any,
     transformers?: Record<string, string>
   ) => void;
   onBindRecord: (
@@ -37,6 +50,7 @@ interface DataExplorerDialogProps {
   currentMappings: Record<string, string>;
   currentTransformers?: Record<string, string>;
   initialDataSourceId?: string;
+  schema?: any;
 }
 
 export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
@@ -47,7 +61,9 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   onBindRecord,
   mappableProps,
   currentMappings,
+  currentTransformers,
   initialDataSourceId,
+  schema,
 }) => {
   const [activeTab, setActiveTab] = useState<"select" | "mapping">("select");
   const [mappings, setMappings] =
@@ -75,10 +91,34 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   const [showSchema, setShowSchema] = useState(false);
   const [schemaJson, setSchemaJson] = useState<string>("");
 
-  // Initialize mappings
+  // Transformers State
+  const [transformers, setTransformers] = useState<Record<string, string>>(
+    currentTransformers || {}
+  );
+
+  // Resize State
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [dialogSize, setDialogSize] = useState({
+    width: "90vw",
+    height: "90vh",
+    isResizing: false,
+    resizeDirection: "" as "horizontal" | "vertical" | "both" | "",
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+  });
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
+
+  // Initialize mappings and transformers
   useEffect(() => {
     setMappings(currentMappings);
-  }, [currentMappings]);
+    if (currentTransformers) {
+      setTransformers(currentTransformers);
+    }
+  }, [currentMappings, currentTransformers]);
 
   // Initial Data Source Selection
   useEffect(() => {
@@ -222,12 +262,18 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   }, [showSchema, previewData]);
 
   // Update a mapping
-
-  // Update a mapping
   const updateMapping = (prop: string, field: string) => {
     setMappings({
       ...mappings,
       [prop]: field,
+    });
+  };
+
+  // Update a transformer
+  const updateTransformer = (prop: string, transformerId: string) => {
+    setTransformers({
+      ...transformers,
+      [prop]: transformerId,
     });
   };
 
@@ -247,6 +293,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
   const autoMapRecordToProps = (_record: any) => {
     const newMappings: Record<string, string> = { ...mappings };
+    const newTransformers: Record<string, string> = { ...transformers };
 
     mappableProps.forEach((prop) => {
       // Try to find matching field in record
@@ -261,22 +308,28 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
       if (field) {
         newMappings[prop] = field;
+
+        // Auto-select transformer based on field type and schema
+        if (schema?.properties?.[prop]) {
+          const propType = schema.properties[prop].type;
+          const value = get(_record, field);
+
+          if (propType === "number" && typeof value !== "number") {
+            newTransformers[prop] = "number";
+          } else if (propType === "string" && typeof value !== "string") {
+            newTransformers[prop] = "string";
+          }
+        }
       }
     });
 
     setMappings(newMappings);
+    setTransformers(newTransformers);
   };
 
   // Apply mappings and bind selected record
   const applyMappingsAndBind = () => {
-    // Pass previewData (or selectedRecord if active?)
-    // If selectedRecord is set, we might want to prioritize it for initial value?
-    // But usually previewData is the root.
-    // If selectedRecord is used, the Mapping paths should probably be relative to it?
-    // No, mapping paths in current implementation seem to be absolute or relative to data root.
-    // Let's pass the root previewData.
-    // Let's pass the root previewData.
-    onApplyMappings(mappings, selectedDataSourceId, previewData);
+    onApplyMappings(mappings, selectedDataSourceId, previewData, transformers);
     onClose();
   };
 
@@ -284,6 +337,68 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   const getPreviewValue = (fieldPath: string) => {
     if (!selectedRecord || !fieldPath) return null;
     return get(selectedRecord, fieldPath);
+  };
+
+  // Get transformed preview value
+  const getTransformedPreviewValue = (
+    fieldPath: string,
+    transformerId?: string
+  ) => {
+    const rawValue = getPreviewValue(fieldPath);
+    if (rawValue === null || rawValue === undefined) return rawValue;
+
+    if (transformerId && transformerRegistry[transformerId]) {
+      try {
+        return transformerRegistry[transformerId](rawValue);
+      } catch (error) {
+        console.error(`Transformer error (${transformerId}):`, error);
+        return rawValue;
+      }
+    }
+
+    return rawValue;
+  };
+
+  // Type compatibility checking
+  const checkTypeCompatibility = (
+    fieldPath: string,
+    prop: string,
+    transformerId?: string
+  ) => {
+    if (!fieldPath || !schema?.properties?.[prop]) return null;
+
+    const propSchema = schema.properties[prop];
+    const rawValue = getPreviewValue(fieldPath);
+
+    if (rawValue === undefined || rawValue === null) {
+      return <span className="text-gray-500 text-xs">No data</span>;
+    }
+
+    const binding = {
+      sourceId: selectedDataSourceId,
+      path: fieldPath,
+      transformer: transformerId,
+    };
+
+    const warnings = validateBindingAgainstSchema(
+      binding,
+      propSchema,
+      rawValue
+    );
+    const display = getTypeCompatibilityDisplay(warnings);
+
+    if (display.tooltip) {
+      return (
+        <div className="group relative">
+          <span className={display.className}>{display.text}</span>
+          <div className="absolute bottom-full left-0 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 max-w-xs">
+            {display.tooltip}
+          </div>
+        </div>
+      );
+    }
+
+    return <span className={display.className}>{display.text}</span>;
   };
 
   // Clear all filters
@@ -309,24 +424,179 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     setFilters(filters.filter((f) => f.id !== id));
   };
 
+  // Resize handlers
+  const handleResizeStart = (
+    e: React.MouseEvent,
+    direction: "horizontal" | "vertical" | "both"
+  ) => {
+    e.preventDefault();
+    if (!dialogRef.current) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const rect = dialogRef.current.getBoundingClientRect();
+
+    setDialogSize((prev) => ({
+      ...prev,
+      isResizing: true,
+      resizeDirection: direction,
+      startX,
+      startY,
+      startWidth: rect.width,
+      startHeight: rect.height,
+    }));
+
+    // Add global event listeners
+    document.addEventListener("mousemove", handleResizeMove);
+    document.addEventListener("mouseup", handleResizeEnd);
+  };
+
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!dialogSize.isResizing || !dialogRef.current) return;
+
+      const deltaX = e.clientX - dialogSize.startX;
+      const deltaY = e.clientY - dialogSize.startY;
+
+      let newWidth = dialogSize.startWidth;
+      let newHeight = dialogSize.startHeight;
+
+      if (
+        dialogSize.resizeDirection === "horizontal" ||
+        dialogSize.resizeDirection === "both"
+      ) {
+        newWidth = Math.max(800, dialogSize.startWidth + deltaX);
+      }
+
+      if (
+        dialogSize.resizeDirection === "vertical" ||
+        dialogSize.resizeDirection === "both"
+      ) {
+        newHeight = Math.max(600, dialogSize.startHeight + deltaY);
+      }
+
+      setDialogSize((prev) => ({
+        ...prev,
+        width: `${newWidth}px`,
+        height: `${newHeight}px`,
+      }));
+    },
+    [dialogSize]
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setDialogSize((prev) => ({
+      ...prev,
+      isResizing: false,
+      resizeDirection: "",
+    }));
+
+    // Remove global event listeners
+    document.removeEventListener("mousemove", handleResizeMove);
+    document.removeEventListener("mouseup", handleResizeEnd);
+  }, [handleResizeMove]);
+
+  // Cleanup resize listeners
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleResizeMove);
+      document.removeEventListener("mouseup", handleResizeEnd);
+    };
+  }, [handleResizeMove, handleResizeEnd]);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    if (!isFullscreen) {
+      setDialogSize({
+        ...dialogSize,
+        width: "95vw",
+        height: "95vh",
+      });
+    } else {
+      setDialogSize({
+        ...dialogSize,
+        width: "90vw",
+        height: "90vh",
+      });
+    }
+  };
+
+  const dialogStyle = isFullscreen
+    ? {
+        width: "95vw",
+        height: "95vh",
+        maxWidth: "none",
+        maxHeight: "none",
+      }
+    : {
+        width: dialogSize.width,
+        height: dialogSize.height,
+        maxWidth: "65vw",
+        maxHeight: "80vh",
+      };
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        className="bg-white rounded-lg shadow-xl flex flex-col relative"
+        style={dialogStyle}
+      >
+        {/* Resize handles */}
+        {!isFullscreen && (
+          <>
+            {/* Bottom-right resize handle */}
+            <div
+              ref={resizeHandleRef}
+              className="absolute bottom-0 right-0 w-6 h-6 cursor-se-resize flex items-center justify-center"
+              onMouseDown={(e) => handleResizeStart(e, "both")}
+            >
+              <div className="w-3 h-3 border-b-2 border-r-2 border-gray-400" />
+            </div>
+
+            {/* Right resize handle */}
+            <div
+              className="absolute top-0 right-0 w-2 h-full cursor-ew-resize"
+              onMouseDown={(e) => handleResizeStart(e, "horizontal")}
+            />
+
+            {/* Bottom resize handle */}
+            <div
+              className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize"
+              onMouseDown={(e) => handleResizeStart(e, "vertical")}
+            />
+          </>
+        )}
+
         {/* HEADER */}
-        <div className="flex flex-col border-b bg-white">
+        <div className="flex flex-col border-b bg-white flex-shrink-0">
           <div className="flex justify-between items-center p-4 pb-2">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />
               Data Explorer
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
-            >
-              <XMarkIcon className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Fullscreen toggle */}
+              <button
+                onClick={toggleFullscreen}
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? (
+                  <ArrowsPointingInIcon className="w-5 h-5" />
+                ) : (
+                  <ArrowsPointingOutIcon className="w-5 h-5" />
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           <div className="px-4 pb-4 flex items-center gap-4">
@@ -398,7 +668,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
           {/* Schema Viewer Overlay */}
           {showSchema && (
-            <div className="px-4 pb-4 bg-white border-b relative z-10 transition-all">
+            <div className="px-4 pb-4 bg-white border-b relative z-10 transition-all flex-shrink-0">
               <div className="bg-gray-800 rounded-lg p-4 font-mono text-xs text-green-400 overflow-auto max-h-[200px] shadow-inner relative group">
                 <button
                   className="absolute top-2 right-2 p-1 bg-gray-700 rounded text-gray-300 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
@@ -422,7 +692,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
           {/* Error Banner */}
           {error && (
-            <div className="px-4 pb-2">
+            <div className="px-4 pb-2 flex-shrink-0">
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
                 <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
                 <span>{error}</span>
@@ -431,7 +701,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
           )}
 
           {/* Navigation Tabs */}
-          <div className="px-4 flex gap-1 bg-gray-50 border-t">
+          <div className="px-4 flex gap-1 bg-gray-50 border-t flex-shrink-0">
             <button
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
                 activeTab === "select"
@@ -458,7 +728,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
         </div>
 
         {/* CONTENT */}
-        <div className="flex-1 overflow-hidden bg-gray-50 relative">
+        <div className="flex-1 overflow-hidden bg-gray-50 relative min-h-0">
           {isLoading && (
             <div className="absolute inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">
@@ -478,7 +748,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
           ) : activeTab === "select" ? (
             <div className="h-full flex flex-col">
               {/* Search and Filter Bar */}
-              <div className="p-3 bg-white border-b">
+              <div className="p-3 bg-white border-b flex-shrink-0">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="relative flex-1">
                     <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -492,7 +762,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   </div>
                   <button
                     onClick={() => setActiveTab("mapping")}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2 flex-shrink-0"
                   >
                     <ArrowRightIcon className="w-4 h-4" />
                     Go to Mapping
@@ -557,7 +827,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
               </div>
 
               {/* Visual Preview */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden min-h-0">
                 <VisualDataPreview
                   data={previewData}
                   category={currentDS?.category}
@@ -582,7 +852,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
               {/* Quick Bind Button */}
               {selectedRecord && (
-                <div className="p-3 border-t bg-white">
+                <div className="p-3 border-t bg-white flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
                       Record{" "}
@@ -614,10 +884,10 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
               )}
             </div>
           ) : (
-            <div className="h-full flex">
+            <div className="h-full flex min-w-0">
               {/* Left Panel - Field List */}
-              <div className="w-1/3 min-w-[300px] border-r border-gray-200 bg-white flex flex-col overflow-hidden">
-                <div className="p-3 border-b bg-gray-50">
+              <div className="w-96 min-w-[320px] max-w-lg border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+                <div className="p-3 border-b bg-gray-50 flex-shrink-0">
                   <h3 className="text-sm font-semibold text-gray-700">
                     Available Data Fields
                   </h3>
@@ -626,7 +896,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   </p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2">
+                <div className="flex-1 overflow-y-auto p-2 min-h-0">
                   {dataFields.length === 0 ? (
                     <div className="p-4 text-center text-gray-500 text-sm italic">
                       No fields found or no record selected.
@@ -676,8 +946,8 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
               </div>
 
               {/* Right Panel - Mapping Table */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="p-4 bg-white border-b">
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                <div className="p-4 bg-white border-b flex-shrink-0">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
                     Set Field Mappings
                   </h3>
@@ -686,20 +956,23 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   </p>
                 </div>
 
-                <div className="flex-1 overflow-auto p-4 bg-gray-50">
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                    {/* Table Header */}
-                    <div className="grid grid-cols-12 gap-4 p-3 border-b bg-gray-50">
-                      <div className="col-span-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <div className="flex-1 overflow-auto p-4 bg-gray-50 min-h-0">
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-w-[1000px]">
+                    {/* Table Header - Adjusted column widths for better readability */}
+                    <div className="grid grid-cols-12 gap-3 p-3 border-b bg-gray-50">
+                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Component Property
                       </div>
-                      <div className="col-span-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         JSON Path / Field
                       </div>
                       <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Transformer
                       </div>
-                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Type Check
+                      </div>
+                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Preview
                       </div>
                     </div>
@@ -709,35 +982,45 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                       {mappableProps.map((prop) => {
                         const fieldPath = mappings[prop] || "";
                         const previewValue = fieldPath
-                          ? getPreviewValue(fieldPath)
+                          ? getTransformedPreviewValue(
+                              fieldPath,
+                              transformers[prop]
+                            )
                           : null;
 
                         return (
                           <div
                             key={prop}
-                            className="grid grid-cols-12 gap-4 p-3 hover:bg-blue-50/50 items-center transition-colors"
+                            className="grid grid-cols-12 gap-3 p-3 hover:bg-blue-50/50 items-center transition-colors"
                           >
                             {/* Property Column */}
-                            <div className="col-span-4">
+                            <div className="col-span-3">
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`w-2 h-2 rounded-full ${
                                     fieldPath ? "bg-green-500" : "bg-gray-300"
                                   }`}
                                 ></div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium text-gray-900 truncate">
                                     {prop}
                                   </div>
+                                  {schema?.properties?.[prop] && (
+                                    <div className="text-xs text-gray-500 truncate">
+                                      {schema.properties[prop].type}
+                                      {schema.properties[prop].format &&
+                                        ` (${schema.properties[prop].format})`}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
 
                             {/* Data Field Column (Dropdown + Input) */}
-                            <div className="col-span-4 flex flex-col gap-1">
+                            <div className="col-span-3">
                               <div className="flex gap-1">
                                 <select
-                                  className="w-1/3 px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                  className="w-1/3 min-w-[100px] px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                   value={
                                     dataFields.includes(fieldPath)
                                       ? fieldPath
@@ -756,7 +1039,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 </select>
                                 <input
                                   type="text"
-                                  className="flex-1 px-2 py-1.5 border border-l-0 border-gray-300 rounded-r text-xs font-mono text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                  className="flex-1 min-w-[150px] px-2 py-1.5 border border-l-0 border-gray-300 rounded-r text-xs font-mono text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"
                                   value={fieldPath}
                                   placeholder="e.g. items[0].name"
                                   onChange={(e) =>
@@ -767,7 +1050,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             </div>
 
                             {/* Transformer Column */}
-                            {/* <div className="col-span-2">
+                            <div className="col-span-2">
                               <select
                                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
                                 value={transformers[prop] || ""}
@@ -776,16 +1059,26 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 }
                               >
                                 <option value="">None</option>
-                                {getAllTransformers().map((t) => (
-                                  <option key={t.id} value={t.id}>
-                                    {t.name}
+                                {Object.keys(transformerRegistry).map((key) => (
+                                  <option key={key} value={key}>
+                                    {key}
                                   </option>
                                 ))}
                               </select>
-                            </div> */}
+                            </div>
+
+                            {/* Type Check Column */}
+                            <div className="col-span-2">
+                              {fieldPath &&
+                                checkTypeCompatibility(
+                                  fieldPath,
+                                  prop,
+                                  transformers[prop]
+                                )}
+                            </div>
 
                             {/* Preview Column */}
-                            <div className="col-span-3">
+                            <div className="col-span-2 min-w-0">
                               {previewValue !== undefined &&
                               previewValue !== null ? (
                                 <div
@@ -798,10 +1091,13 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                           ? "Array"
                                           : "Object"
                                       }]`
-                                    : String(previewValue)}
+                                    : String(previewValue).substring(0, 25)}
+                                  {String(previewValue).length > 25
+                                    ? "..."
+                                    : ""}
                                 </div>
                               ) : fieldPath ? (
-                                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 truncate">
                                   Not found
                                 </div>
                               ) : (
@@ -817,7 +1113,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="mt-6 flex justify-between items-center">
+                  <div className="mt-6 flex justify-between items-center flex-shrink-0">
                     <div className="text-sm text-gray-500">
                       {Object.keys(mappings).filter((k) => mappings[k]).length}{" "}
                       mapped
@@ -849,6 +1145,11 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
             </div>
           )}
         </div>
+
+        {/* Resizing overlay */}
+        {dialogSize.isResizing && (
+          <div className="fixed inset-0 z-[201] cursor-se-resize" />
+        )}
       </div>
     </div>
   );

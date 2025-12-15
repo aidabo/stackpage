@@ -60,8 +60,8 @@ export const PropertiesTab = ({
   const updatedPropsFromContext = getProps() || {};
   const currentProps = { ...currentInstanceProps, ...updatedPropsFromContext };
 
-  // Extract schema and filter it out from the props that go to DataTab
-  const { __schema, ...componentPropsWithoutSchema } = currentProps;
+  // Extract schema and bindings, filter them out from the props that go to DataTab
+  const { __schema, __bindings, ...componentPropsWithoutSchema } = currentProps;
 
   // Initialize schema for new components
   useEffect(() => {
@@ -112,10 +112,11 @@ export const PropertiesTab = ({
   const handlePropertyChange = useCallback(
     (data: any) => {
       if (data.formData && selectedInstance) {
-        // Merge the new formData with the existing schema
+        // Merge the new formData with the existing schema and bindings
         const updatedProps = {
           ...data.formData,
           __schema: componentSchema, // Preserve the schema
+          __bindings: __bindings, // Preserve the bindings
         };
         const updatedInstance = {
           ...selectedInstance,
@@ -132,10 +133,11 @@ export const PropertiesTab = ({
   const handleSchemaChange = useCallback(
     (newSchema: any) => {
       if (selectedInstance) {
-        // Update only the schema, preserve other props
+        // Update only the schema, preserve other props (including bindings)
         const updatedProps = {
           ...componentPropsWithoutSchema,
           __schema: newSchema,
+          __bindings: __bindings,
         };
         const updatedInstance = {
           ...selectedInstance,

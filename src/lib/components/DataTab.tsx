@@ -1,5 +1,11 @@
 // DataTab.tsx - 完整修复版本
-import React, { useMemo, useEffect, useRef, useState } from "react";
+import React, {
+  useMemo,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import Form from "@rjsf/core";
 import validator from "@rjsf/validator-ajv8";
 import {
@@ -31,11 +37,13 @@ import {
   GetSelectOptionsFn,
 } from "..";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
-import { DataExplorerDialog } from "./DataExplorerDialog"; // Added
+import { DataExplorerDialog } from "./DataExplorerDialog";
 import { useStackPage } from "./StackPageContext";
 import { ErrorBoundary } from "./ErrorBoundary";
-import { get } from "../utils/get"; // Added
-import { LinkIcon } from "@heroicons/react/24/outline"; // Added for icon
+import { get } from "../utils/get";
+import { LinkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { applyTransformer } from "../utils/transformers"; // Import the transformer function
+import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 
 interface DataTabProps {
   selectedInstance: any;
@@ -49,8 +57,8 @@ interface DataTabProps {
   onGetSelectOptions?: GetSelectOptionsFn;
   setSelectedInstance: (instance: any) => void;
   setSelectedComponent: (component: string | null) => void;
-  componentSchema: any; // The schema defined in SchemaTab
-  onSchemaChange?: (schema: any) => void; // 新增：schema变更回调
+  componentSchema: any;
+  onSchemaChange?: (schema: any) => void;
 }
 
 export const DataTab: React.FC<DataTabProps> = ({
@@ -72,23 +80,19 @@ export const DataTab: React.FC<DataTabProps> = ({
   const formRef = useRef<any>(null);
   const previousSchemaRef = useRef<any>(null);
   const [showSchemaEditor, setShowSchemaEditor] = useState(false);
-  const [showDataExplorer, setShowDataExplorer] = useState(false); // Added
+  const [showDataExplorer, setShowDataExplorer] = useState(false);
   const [localComponentSchema, setLocalComponentSchema] =
     useState(componentSchema);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // 当componentSchema从外部更新时，同步到本地状态
   useEffect(() => {
     setLocalComponentSchema(componentSchema);
   }, [componentSchema]);
 
-  // 使用提供的componentSchema或从props生成
   const { schema, uiSchema } = useMemo(() => {
     try {
-      // 使用本地的schema
       let finalSchema = localComponentSchema;
 
-      // 如果schema为空或无效，从props生成一个
       if (
         !finalSchema ||
         typeof finalSchema !== "object" ||
@@ -98,46 +102,35 @@ export const DataTab: React.FC<DataTabProps> = ({
         finalSchema = generateSchemaFromCurrentProps(componentProps);
       }
 
-      // 确保schema有正确的结构
       if (!finalSchema.type) finalSchema.type = "object";
       if (!finalSchema.properties) finalSchema.properties = {};
       if (!finalSchema.required) finalSchema.required = [];
 
-      // 确保schema可以处理当前props（尤其是数组）
       const generatedUiSchema = generateUiSchema(finalSchema);
 
       return { schema: finalSchema, uiSchema: generatedUiSchema };
     } catch (error) {
       console.error("Error generating schema:", error);
-      // setFormError(`Error generating schema: ${error}`); // Don't set state during render
-      // 回退到生成的schema
       const fallbackSchema = generateSchemaFromCurrentProps(componentProps);
       const fallbackUiSchema = generateUiSchema(fallbackSchema);
       return { schema: fallbackSchema, uiSchema: fallbackUiSchema };
     }
   }, [localComponentSchema, componentProps]);
 
-  // 调试日志
   useEffect(() => {
     console.log("Current schema:", schema);
     console.log("Current uiSchema:", uiSchema);
     console.log("Current props:", componentProps);
   }, [schema, uiSchema, componentProps]);
 
-  // 当schema变更时清理表单错误
   useEffect(() => {
     const currentSchema = JSON.stringify(schema);
     const previousSchema = JSON.stringify(previousSchemaRef.current);
 
     if (previousSchemaRef.current && currentSchema !== previousSchema) {
-      // Schema已变更 - 清理表单错误并重置不兼容的数据
       setFormError(null);
-
-      // 为不兼容的类型重置表单数据
       const cleanedProps = cleanFormDataForSchema(componentProps, schema);
       if (JSON.stringify(cleanedProps) !== JSON.stringify(componentProps)) {
-        // Fix: Don't auto-update props on selection/schema change to avoid "ghost" updates
-        // onPropertyChange({ formData: cleanedProps });
         console.warn("Form data mismatch with schema:", {
           cleanedProps,
           componentProps,
@@ -145,11 +138,9 @@ export const DataTab: React.FC<DataTabProps> = ({
       }
     }
 
-    // 更新之前的schema引用
     previousSchemaRef.current = schema;
   }, [schema, componentProps, onPropertyChange]);
 
-  // 清理表单数据的辅助函数
   const cleanFormDataForSchema = (formData: any, currentSchema: any): any => {
     if (!formData || !currentSchema || !currentSchema.properties) {
       return formData;
@@ -162,13 +153,11 @@ export const DataTab: React.FC<DataTabProps> = ({
       const fieldSchema = schemaProperties[key];
       const currentValue = cleanedData[key];
 
-      // 重置与新schema类型不兼容的值
       if (
         fieldSchema.type === "number" &&
         typeof currentValue !== "number" &&
         currentValue !== ""
       ) {
-        // 如果schema期望数字但我们有非数字字符串，重置为0
         if (
           typeof currentValue === "string" &&
           currentValue.trim() !== "" &&
@@ -180,16 +169,13 @@ export const DataTab: React.FC<DataTabProps> = ({
         fieldSchema.type === "string" &&
         typeof currentValue === "number"
       ) {
-        // 如果schema期望字符串但我们有数字，转换为字符串
         cleanedData[key] = String(currentValue);
       } else if (
         fieldSchema.type === "boolean" &&
         typeof currentValue !== "boolean"
       ) {
-        // 如果schema期望布尔值但我们有其他类型，设置为false
         cleanedData[key] = false;
       } else if (fieldSchema.type === "array" && !Array.isArray(currentValue)) {
-        // 如果schema期望数组但我们有其他类型，设置为空数组
         cleanedData[key] = [];
       }
     });
@@ -197,16 +183,13 @@ export const DataTab: React.FC<DataTabProps> = ({
     return cleanedData;
   };
 
-  // 处理schema保存
   const handleSchemaSave = (newSchema: any) => {
     console.log("Saving new schema:", newSchema);
     try {
-      // 验证schema格式
       if (!newSchema || typeof newSchema !== "object") {
         throw new Error("Invalid schema format");
       }
 
-      // 确保有必需的字段
       if (!newSchema.type) newSchema.type = "object";
       if (!newSchema.properties) newSchema.properties = {};
       if (!newSchema.required) newSchema.required = [];
@@ -223,7 +206,6 @@ export const DataTab: React.FC<DataTabProps> = ({
     }
   };
 
-  // 处理schema生成
   const handleGenerateSchema = () => {
     try {
       const generatedSchema = generateSchemaFromCurrentProps(componentProps);
@@ -239,38 +221,153 @@ export const DataTab: React.FC<DataTabProps> = ({
     }
   };
 
+  // Add a state for validation warnings:
+  const [validationWarnings, setValidationWarnings] = useState<
+    Array<{
+      property: string;
+      message: string;
+      severity: "warning" | "error";
+    }>
+  >([]);
+
+  const validateCurrentBindings = useCallback(() => {
+    if (!componentProps.__bindings || !localComponentSchema) {
+      setValidationWarnings([]);
+      return;
+    }
+
+    const warnings: Array<{
+      property: string;
+      message: string;
+      severity: "warning" | "error";
+    }> = [];
+
+    Object.entries(componentProps.__bindings).forEach(
+      ([prop, binding]: [string, any]) => {
+        const propSchema = localComponentSchema?.properties?.[prop];
+        if (!propSchema) {
+          warnings.push({
+            property: prop,
+            message: `Property "${prop}" not found in schema`,
+            severity: "warning",
+          });
+          return;
+        }
+
+        // Find the data source
+        const dataSource = source.dataSources.find(
+          (ds) => ds.id === binding.sourceId
+        );
+        if (!dataSource || !dataSource.data) {
+          warnings.push({
+            property: prop,
+            message: `Data source "${binding.sourceId}" not found or has no data`,
+            severity: "warning",
+          });
+          return;
+        }
+
+        // Get the value from the data source
+        const value = get(dataSource.data, binding.path);
+
+        // Validate the binding
+        const validationWarnings = validateBindingAgainstSchema(
+          binding,
+          propSchema,
+          value
+        );
+
+        validationWarnings.forEach((message) => {
+          warnings.push({
+            property: prop,
+            message,
+            severity: validationWarnings.length > 1 ? "error" : "warning",
+          });
+        });
+      }
+    );
+
+    setValidationWarnings(warnings);
+  }, [componentProps.__bindings, localComponentSchema, source.dataSources]);
+
+  // Call validation when bindings or schema changes
+  useEffect(() => {
+    validateCurrentBindings();
+  }, [validateCurrentBindings]);
+
+  // Update handleApplyMappings to include validation:
   const handleApplyMappings = (
     mappings: Record<string, string>,
     dataSourceId: string,
     _data?: any,
     transformers?: Record<string, string>
   ) => {
-    console.log("Applying mappings:", mappings, dataSourceId);
-    
+    console.log("Applying mappings:", { mappings, dataSourceId, transformers });
+
     // Construct bindings object
     const newBindings: Record<string, any> = {};
-    
+    const validationErrors: string[] = [];
+
     Object.entries(mappings).forEach(([prop, path]) => {
       if (path) {
-        newBindings[prop] = {
+        const binding = {
           sourceId: dataSourceId,
           path: path,
-          transformer: transformers?.[prop]
+          transformer: transformers?.[prop] || undefined,
         };
+        newBindings[prop] = binding;
+
+        // Validate against schema if we have data
+        if (_data && schema?.properties?.[prop]) {
+          const value = get(_data, path);
+          const warnings = validateBindingAgainstSchema(
+            binding,
+            schema.properties[prop],
+            value
+          );
+          if (warnings.length > 0) {
+            validationErrors.push(`${prop}: ${warnings.join(", ")}`);
+          }
+        }
       }
     });
+
+    // Show warnings if any
+    if (validationErrors.length > 0) {
+      const message = `Type compatibility warnings:\n${validationErrors.join(
+        "\n"
+      )}\n\nDo you want to continue?`;
+      if (!window.confirm(message)) {
+        return; // User cancelled
+      }
+    }
 
     // Update props with __bindings
     const updatedProps = {
       ...componentProps,
       __bindings: {
         ...(componentProps.__bindings || {}),
-        ...newBindings
-      }
+        ...newBindings,
+      },
     };
-    
-    // If data is provided, we can optionally preview/hydrate current props?
-    // For now, just save the bindings. Use standard onPropertyChange
+
+    // Apply immediate binding for preview if data is provided
+    if (_data) {
+      Object.entries(mappings).forEach(([prop, path]) => {
+        if (path) {
+          const value = get(_data, path);
+          if (value !== undefined) {
+            let transformedValue = value;
+            // Apply transformer if specified
+            if (transformers?.[prop]) {
+              transformedValue = applyTransformer(value, transformers[prop]);
+            }
+            updatedProps[prop] = transformedValue;
+          }
+        }
+      });
+    }
+
     onPropertyChange({ formData: updatedProps });
   };
 
@@ -279,9 +376,8 @@ export const DataTab: React.FC<DataTabProps> = ({
     mappings: Record<string, string>,
     _dataSourceId: string
   ) => {
-    // Immediate binding of values for preview/static use
     const newProps = { ...componentProps };
-    
+
     Object.entries(mappings).forEach(([prop, path]) => {
       if (path) {
         const value = get(record, path);
@@ -290,17 +386,14 @@ export const DataTab: React.FC<DataTabProps> = ({
         }
       }
     });
-    
+
     onPropertyChange({ formData: newProps });
   };
 
-  // 移除的widgets代码保持不变...
   const widgets = {
-    // Map custom widgets to standard RJSF widget names to ensure they are used by default
     TextWidget: CustomTextWidget,
-    TextareaWidget: CustomTextareaWidget,    
+    TextareaWidget: CustomTextareaWidget,
     CheckboxWidget: CustomCheckboxWidget,
-    // Keep the named exports for specific references if needed
     FileWidget: (props: any) => (
       <FileWidget
         {...props}
@@ -335,7 +428,7 @@ export const DataTab: React.FC<DataTabProps> = ({
         onGetSelectOptions={onGetSelectOptions}
         componentType={componentType}
         uiSchema={uiSchema[props.name]}
-        schema={{...props.schema, ...uiSchema[props.name]}}
+        schema={{ ...props.schema, ...uiSchema[props.name] }}
         lists={source.lists}
         name={props.name}
       />
@@ -382,7 +475,6 @@ export const DataTab: React.FC<DataTabProps> = ({
     FieldTemplate: CustomFieldTemplate,
   };
 
-  // 辅助函数
   const isApiField = (value: any): boolean => {
     if (typeof value !== "string") return false;
     return value.startsWith("/api/");
@@ -480,7 +572,7 @@ export const DataTab: React.FC<DataTabProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
-                  {/*componentType*/} Properties
+                  Properties
                 </h3>
                 <p className="text-sm text-gray-500">
                   Edit component properties and schema
@@ -488,7 +580,6 @@ export const DataTab: React.FC<DataTabProps> = ({
               </div>
 
               <div className="flex space-x-2">
-                {/* Schema Actions */}
                 <button
                   onClick={() => setShowDataExplorer(true)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
@@ -549,6 +640,67 @@ export const DataTab: React.FC<DataTabProps> = ({
                 <div style={{ display: "none" }} />
               </Form>
             </div>
+
+            {/* Validation Warnings */}
+            {validationWarnings.length > 0 && (
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center gap-2">
+                  <ExclamationTriangleIcon className="w-4 h-4" />
+                  Data Binding Warnings
+                </h4>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  {validationWarnings.map((warning, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span
+                        className={`mt-0.5 ${
+                          warning.severity === "error"
+                            ? "text-red-500"
+                            : "text-yellow-500"
+                        }`}
+                      >
+                        {warning.severity === "error" ? "❌" : "⚠️"}
+                      </span>
+                      <span>
+                        <strong>{warning.property}:</strong> {warning.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 text-xs text-yellow-600">
+                  These warnings indicate potential type mismatches between your
+                  data and the component schema.
+                </div>
+              </div>
+            )}
+
+            {/* Bindings Summary */}
+            {componentProps.__bindings &&
+              Object.keys(componentProps.__bindings).length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-blue-800 mb-2">
+                    Active Data Bindings
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(componentProps.__bindings).map(
+                      ([prop, binding]: [string, any]) => (
+                        <div key={prop} className="flex justify-between">
+                          <span className="font-medium text-blue-700">
+                            {prop}:
+                          </span>
+                          <span className="text-blue-600 font-mono text-xs">
+                            {binding.path}
+                            {binding.transformer && ` → ${binding.transformer}`}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div className="mt-2 text-xs text-blue-600">
+                    {Object.keys(componentProps.__bindings).length} property(s)
+                    bound to data source
+                  </div>
+                </div>
+              )}
 
             {/* Quick Actions */}
             {(onApiCall || onCustomAction) && (
@@ -692,7 +844,7 @@ export const DataTab: React.FC<DataTabProps> = ({
         lists={source.lists || []}
         dataSources={source.dataSources || []}
       />
-      
+
       {/* Data Explorer Dialog */}
       <DataExplorerDialog
         isOpen={showDataExplorer}
@@ -700,23 +852,32 @@ export const DataTab: React.FC<DataTabProps> = ({
         dataSources={source.dataSources || []}
         onApplyMappings={handleApplyMappings}
         onBindRecord={handleBindRecord}
-        mappableProps={Object.keys(componentProps).filter(k => k !== '__schema' && k !== '__bindings')}
+        mappableProps={Object.keys(componentProps).filter(
+          (k) => k !== "__schema" && k !== "__bindings"
+        )}
         currentMappings={
-          componentProps.__bindings 
-            ? Object.entries(componentProps.__bindings).reduce((acc: any, [key, binding]: any) => {
-                acc[key] = binding.path;
-                return acc;
-              }, {})
+          componentProps.__bindings
+            ? Object.entries(componentProps.__bindings).reduce(
+                (acc: any, [key, binding]: any) => {
+                  acc[key] = binding.path;
+                  return acc;
+                },
+                {}
+              )
             : {}
         }
         currentTransformers={
-          componentProps.__bindings 
-            ? Object.entries(componentProps.__bindings).reduce((acc: any, [key, binding]: any) => {
-                if (binding.transformer) acc[key] = binding.transformer;
-                return acc;
-              }, {})
+          componentProps.__bindings
+            ? Object.entries(componentProps.__bindings).reduce(
+                (acc: any, [key, binding]: any) => {
+                  if (binding.transformer) acc[key] = binding.transformer;
+                  return acc;
+                },
+                {}
+              )
             : {}
         }
+        schema={schema} // Pass the schema for type checking
       />
     </>
   );

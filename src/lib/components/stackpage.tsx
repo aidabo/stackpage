@@ -50,6 +50,7 @@ import { ComponentsTab } from "./ComponentsTab";
 import { PageTab } from "./PageTab";
 import { ListTab } from "./ListTab";
 import { DataSourceTab } from "./DataSourceTab";
+import { DataBindingRunner } from "./DataBindingRunner";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 
@@ -448,6 +449,7 @@ const StackPageContent = ({
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
       <div className="min-h-screen bg-white text-black flex flex-col">
+        <DataBindingRunner stackActionsRef={stackActionsRef} /> {/* Apply bindings */}
         {/* Toolbar - Only show in edit mode */}
         {currentMode === "edit" && (
           <header className="mx-2 p-4 bg-white shadow relative">
