@@ -1,0 +1,855 @@
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import {
+  XMarkIcon,
+  TableCellsIcon,
+  MapIcon,
+  MagnifyingGlassIcon,
+  CheckCircleIcon,
+  PlusIcon,
+  CheckIcon,
+  ArrowRightIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  CodeBracketSquareIcon,
+  ClipboardDocumentCheckIcon,
+} from "@heroicons/react/24/outline";
+import { VisualDataPreview } from "./VisualDataPreview";
+import { DataSource } from "./types";
+import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
+import { get } from "../utils/get";
+
+interface DataExplorerDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  dataSources: DataSource[];
+  onApplyMappings: (
+    mappings: Record<string, string>,
+    dataSourceId: string,
+    _data?: any, // Renamed 'data' to '_data' to avoid lint warnings if unused
+    transformers?: Record<string, string>
+  ) => void;
+  onBindRecord: (
+    record: any,
+    mappings: Record<string, string>,
+    dataSourceId: string
+  ) => void;
+  mappableProps: string[];
+  currentMappings: Record<string, string>;
+  currentTransformers?: Record<string, string>;
+  initialDataSourceId?: string;
+}
+
+export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
+  isOpen,
+  onClose,
+  dataSources,
+  onApplyMappings,
+  onBindRecord,
+  mappableProps,
+  currentMappings,
+  initialDataSourceId,
+}) => {
+  const [activeTab, setActiveTab] = useState<"select" | "mapping">("select");
+  const [mappings, setMappings] =
+    useState<Record<string, string>>(currentMappings);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState<
+    { id: number; key: string; value: string }[]
+  >([]);
+
+  // Data Source State
+  const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>(
+    initialDataSourceId || ""
+  );
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [selectedRecordIndex, setSelectedRecordIndex] = useState<number | null>(
+    null
+  );
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+
+  // Schema View State
+  const [showSchema, setShowSchema] = useState(false);
+  const [schemaJson, setSchemaJson] = useState<string>("");
+
+  // Initialize mappings
+  useEffect(() => {
+    setMappings(currentMappings);
+  }, [currentMappings]);
+
+  // Initial Data Source Selection
+  useEffect(() => {
+    if (isOpen && initialDataSourceId) {
+      setSelectedDataSourceId(initialDataSourceId);
+    } else if (isOpen && !selectedDataSourceId && dataSources.length > 0) {
+      setSelectedDataSourceId(dataSources[0].id);
+    }
+  }, [isOpen, initialDataSourceId, dataSources]);
+
+  // Fetch Data Function
+  const fetchData = useCallback(async () => {
+    if (!selectedDataSourceId) return;
+
+    const ds = dataSources.find((d) => d.id === selectedDataSourceId);
+    if (!ds) return;
+
+    // For static data sources, use the stored data
+    if (ds.type === "static" && ds.data) {
+      setPreviewData(ds.data);
+      setSelectedRecord(null); // Reset selection on data change
+      setSelectedRecordIndex(null);
+      return;
+    }
+
+    // For API data sources, fetch from endpoint
+    if (!ds.endpoint) {
+      setError("No endpoint configured for this data source");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const url = new URL(ds.endpoint);
+
+      // Add parameters to URL
+      Object.entries(ds.parameters || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== "") {
+          url.searchParams.append(k, String(v));
+        }
+      });
+
+      const res = await fetch(url.toString(), {
+        method: ds.method || "GET",
+        headers: (ds.headers as any) || {},
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const json = await res.json();
+      setPreviewData(json);
+      setSelectedRecord(null); // Reset selection
+      setSelectedRecordIndex(null);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch data");
+      console.error("Fetch error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedDataSourceId, dataSources]);
+
+  // Fetch when source changes
+  useEffect(() => {
+    if (selectedDataSourceId && isOpen) {
+      fetchData();
+    }
+  }, [selectedDataSourceId, isOpen, fetchData]);
+
+  // Auto-select first record when data loads
+  useEffect(() => {
+    if (
+      Array.isArray(previewData) &&
+      previewData.length > 0 &&
+      !selectedRecord
+    ) {
+      setSelectedRecord(previewData[0]);
+      setSelectedRecordIndex(0);
+    } else if (previewData && !Array.isArray(previewData) && !selectedRecord) {
+      setSelectedRecord(previewData);
+      setSelectedRecordIndex(0);
+    }
+  }, [previewData, selectedRecord]);
+
+  const currentDS = dataSources.find((d) => d.id === selectedDataSourceId);
+
+  // Get data structure fields from selected record
+  const dataFields = useMemo(() => {
+    if (!selectedRecord) return [];
+
+    const extractFields = (obj: any, path = "", level = 0): string[] => {
+      const fields: string[] = [];
+
+      if (!obj || typeof obj !== "object" || level > 5) return fields; // Increased depth limit
+
+      Object.keys(obj).forEach((key) => {
+        const value = obj[key];
+        const currentPath = path ? `${path}.${key}` : key;
+
+        // Add current path
+        fields.push(currentPath);
+
+        // Handle nested objects
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          fields.push(...extractFields(value, currentPath, level + 1));
+        }
+        // Handle arrays of objects (show first item as example)
+        else if (
+          Array.isArray(value) &&
+          value.length > 0 &&
+          typeof value[0] === "object"
+        ) {
+          fields.push(`${currentPath}[0]`);
+          fields.push(
+            ...extractFields(value[0], `${currentPath}[0]`, level + 1)
+          );
+        }
+      });
+
+      return fields;
+    };
+
+    return extractFields(selectedRecord);
+  }, [selectedRecord]);
+
+  // Generate Schema when data changes or modal opens
+  useEffect(() => {
+    if (showSchema && previewData) {
+      let objectToSchema = previewData;
+      if (Array.isArray(previewData) && previewData.length > 0) {
+        objectToSchema = previewData[0];
+      } else if (Array.isArray(previewData)) {
+        objectToSchema = {};
+      }
+
+      const schema = generateSchemaFromCurrentProps(objectToSchema);
+      setSchemaJson(JSON.stringify(schema, null, 2));
+    }
+  }, [showSchema, previewData]);
+
+  // Update a mapping
+
+  // Update a mapping
+  const updateMapping = (prop: string, field: string) => {
+    setMappings({
+      ...mappings,
+      [prop]: field,
+    });
+  };
+
+  // Handle record selection from VisualDataPreview
+  const handleSelectRecord = (record: any, index: number) => {
+    setSelectedRecord(record);
+    setSelectedRecordIndex(index);
+
+    // Add to selected items if not already there
+    if (!selectedItems.includes(index)) {
+      setSelectedItems([...selectedItems, index]);
+    }
+
+    // Auto-map record fields to component properties
+    autoMapRecordToProps(record);
+  };
+
+  const autoMapRecordToProps = (_record: any) => {
+    const newMappings: Record<string, string> = { ...mappings };
+
+    mappableProps.forEach((prop) => {
+      // Try to find matching field in record
+      const field = dataFields.find((f) => {
+        const fieldName = f.split(".").pop() || "";
+        return (
+          fieldName.toLowerCase() === prop.toLowerCase() ||
+          prop.toLowerCase().includes(fieldName.toLowerCase()) ||
+          fieldName.toLowerCase().includes(prop.toLowerCase())
+        );
+      });
+
+      if (field) {
+        newMappings[prop] = field;
+      }
+    });
+
+    setMappings(newMappings);
+  };
+
+  // Apply mappings and bind selected record
+  const applyMappingsAndBind = () => {
+    // Pass previewData (or selectedRecord if active?)
+    // If selectedRecord is set, we might want to prioritize it for initial value?
+    // But usually previewData is the root.
+    // If selectedRecord is used, the Mapping paths should probably be relative to it?
+    // No, mapping paths in current implementation seem to be absolute or relative to data root.
+    // Let's pass the root previewData.
+    // Let's pass the root previewData.
+    onApplyMappings(mappings, selectedDataSourceId, previewData);
+    onClose();
+  };
+
+  // Get preview value for a field
+  const getPreviewValue = (fieldPath: string) => {
+    if (!selectedRecord || !fieldPath) return null;
+    return get(selectedRecord, fieldPath);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters([]);
+    setSearchTerm("");
+  };
+
+  // Add filter
+  const addFilter = () => {
+    setFilters([...filters, { id: Date.now(), key: "title", value: "" }]);
+  };
+
+  // Update filter
+  const updateFilter = (id: number, field: "key" | "value", value: string) => {
+    setFilters(
+      filters.map((f) => (f.id === id ? { ...f, [field]: value } : f))
+    );
+  };
+
+  // Remove filter
+  const removeFilter = (id: number) => {
+    setFilters(filters.filter((f) => f.id !== id));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+        {/* HEADER */}
+        <div className="flex flex-col border-b bg-white">
+          <div className="flex justify-between items-center p-4 pb-2">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />
+              Data Explorer
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="px-4 pb-4 flex items-center gap-4">
+            {/* Data Source Selector */}
+            <div className="flex-1 max-w-md">
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                Data Source
+              </label>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={selectedDataSourceId}
+                  onChange={(e) => setSelectedDataSourceId(e.target.value)}
+                >
+                  <option value="">Select Data Source...</option>
+                  {dataSources.map((ds) => (
+                    <option key={ds.id} value={ds.id}>
+                      {ds.name} {ds.category ? `(${ds.category})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={fetchData}
+                  disabled={!selectedDataSourceId || isLoading}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-300 disabled:opacity-50 transition-colors"
+                  title="Refresh Data"
+                >
+                  <ArrowPathIcon
+                    className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Status Info */}
+            {currentDS && (
+              <div className="flex-1 pt-5">
+                <div className="text-sm text-gray-600">
+                  <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium mr-2">
+                    {currentDS.type.toUpperCase()}
+                  </span>
+                  {previewData && (
+                    <span className="text-green-600 font-medium">
+                      {Array.isArray(previewData)
+                        ? `${previewData.length} records loaded`
+                        : "Object loaded"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Check Schema Button */}
+            <div className="pt-5 px-2">
+              <button
+                onClick={() => setShowSchema(!showSchema)}
+                disabled={!previewData}
+                className={`p-2 rounded-lg transition-colors ${
+                  showSchema
+                    ? "bg-blue-100 text-blue-600"
+                    : "hover:bg-gray-100 text-gray-500"
+                } disabled:opacity-50`}
+                title="Check Data Schema"
+              >
+                <CodeBracketSquareIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Schema Viewer Overlay */}
+          {showSchema && (
+            <div className="px-4 pb-4 bg-white border-b relative z-10 transition-all">
+              <div className="bg-gray-800 rounded-lg p-4 font-mono text-xs text-green-400 overflow-auto max-h-[200px] shadow-inner relative group">
+                <button
+                  className="absolute top-2 right-2 p-1 bg-gray-700 rounded text-gray-300 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    navigator.clipboard.writeText(schemaJson);
+                    const btn = e.currentTarget;
+                    btn.classList.add("text-green-500");
+                    setTimeout(
+                      () => btn.classList.remove("text-green-500"),
+                      1000
+                    );
+                  }}
+                  title="Copy to Clipboard"
+                >
+                  <ClipboardDocumentCheckIcon className="w-4 h-4" />
+                </button>
+                <pre>{schemaJson}</pre>
+              </div>
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {error && (
+            <div className="px-4 pb-2">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+                <ExclamationTriangleIcon className="w-5 h-5 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Tabs */}
+          <div className="px-4 flex gap-1 bg-gray-50 border-t">
+            <button
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "select"
+                  ? "border-blue-500 text-blue-600 bg-white"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("select")}
+            >
+              <TableCellsIcon className="w-4 h-4" />
+              1. Select Record
+            </button>
+            <button
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                activeTab === "mapping"
+                  ? "border-blue-500 text-blue-600 bg-white"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("mapping")}
+            >
+              <MapIcon className="w-4 h-4" />
+              2. Map Fields
+            </button>
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="flex-1 overflow-hidden bg-gray-50 relative">
+          {isLoading && (
+            <div className="absolute inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <ArrowPathIcon className="w-8 h-8 text-blue-600 animate-spin" />
+                <span className="text-sm font-medium text-gray-600">
+                  Loading data...
+                </span>
+              </div>
+            </div>
+          )}
+
+          {!previewData && !isLoading ? (
+            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+              <MagnifyingGlassIcon className="w-16 h-16 mb-4 opacity-20" />
+              <p>Select a data source to begin exploring</p>
+            </div>
+          ) : activeTab === "select" ? (
+            <div className="h-full flex flex-col">
+              {/* Search and Filter Bar */}
+              <div className="p-3 bg-white border-b">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="relative flex-1">
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="Search in data..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("mapping")}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
+                  >
+                    <ArrowRightIcon className="w-4 h-4" />
+                    Go to Mapping
+                  </button>
+                </div>
+
+                {/* Filters */}
+                {filters.length > 0 && (
+                  <div className="flex flex-wrap gap-2 items-center mb-2">
+                    <span className="text-sm font-medium text-gray-600">
+                      Filters:
+                    </span>
+                    {filters.map((filter) => (
+                      <div
+                        key={filter.id}
+                        className="flex items-center gap-1 bg-gray-100 border rounded px-2 py-1 text-xs"
+                      >
+                        <input
+                          type="text"
+                          className="w-24 bg-transparent border-none outline-none"
+                          placeholder="Field"
+                          value={filter.key}
+                          onChange={(e) =>
+                            updateFilter(filter.id, "key", e.target.value)
+                          }
+                        />
+                        <span className="text-gray-400">:</span>
+                        <input
+                          type="text"
+                          className="w-32 bg-transparent border-none outline-none"
+                          placeholder="Value"
+                          value={filter.value}
+                          onChange={(e) =>
+                            updateFilter(filter.id, "value", e.target.value)
+                          }
+                        />
+                        <button
+                          onClick={() => removeFilter(filter.id)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={addFilter}
+                      className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded border border-blue-200 flex items-center gap-1"
+                    >
+                      <PlusIcon className="w-3 h-3" />
+                      Add Filter
+                    </button>
+                    {filters.length > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded border border-gray-300"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Visual Preview */}
+              <div className="flex-1 overflow-hidden">
+                <VisualDataPreview
+                  data={previewData}
+                  category={currentDS?.category}
+                  onBind={(path, _isArray) => {
+                    // Quick bind individual fields
+                    if (mappableProps.length > 0) {
+                      const prop =
+                        mappableProps.find((p) => !mappings[p]) ||
+                        mappableProps[0];
+                      if (prop) {
+                        updateMapping(prop, path);
+                        setActiveTab("mapping");
+                      }
+                    }
+                  }}
+                  onSelectRecord={handleSelectRecord}
+                  searchTerm={searchTerm}
+                  filters={filters}
+                  selectedIndices={selectedItems}
+                />
+              </div>
+
+              {/* Quick Bind Button */}
+              {selectedRecord && (
+                <div className="p-3 border-t bg-white">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Record{" "}
+                      {selectedRecordIndex !== null
+                        ? `#${selectedRecordIndex + 1}`
+                        : ""}{" "}
+                      selected
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (selectedRecord) {
+                          onApplyMappings(mappings, selectedDataSourceId);
+                          onBindRecord(
+                            selectedRecord,
+                            mappings,
+                            selectedDataSourceId
+                          );
+                          onClose();
+                        }
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
+                      disabled={!selectedDataSourceId}
+                    >
+                      <CheckCircleIcon className="w-4 h-4" />
+                      Bind Selected Record with Current Mappings
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-full flex">
+              {/* Left Panel - Field List */}
+              <div className="w-1/3 min-w-[300px] border-r border-gray-200 bg-white flex flex-col overflow-hidden">
+                <div className="p-3 border-b bg-gray-50">
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    Available Data Fields
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Click to copy to unmapped property
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-2">
+                  {dataFields.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500 text-sm italic">
+                      No fields found or no record selected.
+                      <br />
+                      Go back to "Select Record" tab.
+                    </div>
+                  ) : (
+                    dataFields.map((field) => {
+                      const preview = getPreviewValue(field);
+                      return (
+                        <div
+                          key={field}
+                          className="text-xs p-2 hover:bg-gray-50 rounded cursor-pointer border-l-2 border-l-gray-200 mb-1"
+                          onClick={() => {
+                            // Find first unmapped property
+                            const unmappedProp = mappableProps.find(
+                              (p) => !mappings[p]
+                            );
+                            if (unmappedProp) {
+                              updateMapping(unmappedProp, field);
+                            }
+                          }}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-mono text-blue-600 break-all">
+                              {field}
+                            </span>
+                            {mappings &&
+                              Object.values(mappings).includes(field) && (
+                                <CheckIcon className="w-3 h-3 text-green-500" />
+                              )}
+                          </div>
+                          {preview !== undefined && (
+                            <div className="text-gray-500 truncate text-xs mt-1 font-mono">
+                              ={" "}
+                              {typeof preview === "object"
+                                ? JSON.stringify(preview).substring(0, 30) +
+                                  "..."
+                                : String(preview).substring(0, 30)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Right Panel - Mapping Table */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="p-4 bg-white border-b">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                    Set Field Mappings
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Map component properties to data fields (JSON path).
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-auto p-4 bg-gray-50">
+                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                    {/* Table Header */}
+                    <div className="grid grid-cols-12 gap-4 p-3 border-b bg-gray-50">
+                      <div className="col-span-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Component Property
+                      </div>
+                      <div className="col-span-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        JSON Path / Field
+                      </div>
+                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Transformer
+                      </div>
+                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Preview
+                      </div>
+                    </div>
+
+                    {/* Table Body */}
+                    <div className="divide-y divide-gray-100">
+                      {mappableProps.map((prop) => {
+                        const fieldPath = mappings[prop] || "";
+                        const previewValue = fieldPath
+                          ? getPreviewValue(fieldPath)
+                          : null;
+
+                        return (
+                          <div
+                            key={prop}
+                            className="grid grid-cols-12 gap-4 p-3 hover:bg-blue-50/50 items-center transition-colors"
+                          >
+                            {/* Property Column */}
+                            <div className="col-span-4">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    fieldPath ? "bg-green-500" : "bg-gray-300"
+                                  }`}
+                                ></div>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {prop}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Data Field Column (Dropdown + Input) */}
+                            <div className="col-span-4 flex flex-col gap-1">
+                              <div className="flex gap-1">
+                                <select
+                                  className="w-1/3 px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                  value={
+                                    dataFields.includes(fieldPath)
+                                      ? fieldPath
+                                      : ""
+                                  }
+                                  onChange={(e) =>
+                                    updateMapping(prop, e.target.value)
+                                  }
+                                >
+                                  <option value="">Select...</option>
+                                  {dataFields.map((field) => (
+                                    <option key={field} value={field}>
+                                      {field}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="text"
+                                  className="flex-1 px-2 py-1.5 border border-l-0 border-gray-300 rounded-r text-xs font-mono text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                  value={fieldPath}
+                                  placeholder="e.g. items[0].name"
+                                  onChange={(e) =>
+                                    updateMapping(prop, e.target.value)
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            {/* Transformer Column */}
+                            {/* <div className="col-span-2">
+                              <select
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                value={transformers[prop] || ""}
+                                onChange={(e) =>
+                                  updateTransformer(prop, e.target.value)
+                                }
+                              >
+                                <option value="">None</option>
+                                {getAllTransformers().map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div> */}
+
+                            {/* Preview Column */}
+                            <div className="col-span-3">
+                              {previewValue !== undefined &&
+                              previewValue !== null ? (
+                                <div
+                                  className="text-xs font-mono bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 truncate"
+                                  title={String(previewValue)}
+                                >
+                                  {typeof previewValue === "object"
+                                    ? `[${
+                                        Array.isArray(previewValue)
+                                          ? "Array"
+                                          : "Object"
+                                      }]`
+                                    : String(previewValue)}
+                                </div>
+                              ) : fieldPath ? (
+                                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                  Not found
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400 italic">
+                                  -
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mt-6 flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                      {Object.keys(mappings).filter((k) => mappings[k]).length}{" "}
+                      mapped
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setActiveTab("select")}
+                        className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={applyMappingsAndBind}
+                        disabled={
+                          Object.keys(mappings).filter((k) => mappings[k])
+                            .length === 0 ||
+                          !selectedRecord ||
+                          !selectedDataSourceId
+                        }
+                        className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <CheckCircleIcon className="w-4 h-4" />
+                        Apply & Bind
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -73,11 +73,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
     setEditingDataSource(null);
   };
 
-  const handleUpdateDataSource = (id: string, updates: Partial<DataSource>) => {
-    setDataSources(
-      dataSources.map((ds) => (ds.id === id ? { ...ds, ...updates } : ds))
-    );
-  };
+
 
   return (
     <div className="h-full p-4 space-y-6 bg-zinc-200 overflow-y-auto">

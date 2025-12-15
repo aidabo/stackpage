@@ -31,8 +31,11 @@ import {
   GetSelectOptionsFn,
 } from "..";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
+import { DataExplorerDialog } from "./DataExplorerDialog"; // Added
 import { useStackPage } from "./StackPageContext";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { get } from "../utils/get"; // Added
+import { LinkIcon } from "@heroicons/react/24/outline"; // Added for icon
 
 interface DataTabProps {
   selectedInstance: any;
@@ -69,6 +72,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   const formRef = useRef<any>(null);
   const previousSchemaRef = useRef<any>(null);
   const [showSchemaEditor, setShowSchemaEditor] = useState(false);
+  const [showDataExplorer, setShowDataExplorer] = useState(false); // Added
   const [localComponentSchema, setLocalComponentSchema] =
     useState(componentSchema);
   const [formError, setFormError] = useState<string | null>(null);
@@ -233,6 +237,61 @@ export const DataTab: React.FC<DataTabProps> = ({
       console.error("Error generating schema:", error);
       setFormError(`Error generating schema: ${error}`);
     }
+  };
+
+  const handleApplyMappings = (
+    mappings: Record<string, string>,
+    dataSourceId: string,
+    _data?: any,
+    transformers?: Record<string, string>
+  ) => {
+    console.log("Applying mappings:", mappings, dataSourceId);
+    
+    // Construct bindings object
+    const newBindings: Record<string, any> = {};
+    
+    Object.entries(mappings).forEach(([prop, path]) => {
+      if (path) {
+        newBindings[prop] = {
+          sourceId: dataSourceId,
+          path: path,
+          transformer: transformers?.[prop]
+        };
+      }
+    });
+
+    // Update props with __bindings
+    const updatedProps = {
+      ...componentProps,
+      __bindings: {
+        ...(componentProps.__bindings || {}),
+        ...newBindings
+      }
+    };
+    
+    // If data is provided, we can optionally preview/hydrate current props?
+    // For now, just save the bindings. Use standard onPropertyChange
+    onPropertyChange({ formData: updatedProps });
+  };
+
+  const handleBindRecord = (
+    record: any,
+    mappings: Record<string, string>,
+    _dataSourceId: string
+  ) => {
+    // Immediate binding of values for preview/static use
+    const newProps = { ...componentProps };
+    
+    Object.entries(mappings).forEach(([prop, path]) => {
+      if (path) {
+        const value = get(record, path);
+        if (value !== undefined) {
+          newProps[prop] = value;
+        }
+      }
+    });
+    
+    onPropertyChange({ formData: newProps });
   };
 
   // 移除的widgets代码保持不变...
@@ -431,6 +490,15 @@ export const DataTab: React.FC<DataTabProps> = ({
               <div className="flex space-x-2">
                 {/* Schema Actions */}
                 <button
+                  onClick={() => setShowDataExplorer(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                  title="Data Binding"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  Data Binding
+                </button>
+
+                <button
                   onClick={() => setShowSchemaEditor(true)}
                   className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
                   title="Edit Schema"
@@ -623,6 +691,32 @@ export const DataTab: React.FC<DataTabProps> = ({
         currentSchema={localComponentSchema}
         lists={source.lists || []}
         dataSources={source.dataSources || []}
+      />
+      
+      {/* Data Explorer Dialog */}
+      <DataExplorerDialog
+        isOpen={showDataExplorer}
+        onClose={() => setShowDataExplorer(false)}
+        dataSources={source.dataSources || []}
+        onApplyMappings={handleApplyMappings}
+        onBindRecord={handleBindRecord}
+        mappableProps={Object.keys(componentProps).filter(k => k !== '__schema' && k !== '__bindings')}
+        currentMappings={
+          componentProps.__bindings 
+            ? Object.entries(componentProps.__bindings).reduce((acc: any, [key, binding]: any) => {
+                acc[key] = binding.path;
+                return acc;
+              }, {})
+            : {}
+        }
+        currentTransformers={
+          componentProps.__bindings 
+            ? Object.entries(componentProps.__bindings).reduce((acc: any, [key, binding]: any) => {
+                if (binding.transformer) acc[key] = binding.transformer;
+                return acc;
+              }, {})
+            : {}
+        }
       />
     </>
   );
