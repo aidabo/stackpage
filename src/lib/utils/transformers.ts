@@ -26,7 +26,10 @@ export const transformers: Record<string, (value: any) => any> = {
   },
 
   // 类型转换
-  string: (value: any) => String(value),
+  string: (value: any) => {
+    if (value === null || value === undefined) return "";
+    return String(value);
+  },
   boolean: (value: any) => Boolean(value),
 
   // 日期转换

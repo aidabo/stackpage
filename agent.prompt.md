@@ -55,3 +55,17 @@ StackPage is a low-code library for building page editors. It operates on a Host
   4.  Run the saved Transformer function.
   5.  Inject the final value into the component props dynamically.
 - **Reloadability:** Ensure that this entire process happens automatically when the editor or page reloads, restoring the component's data state without user intervention.
+
+**4. Save binding and mapping info**
+
+Now binding api datasource, mapping, transoform with selected component instance props is already prepared by DataExplorerDialog, but props update to real value when page build and save with props, so when api datasource result updated, not reflect dynamically.
+
+As above, please fix for me.
+
+1. must save binding and mapping info with props, see **schema saving and loading and apply when page building, i think similar to the works for **schema
+2. Create shared resolver to resolve api mapping and tranform
+3. Create shared dataservice to dynamically api fetch when binding
+4. when page building, call above functions to bind and mapping and render real data to selected component instance to preview result of UI
+5. when page save by handleSave , save \_\_binding info into props
+6. when page load , if has binding info in props, use resolver to perform binding, mapping, transform
+7. be careful check propertyTab and DataTab, DataTab show selected component instance props as form to edit mannually. if has binding setting, will show resolved data in form

@@ -116,7 +116,7 @@ export const PropertiesTab = ({
         const updatedProps = {
           ...data.formData,
           __schema: componentSchema, // Preserve the schema
-          __bindings: __bindings, // Preserve the bindings
+          __bindings: data.formData.__bindings || __bindings, // Prioritize updated bindings
         };
         const updatedInstance = {
           ...selectedInstance,
@@ -193,7 +193,7 @@ export const PropertiesTab = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-zinc-200">
+    <div className="h-full flex flex-col bg-zinc-200 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between">
@@ -251,6 +251,7 @@ export const PropertiesTab = ({
             setSelectedComponent={setSelectedComponent}
             componentSchema={componentSchema as any}
             onSchemaChange={handleSchemaChange} // 新增：传递schema变更处理函数
+            bindings={__bindings}
           />
         )}
 

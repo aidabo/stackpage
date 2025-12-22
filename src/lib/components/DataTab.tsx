@@ -44,6 +44,7 @@ import { get } from "../utils/get";
 import { LinkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { applyTransformer } from "../utils/transformers"; // Import the transformer function
 import { validateBindingAgainstSchema } from "../utils/bindingValidation";
+import { useDataBinding } from "./useDataBinding";
 
 interface DataTabProps {
   selectedInstance: any;
@@ -59,24 +60,38 @@ interface DataTabProps {
   setSelectedComponent: (component: string | null) => void;
   componentSchema: any;
   onSchemaChange?: (schema: any) => void;
+  bindings?: Record<string, any>;
 }
 
 export const DataTab: React.FC<DataTabProps> = ({
   selectedInstance,
   componentType,
   componentProps,
-  currentProps,
+  // currentProps,
   onPropertyChange,
   onFileUpload,
-  onApiCall,
-  onCustomAction,
+  // onApiCall,
+  // onCustomAction,
   onGetSelectOptions,
   setSelectedInstance,
   setSelectedComponent,
   componentSchema,
   onSchemaChange,
+  bindings,
 }) => {
   const { source } = useStackPage();
+
+  // Resolve bindings for display
+  const fullProps = useMemo(
+    () => ({
+      ...componentProps,
+      __bindings: bindings,
+      __schema: componentSchema, // Pass schema to useDataBinding
+    }),
+    [componentProps, bindings, componentSchema]
+  );
+  const resolvedProps = useDataBinding(fullProps);
+
   const formRef = useRef<any>(null);
   const previousSchemaRef = useRef<any>(null);
   const [showSchemaEditor, setShowSchemaEditor] = useState(false);
@@ -89,6 +104,15 @@ export const DataTab: React.FC<DataTabProps> = ({
     setLocalComponentSchema(componentSchema);
   }, [componentSchema]);
 
+  // Helper to remove internal properties
+  const getCleanProps = (props: any) => {
+    const cleanProps = { ...props };
+    delete cleanProps.__bindings;
+    delete cleanProps.__schema;
+    delete cleanProps.__ignoredMappings;
+    return cleanProps;
+  };
+
   const { schema, uiSchema } = useMemo(() => {
     try {
       let finalSchema = localComponentSchema;
@@ -99,7 +123,10 @@ export const DataTab: React.FC<DataTabProps> = ({
         Object.keys(finalSchema).length === 0 ||
         !finalSchema.properties
       ) {
-        finalSchema = generateSchemaFromCurrentProps(componentProps);
+        // Filter out internal properties before generating schema
+        const cleanProps = getCleanProps(componentProps);
+
+        finalSchema = generateSchemaFromCurrentProps(cleanProps);
       }
 
       if (!finalSchema.type) finalSchema.type = "object";
@@ -108,14 +135,44 @@ export const DataTab: React.FC<DataTabProps> = ({
 
       const generatedUiSchema = generateUiSchema(finalSchema);
 
-      return { schema: finalSchema, uiSchema: generatedUiSchema };
+      // Enhanced UI Schema with visual markers for bindings and ignored fields
+      const enhancedUiSchema = { ...generatedUiSchema };
+
+      // Add visual style for bound fields
+      if (bindings) {
+        Object.keys(bindings).forEach((key) => {
+          enhancedUiSchema[key] = {
+            ...enhancedUiSchema[key],
+            "ui:classNames":
+              (enhancedUiSchema[key]?.["ui:classNames"] || "") +
+              " bg-zinc-300 border-l-4 border-blue-300 pl-4 py-2 rounded-r",
+            "ui:readonly": true, // Make bound fields read-only in UI
+          };
+        });
+      }
+
+      // Add visual style for ignored fields
+      if (componentProps.__ignoredMappings) {
+        componentProps.__ignoredMappings.forEach((key: string) => {
+          enhancedUiSchema[key] = {
+            ...enhancedUiSchema[key],
+            "ui:classNames":
+              (enhancedUiSchema[key]?.["ui:classNames"] || "") +
+              " bg-white-50 border-l-4 border-white-400 pl-4 py-2 rounded-r",
+          };
+        });
+      }
+
+      return { schema: finalSchema, uiSchema: enhancedUiSchema };
     } catch (error) {
       console.error("Error generating schema:", error);
-      const fallbackSchema = generateSchemaFromCurrentProps(componentProps);
+      const cleanProps = getCleanProps(componentProps);
+
+      const fallbackSchema = generateSchemaFromCurrentProps(cleanProps);
       const fallbackUiSchema = generateUiSchema(fallbackSchema);
       return { schema: fallbackSchema, uiSchema: fallbackUiSchema };
     }
-  }, [localComponentSchema, componentProps]);
+  }, [localComponentSchema, componentProps, bindings]);
 
   useEffect(() => {
     console.log("Current schema:", schema);
@@ -208,7 +265,9 @@ export const DataTab: React.FC<DataTabProps> = ({
 
   const handleGenerateSchema = () => {
     try {
-      const generatedSchema = generateSchemaFromCurrentProps(componentProps);
+      const cleanProps = getCleanProps(componentProps);
+
+      const generatedSchema = generateSchemaFromCurrentProps(cleanProps);
       console.log("Generated schema:", generatedSchema);
       setLocalComponentSchema(generatedSchema);
       if (onSchemaChange) {
@@ -231,7 +290,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   >([]);
 
   const validateCurrentBindings = useCallback(() => {
-    if (!componentProps.__bindings || !localComponentSchema) {
+    if (!bindings || !localComponentSchema) {
       setValidationWarnings([]);
       return;
     }
@@ -242,71 +301,107 @@ export const DataTab: React.FC<DataTabProps> = ({
       severity: "warning" | "error";
     }> = [];
 
-    Object.entries(componentProps.__bindings).forEach(
-      ([prop, binding]: [string, any]) => {
-        const propSchema = localComponentSchema?.properties?.[prop];
-        if (!propSchema) {
-          warnings.push({
-            property: prop,
-            message: `Property "${prop}" not found in schema`,
-            severity: "warning",
-          });
-          return;
-        }
-
-        // Find the data source
-        const dataSource = source.dataSources.find(
-          (ds) => ds.id === binding.sourceId
-        );
-        if (!dataSource || !dataSource.data) {
-          warnings.push({
-            property: prop,
-            message: `Data source "${binding.sourceId}" not found or has no data`,
-            severity: "warning",
-          });
-          return;
-        }
-
-        // Get the value from the data source
-        const value = get(dataSource.data, binding.path);
-
-        // Validate the binding
-        const validationWarnings = validateBindingAgainstSchema(
-          binding,
-          propSchema,
-          value
-        );
-
-        validationWarnings.forEach((message) => {
-          warnings.push({
-            property: prop,
-            message,
-            severity: validationWarnings.length > 1 ? "error" : "warning",
-          });
+    Object.entries(bindings).forEach(([prop, binding]: [string, any]) => {
+      const propSchema = localComponentSchema?.properties?.[prop];
+      if (!propSchema) {
+        warnings.push({
+          property: prop,
+          message: `Property "${prop}" not found in schema`,
+          severity: "warning",
         });
+        return;
       }
-    );
+
+      // Find the data source
+      const dataSource = source.dataSources.find(
+        (ds) => ds.id === binding.sourceId
+      );
+      if (!dataSource || !dataSource.data) {
+        warnings.push({
+          property: prop,
+          message: `Data source "${binding.sourceId}" not found or has no data`,
+          severity: "warning",
+        });
+        return;
+      }
+
+      // Get the value from the data source
+      const value = get(dataSource.data, binding.path);
+
+      // Validate the binding
+      const validationWarnings = validateBindingAgainstSchema(
+        binding,
+        propSchema,
+        value
+      );
+
+      validationWarnings.forEach((message) => {
+        warnings.push({
+          property: prop,
+          message,
+          severity: validationWarnings.length > 1 ? "error" : "warning",
+        });
+      });
+    });
 
     setValidationWarnings(warnings);
-  }, [componentProps.__bindings, localComponentSchema, source.dataSources]);
+  }, [bindings, localComponentSchema, source.dataSources]);
 
   // Call validation when bindings or schema changes
   useEffect(() => {
     validateCurrentBindings();
   }, [validateCurrentBindings]);
 
+  const handleReleaseBindings = () => {
+    if (
+      !confirm(
+        "Are you sure you want to release all data bindings for this component? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const cleanProps = getCleanProps(componentProps);
+      // Explicitly set empty bindings to ensure they are cleared in PropertiesTab
+      const propsWithClearedBindings = {
+        ...cleanProps,
+        __bindings: {},
+        __ignoredMappings: [],
+      };
+      onPropertyChange({ formData: propsWithClearedBindings });
+      setValidationWarnings([]);
+    } catch (error) {
+      console.error("Error releasing bindings:", error);
+      setFormError(`Error releasing bindings: ${error}`);
+    }
+  };
+
   // Update handleApplyMappings to include validation:
   const handleApplyMappings = (
     mappings: Record<string, string>,
     dataSourceId: string,
     _data?: any,
-    transformers?: Record<string, string>
+    transformers?: Record<string, string>,
+    selector?: { type: "id" | "index" | "all"; value?: string | number },
+    ignoredFields?: string[]
   ) => {
-    console.log("Applying mappings:", { mappings, dataSourceId, transformers });
+    console.log("Applying mappings:", {
+      mappings,
+      dataSourceId,
+      transformers,
+      selector,
+      ignoredFields,
+    });
 
     // Construct bindings object
     const newBindings: Record<string, any> = {};
     const validationErrors: string[] = [];
+
+    // Identify target type for null transformation logic
+    const getTargetType = (prop: string) => {
+      return localComponentSchema?.properties?.[prop]?.type;
+    };
 
     Object.entries(mappings).forEach(([prop, path]) => {
       if (path) {
@@ -314,6 +409,8 @@ export const DataTab: React.FC<DataTabProps> = ({
           sourceId: dataSourceId,
           path: path,
           transformer: transformers?.[prop] || undefined,
+          selector: selector, // Save the selector info
+          targetType: getTargetType(prop), // Save target type for null handling
         };
         newBindings[prop] = binding;
 
@@ -346,10 +443,20 @@ export const DataTab: React.FC<DataTabProps> = ({
     const updatedProps = {
       ...componentProps,
       __bindings: {
-        ...(componentProps.__bindings || {}),
+        ...(bindings || {}),
         ...newBindings,
       },
+      __ignoredMappings: ignoredFields || [],
     };
+
+    // Clean up bindings for ignored fields
+    if (ignoredFields && ignoredFields.length > 0) {
+      ignoredFields.forEach((prop) => {
+        if (updatedProps.__bindings && updatedProps.__bindings[prop]) {
+          delete updatedProps.__bindings[prop];
+        }
+      });
+    }
 
     // Apply immediate binding for preview if data is provided
     if (_data) {
@@ -475,49 +582,6 @@ export const DataTab: React.FC<DataTabProps> = ({
     FieldTemplate: CustomFieldTemplate,
   };
 
-  const isApiField = (value: any): boolean => {
-    if (typeof value !== "string") return false;
-    return value.startsWith("/api/");
-  };
-
-  const isCustomActionField = (value: any): boolean => {
-    if (typeof value !== "string") return false;
-    return value.toLowerCase().startsWith("/customaction/");
-  };
-
-  const handleApiCall = async (
-    _property: string,
-    endpoint: string,
-    onApiCall?: (endpoint: string, data?: any) => Promise<any>
-  ) => {
-    if (onApiCall) {
-      try {
-        const result = await onApiCall(endpoint);
-        return result;
-      } catch (error) {
-        console.error("API call failed:", error);
-        throw error;
-      }
-    }
-  };
-
-  const handleCustomAction = async (
-    _property: string,
-    action: string,
-    data: any,
-    onCustomAction?: (action: string, data: any) => Promise<any>
-  ) => {
-    if (onCustomAction) {
-      try {
-        const result = await onCustomAction(action, data);
-        return result;
-      } catch (error) {
-        console.error("Custom action failed:", error);
-        throw error;
-      }
-    }
-  };
-
   const handleReset = () => {
     const resetProps = Object.keys(componentProps).reduce((acc, key) => {
       const value = componentProps[key];
@@ -568,7 +632,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       >
         <div className="h-full flex flex-col">
           {/* Header with Schema Actions */}
-          <div className="border-b border-gray-200 bg-white p-4">
+          <div className="border-b border-gray-50 bg-white p-4">
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
@@ -582,11 +646,19 @@ export const DataTab: React.FC<DataTabProps> = ({
               <div className="flex space-x-2">
                 <button
                   onClick={() => setShowDataExplorer(true)}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                  className={`px-4 py-2 text-white rounded text-sm transition-colors flex items-center gap-2 ${
+                    bindings && Object.keys(bindings).length > 0
+                      ? "bg-green-600 hover:bg-green-700"
+                      : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
                   title="Data Binding"
                 >
                   <LinkIcon className="w-4 h-4" />
-                  Data Binding
+                  {bindings && Object.keys(bindings).length > 0 ? (
+                    <span>Data Binding ({Object.keys(bindings).length})</span>
+                  ) : (
+                    <span>Data Binding</span>
+                  )}
                 </button>
 
                 <button
@@ -622,7 +694,7 @@ export const DataTab: React.FC<DataTabProps> = ({
           </div>
 
           {/* Form Content */}
-          <div className="flex-1 overflow-auto p-6">
+          <div className="flex-1 overflow-auto p-2 bg-zinc-100">
             {/* RJSF Form */}
             <div className="properties-form">
               <Form
@@ -630,7 +702,7 @@ export const DataTab: React.FC<DataTabProps> = ({
                 key={selectedInstance?.id || componentType}
                 schema={schema}
                 uiSchema={uiSchema}
-                formData={componentProps}
+                formData={resolvedProps}
                 onChange={onPropertyChange}
                 validator={validator}
                 widgets={widgets}
@@ -674,36 +746,55 @@ export const DataTab: React.FC<DataTabProps> = ({
             )}
 
             {/* Bindings Summary */}
-            {componentProps.__bindings &&
-              Object.keys(componentProps.__bindings).length > 0 && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="text-sm font-medium text-blue-800 mb-2">
-                    Active Data Bindings
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {Object.entries(componentProps.__bindings).map(
-                      ([prop, binding]: [string, any]) => (
-                        <div key={prop} className="flex justify-between">
-                          <span className="font-medium text-blue-700">
-                            {prop}:
-                          </span>
-                          <span className="text-blue-600 font-mono text-xs">
-                            {binding.path}
-                            {binding.transformer && ` → ${binding.transformer}`}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                  <div className="mt-2 text-xs text-blue-600">
-                    {Object.keys(componentProps.__bindings).length} property(s)
-                    bound to data source
-                  </div>
+            {bindings && Object.keys(bindings).length > 0 && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">
+                  Active Data Bindings
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <tbody>
+                      {Object.entries(bindings).map(
+                        ([prop, binding]: [string, any]) => (
+                          <tr
+                            key={prop}
+                            className="border-b border-blue-100 last:border-0"
+                          >
+                            <td className="py-1.5 pr-4 font-medium text-blue-700 align-top whitespace-nowrap">
+                              {prop}
+                            </td>
+                            <td className="py-1.5 text-blue-600 font-mono text-xs align-top break-all">
+                              {binding.path}
+                              {binding.transformer && (
+                                <span className="block text-amber-700 text-[10px]">
+                                  → {binding.transformer}
+                                </span>
+                              )}
+                              {binding.selector && (
+                                <span className="block text-gray-500 text-[10px]">
+                                  [{binding.selector.type}
+                                  {binding.selector.value !== undefined
+                                    ? `:${binding.selector.value}`
+                                    : ""}
+                                  ]
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              )}
+                <div className="mt-2 text-xs text-blue-600">
+                  {Object.keys(bindings).length} property(s) bound to data
+                  source
+                </div>
+              </div>
+            )}
 
             {/* Quick Actions */}
-            {(onApiCall || onCustomAction) && (
+            {/*(onApiCall || onCustomAction) && (
               <div className="mt-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
                 <h4 className="text-sm font-medium text-gray-800 mb-4">
                   Quick Actions
@@ -794,7 +885,7 @@ export const DataTab: React.FC<DataTabProps> = ({
                     )}
                 </div>
               </div>
-            )}
+            )*/}
 
             {/* No properties message */}
             {Object.keys(componentProps).length === 0 && (
@@ -853,11 +944,12 @@ export const DataTab: React.FC<DataTabProps> = ({
         onApplyMappings={handleApplyMappings}
         onBindRecord={handleBindRecord}
         mappableProps={Object.keys(componentProps).filter(
-          (k) => k !== "__schema" && k !== "__bindings"
+          (k) =>
+            k !== "__schema" && k !== "__bindings" && k !== "__ignoredMappings"
         )}
         currentMappings={
-          componentProps.__bindings
-            ? Object.entries(componentProps.__bindings).reduce(
+          bindings
+            ? Object.entries(bindings).reduce(
                 (acc: any, [key, binding]: any) => {
                   acc[key] = binding.path;
                   return acc;
@@ -867,8 +959,8 @@ export const DataTab: React.FC<DataTabProps> = ({
             : {}
         }
         currentTransformers={
-          componentProps.__bindings
-            ? Object.entries(componentProps.__bindings).reduce(
+          bindings
+            ? Object.entries(bindings).reduce(
                 (acc: any, [key, binding]: any) => {
                   if (binding.transformer) acc[key] = binding.transformer;
                   return acc;
@@ -878,6 +970,8 @@ export const DataTab: React.FC<DataTabProps> = ({
             : {}
         }
         schema={schema} // Pass the schema for type checking
+        currentIgnoredFields={componentProps.__ignoredMappings || []}
+        onReleaseBindings={handleReleaseBindings}
       />
     </>
   );

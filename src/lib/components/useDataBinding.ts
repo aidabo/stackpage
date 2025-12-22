@@ -18,26 +18,62 @@ export const useDataBinding = (props: any) => {
     // 3. Apply bindings
     Object.entries(props.__bindings).forEach(
       ([propKey, binding]: [string, any]) => {
-        const { sourceId, path, transformer } = binding;
+        const { sourceId, path, transformer, selector } = binding;
 
         // Find data source
         const dataSource = source.dataSources.find((ds) => ds.id === sourceId);
         if (!dataSource) return;
 
         // Get value from data source
-        // If data source has 'data' property populated
         if (dataSource.data !== undefined) {
-          let rawValue = get(dataSource.data, path);
+          let sourceData = dataSource.data;
 
-          // Apply transformer
+          // Resolve based on selector if present
+          if (selector) {
+            if (Array.isArray(sourceData)) {
+              if (selector.type === "id" && selector.value !== undefined) {
+                sourceData = sourceData.find(
+                  (item: any) => String(item.id) === String(selector.value)
+                );
+              } else if (
+                selector.type === "index" &&
+                selector.value !== undefined
+              ) {
+                sourceData = sourceData[Number(selector.value)];
+              } else if (selector.type === "all") {
+                // If binding to all, we might be binding an array to a list
+                // If path is provided, we map over the array to get that path from each item
+                if (path) {
+                  const mappedData = sourceData.map((item: any) => {
+                    let val = get(item, path);
+                    if (transformer) {
+                      val = TransformerRegistry.apply(transformer, val);
+                    }
+                    return val;
+                  });
+                  newProps[propKey] = mappedData;
+                  return; // Done for this binding
+                }
+              }
+            }
+          }
+
+          let rawValue = get(sourceData, path);
+
+          // Apply transformer (for single item)
           if (transformer) {
-            // Use TransformerRegistry.apply which now exists
             rawValue = TransformerRegistry.apply(transformer, rawValue);
           }
 
           // Inject value
           if (rawValue !== undefined) {
             newProps[propKey] = rawValue;
+          } else if (
+            (rawValue === undefined || rawValue === null) &&
+            binding.targetType === "string"
+          ) {
+            // Null/Undefined transform for strings
+            newProps[propKey] = "";
           }
         }
       }

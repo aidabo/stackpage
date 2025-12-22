@@ -88,6 +88,44 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       return;
     }
 
+    // Check if configuration changed to determine if we should invalidate existing data
+    let shouldInvalidateData = false;
+    if (initialData && data.type === "api") {
+      const endpointChanged = data.endpoint?.trim() !== initialData.endpoint;
+      const methodChanged = data.method !== initialData.method;
+      // Simple comparison for objects using JSON.stringify
+      // This might flag false positives if key order changes, but that's safe (just causes a refetch)
+      const headersChanged =
+        JSON.stringify(data.headers || {}) !==
+        JSON.stringify(initialData.headers || {});
+      const paramsChanged =
+        JSON.stringify(data.parameters || {}) !==
+        JSON.stringify(initialData.parameters || {});
+
+      shouldInvalidateData =
+        endpointChanged || methodChanged || headersChanged || paramsChanged;
+    } else if (
+      initialData &&
+      (data.type === "static" || data.type === "function")
+    ) {
+      if (data.endpoint !== initialData.endpoint) {
+        shouldInvalidateData = true;
+      }
+    }
+
+    // Determine final data state
+    let finalData = testResult;
+    if (!finalData) {
+      // If no new test result present
+      if (shouldInvalidateData) {
+        // Config changed and no test run -> Clear data to force refetch in Provider
+        finalData = undefined;
+      } else {
+        // Config unchanged -> Keep existing data from state
+        finalData = data.data;
+      }
+    }
+
     // Ensure ID exists
     const dsToSave: DataSource = {
       id:
@@ -103,8 +141,12 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       mapping: data.mapping || {},
       refreshInterval: data.refreshInterval || 0,
       category: data.category?.trim(),
-      data: testResult || data.data,
-      lastFetched: testResult ? new Date().toISOString() : data.lastFetched,
+      data: finalData,
+      lastFetched: testResult
+        ? new Date().toISOString()
+        : shouldInvalidateData
+        ? undefined
+        : data.lastFetched,
     };
 
     onSave(dsToSave);

@@ -4,6 +4,7 @@ import { ComponentType } from "react";
 import { GridStackWidgetContext } from "./grid-stack-widget-context";
 import { GridStackItemMenu } from "./grid-stack-Item-menu";
 import { GridStackAutoResizer } from "./grid-stack-autoresizer";
+import { useDataBinding } from "./components/useDataBinding";
 
 // Parse widget metadata into usable component info
 function parseWidgetMeta(meta: GridStackWidget): {
@@ -57,9 +58,13 @@ export function GridStackWidgetRenderer({
   componentProps, // Add this
 }: GridStackWidgetRendererProps) {
   const componentData = parseWidgetMeta(meta);
-  
+
   // Use the passed componentProps if available, otherwise use parsed props
-  const props = componentProps || componentData.props;
+  // Use the passed componentProps if available, otherwise use parsed props
+  const rawProps = componentProps || componentData.props;
+  // Resolve bindings
+  const props = useDataBinding(rawProps);
+
   const title = (props as any)?.title || `Widget ${id.slice(0, 4)}`;
 
   const handleWidgetClick = (_e: React.MouseEvent) => {
@@ -74,8 +79,14 @@ export function GridStackWidgetRenderer({
 
   const content = (
     <GridStackAutoResizer widgetId={id}>
-      <div className={`h-full w-full ${isSelected ? 'outline outline-2 outline-blue-400 outline-offset-1' : ''}`} 
-        onClick={handleWidgetClick}>
+      <div
+        className={`h-full w-full ${
+          isSelected
+            ? "outline outline-2 outline-blue-400 outline-offset-1"
+            : ""
+        }`}
+        onClick={handleWidgetClick}
+      >
         {showMenubar && (
           <div className="widget-header flex items-center justify-between bg-gray-100 border-b px-2 min-h-[36px]">
             <div className="font-medium truncate text-sm px-1">{title}</div>

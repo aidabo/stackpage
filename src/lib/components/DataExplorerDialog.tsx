@@ -39,8 +39,11 @@ interface DataExplorerDialogProps {
     mappings: Record<string, string>,
     dataSourceId: string,
     _data?: any,
-    transformers?: Record<string, string>
+    transformers?: Record<string, string>,
+    selector?: { type: "id" | "index" | "all"; value?: string | number },
+    ignoredFields?: string[]
   ) => void;
+  onReleaseBindings?: () => void;
   onBindRecord: (
     record: any,
     mappings: Record<string, string>,
@@ -51,6 +54,7 @@ interface DataExplorerDialogProps {
   currentTransformers?: Record<string, string>;
   initialDataSourceId?: string;
   schema?: any;
+  currentIgnoredFields?: string[];
 }
 
 export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
@@ -59,15 +63,20 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   dataSources,
   onApplyMappings,
   onBindRecord,
+  onReleaseBindings,
   mappableProps,
-  currentMappings,
+  currentMappings = {},
   currentTransformers,
   initialDataSourceId,
   schema,
+  currentIgnoredFields,
 }) => {
   const [activeTab, setActiveTab] = useState<"select" | "mapping">("select");
   const [mappings, setMappings] =
     useState<Record<string, string>>(currentMappings);
+  const [ignoredFields, setIgnoredFields] = useState<string[]>(
+    currentIgnoredFields || []
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<
     { id: number; key: string; value: string }[]
@@ -112,13 +121,16 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
 
-  // Initialize mappings and transformers
+  // Initialize mappings, transformers, and ignored fields
   useEffect(() => {
     setMappings(currentMappings);
     if (currentTransformers) {
       setTransformers(currentTransformers);
     }
-  }, [currentMappings, currentTransformers]);
+    if (currentIgnoredFields) {
+      setIgnoredFields(currentIgnoredFields);
+    }
+  }, [currentMappings, currentTransformers, currentIgnoredFields]);
 
   // Initial Data Source Selection
   useEffect(() => {
@@ -296,6 +308,9 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     const newTransformers: Record<string, string> = { ...transformers };
 
     mappableProps.forEach((prop) => {
+      // Skip ignored fields
+      if (ignoredFields.includes(prop)) return;
+
       // Try to find matching field in record
       const field = dataFields.find((f) => {
         const fieldName = f.split(".").pop() || "";
@@ -329,7 +344,39 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
   // Apply mappings and bind selected record
   const applyMappingsAndBind = () => {
-    onApplyMappings(mappings, selectedDataSourceId, previewData, transformers);
+    // Determine binding strategy
+    let selector: { type: "id" | "index" | "all"; value?: string | number } = {
+      type: "index",
+      value: selectedRecordIndex !== null ? selectedRecordIndex : 0,
+    };
+
+    // Check if we should bind all (Array mode)
+    // 1. If user selected multiple items
+    // 2. If the data is an array and we are not selecting a specific record (implicit all)
+    // 3. If target schema expects an array (TODO: Need to check specific prop schema)
+
+    // For now, simple heuristic:
+    // If selectedItems > 1 -> ALL
+    // If single item selected:
+    //    If item has 'id' -> ID
+    //    Else -> INDEX
+
+    if (selectedItems.length > 1) {
+      selector = { type: "all" };
+    } else if (selectedRecord) {
+      if (selectedRecord.id !== undefined && selectedRecord.id !== null) {
+        selector = { type: "id", value: selectedRecord.id };
+      }
+    }
+
+    onApplyMappings(
+      mappings,
+      selectedDataSourceId,
+      previewData,
+      transformers,
+      selector,
+      ignoredFields
+    );
     onClose();
   };
 
@@ -960,10 +1007,13 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-w-[1000px]">
                     {/* Table Header - Adjusted column widths for better readability */}
                     <div className="grid grid-cols-12 gap-3 p-3 border-b bg-gray-50">
+                      <div className="col-span-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Ignored
+                      </div>
                       <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Component Property
                       </div>
-                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         JSON Path / Field
                       </div>
                       <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -993,9 +1043,38 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             key={prop}
                             className="grid grid-cols-12 gap-3 p-3 hover:bg-blue-50/50 items-center transition-colors"
                           >
+                            {/* Ignored Column */}
+                            <div className="col-span-1 flex justify-center">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                checked={ignoredFields.includes(prop)}
+                                onChange={(e) => {
+                                  const isIgnored = e.target.checked;
+                                  if (isIgnored) {
+                                    setIgnoredFields([...ignoredFields, prop]);
+                                    // Remove mapping for this field
+                                    const newMappings = { ...mappings };
+                                    delete newMappings[prop];
+                                    setMappings(newMappings);
+                                  } else {
+                                    setIgnoredFields(
+                                      ignoredFields.filter((f) => f !== prop)
+                                    );
+                                  }
+                                }}
+                              />
+                            </div>
+
                             {/* Property Column */}
                             <div className="col-span-3">
-                              <div className="flex items-center gap-2">
+                              <div
+                                className={`flex items-center gap-2 ${
+                                  ignoredFields.includes(prop)
+                                    ? "opacity-50"
+                                    : ""
+                                }`}
+                              >
                                 <div
                                   className={`w-2 h-2 rounded-full ${
                                     fieldPath ? "bg-green-500" : "bg-gray-300"
@@ -1017,18 +1096,25 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             </div>
 
                             {/* Data Field Column (Dropdown + Input) */}
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <div className="flex gap-1">
                                 <select
-                                  className="w-1/3 min-w-[100px] px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                  className="w-1/3 min-w-[80px] px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
                                   value={
                                     dataFields.includes(fieldPath)
                                       ? fieldPath
                                       : ""
                                   }
-                                  onChange={(e) =>
-                                    updateMapping(prop, e.target.value)
-                                  }
+                                  onChange={(e) => {
+                                    updateMapping(prop, e.target.value);
+                                    // Auto-unignore if mapped
+                                    if (ignoredFields.includes(prop)) {
+                                      setIgnoredFields(
+                                        ignoredFields.filter((f) => f !== prop)
+                                      );
+                                    }
+                                  }}
+                                  disabled={ignoredFields.includes(prop)}
                                 >
                                   <option value="">Select...</option>
                                   {dataFields.map((field) => (
@@ -1039,12 +1125,22 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 </select>
                                 <input
                                   type="text"
-                                  className="flex-1 min-w-[150px] px-2 py-1.5 border border-l-0 border-gray-300 rounded-r text-xs font-mono text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                  className="flex-1 min-w-[100px] px-2 py-1.5 border border-l-0 border-gray-300 rounded-r text-xs font-mono text-gray-700 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
                                   value={fieldPath}
-                                  placeholder="e.g. items[0].name"
-                                  onChange={(e) =>
-                                    updateMapping(prop, e.target.value)
+                                  placeholder={
+                                    ignoredFields.includes(prop)
+                                      ? "Ignored"
+                                      : "e.g. items[0].name"
                                   }
+                                  onChange={(e) => {
+                                    updateMapping(prop, e.target.value);
+                                    if (ignoredFields.includes(prop)) {
+                                      setIgnoredFields(
+                                        ignoredFields.filter((f) => f !== prop)
+                                      );
+                                    }
+                                  }}
+                                  disabled={ignoredFields.includes(prop)}
                                 />
                               </div>
                             </div>
@@ -1119,6 +1215,14 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                       mapped
                     </div>
                     <div className="flex gap-3">
+                      {onReleaseBindings && (
+                        <button
+                          onClick={onReleaseBindings}
+                          className="px-4 py-2 text-sm text-red-700 bg-red-100 hover:bg-red-200 border border-red-200 rounded-lg transition-colors mr-auto"
+                        >
+                          Release All
+                        </button>
+                      )}
                       <button
                         onClick={() => setActiveTab("select")}
                         className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"

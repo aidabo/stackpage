@@ -364,7 +364,17 @@ export const FileWidget = (props: any) => {
 
 // In CustomSelectWidget
 export const CustomSelectWidget = (props: any) => {
-  const { schema, /*options,*/ value, onChange, onGetSelectOptions, multiple, lists, componentType, name } = props;
+  const {
+    schema,
+    /*options,*/
+    value,
+    onChange,
+    onGetSelectOptions,
+    multiple,
+    lists,
+    componentType,
+    name,
+  } = props;
 
   // Use enum from schema if available (for static options)
   const staticOptions = schema.enum || [];
@@ -378,44 +388,47 @@ export const CustomSelectWidget = (props: any) => {
       const ref = schema["x-list-reference"];
       // Try to find by ID first, then by Name
       const list = lists.find((l: any) => l.id === ref || l.name === ref);
-      
+
       if (list && list.items) {
         // Map list items to options
         const listOptions = list.items.map((item: any) => ({
           label: item.label || item.value,
-          value: item.value || item.label
+          value: item.value || item.label,
         }));
         setDynamicOptions(listOptions);
-        return; 
+        return;
       }
     }
 
     // Priority 2: Async Callback (API / Dynamic)
     if (
       onGetSelectOptions &&
-      (schema["x-dynamic-select"] /*|| schema["x-list-reference"]*/)
+      schema["x-dynamic-select"] /*|| schema["x-list-reference"]*/
     ) {
       // Fetch dynamic options based on schema configuration
       const fetchOptions = async () => {
         try {
-          // Fix: Pass schema too or verify signature? 
+          // Fix: Pass schema too or verify signature?
           // stackoptions.ts says: (propertyName, componentType)
           // But for dynamic select we usually need the schema metadata (endpoint etc).
           // We'll pass the widget name and let the callback handle logic, or rely on custom implementation.
           // Fallback: If onGetSelectOptions is customized to take objects, keep passing schema?
           // To be safe with the defined type in stackoptions.ts:
-          // We will attempt to use the callback as defined, but for API sources, 
+          // We will attempt to use the callback as defined, but for API sources,
           // usually the endpoint is in the schema description or x-dynamic-select property.
-          
+
           // Assuming onGetSelectOptions might handle object if updated, OR we pass name.
           // Let's rely on lists prop for lists, and this callback only for APIs.
-          
+
           // For legacy support or APIs:
-          const result = await onGetSelectOptions(name || schema.title, componentType);
+          const result = await onGetSelectOptions(
+            name || schema.title,
+            componentType
+          );
           setDynamicOptions(result || []);
         } catch (error) {
           console.error("Failed to fetch select options:", error);
-         // setDynamicOptions(["Error loading options"]);
+          // setDynamicOptions(["Error loading options"]);
         }
       };
       fetchOptions();
@@ -435,12 +448,15 @@ export const CustomSelectWidget = (props: any) => {
   }
 
   return (
-    <select 
-      value={safeValue} 
+    <select
+      value={safeValue}
       multiple={multiple}
       onChange={(e) => {
         if (multiple) {
-          const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+          const selectedOptions = Array.from(
+            e.target.selectedOptions,
+            (option) => option.value
+          );
           onChange(selectedOptions);
         } else {
           onChange(e.target.value);
