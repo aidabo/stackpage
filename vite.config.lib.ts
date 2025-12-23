@@ -9,10 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [
     react(),
-    dts({ 
+    dts({
       tsconfigPath: "tsconfig.lib.json",
       // Add these options to improve compatibility
-      logLevel: 'warn'
+      logLevel: "warn",
     }),
   ],
   build: {
@@ -46,6 +46,6 @@ export default defineConfig({
   },
   // Add this to handle commonjs dependencies
   define: {
-    'process.env.NODE_ENV': JSON.stringify('production')
-  }
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  },
 });

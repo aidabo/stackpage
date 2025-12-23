@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -9,15 +9,25 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:3500',
+      "/api": {
+        target: "http://localhost:3500",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      }
-    }
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
   },
   build: {
-    outDir: 'dist/demo'
+    outDir: "dist/demo",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-gridstack": ["gridstack"],
+          "vendor-rjsf": ["@rjsf/core", "@rjsf/utils", "@rjsf/validator-ajv8"],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
     alias: {
@@ -28,6 +38,6 @@ export default defineConfig({
     },
   },
   css: {
-    postcss: './postcss.config.js'
-  }
-})
+    postcss: "./postcss.config.js",
+  },
+});
