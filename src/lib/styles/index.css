@@ -100,11 +100,3 @@
   width: 16px;
   height: 16px;
 }
-
-:root {
-  --stackpage-top-spacing: 60px;
-}
-
-.stack-page-container {
-  --stackpage-top-spacing: 60px; /* Default value */
-}

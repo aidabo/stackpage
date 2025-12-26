@@ -434,8 +434,8 @@ const StackPageContent = ({
     : {
         width: `500px`,
         minWidth: "300px",
-        height: "calc(100% - var(--stackpage-top-spacing, 60px))",
-        top: "var(--stackpage-top-spacing, 60px)",
+        height: "100%",
+        top: "0",
       };
 
   // Main content style
@@ -447,7 +447,7 @@ const StackPageContent = ({
 
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
-      <div className="min-h-screen bg-white text-black flex flex-col">
+      <div className="bg-white text-black flex flex-col stack-page-container">
         {/* Toolbar - Only show in edit mode */}
         {currentMode === "edit" && (
           <header className="mx-2 p-4 bg-white shadow relative">
@@ -616,10 +616,10 @@ const StackPageContent = ({
               >
                 {/* Close button for mobile */}
                 {isMobile && (
-                  <div className="absolute top-4 right-4 z-10">
+                  <div className="absolute bottom-8 right-8 z-10">
                     <button
                       onClick={() => setShowEditor(false)}
-                      className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors"
+                      className="p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
                     >
                       <ChevronRightIcon className="stack-btn-icon" />
                     </button>
@@ -672,7 +672,7 @@ const StackPageContent = ({
                 {/* Vertical Tab Bar */}
                 <div
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
-                    isMobile ? "w-12" : "w-14 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    isMobile ? "w-12 mx-[5px]" : "w-14 mx-[5px]" // Decreased width for mobile, keep margin for desktop
                   }`}
                 >
                   {(
