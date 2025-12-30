@@ -1,12 +1,12 @@
-import { GridStackProvider } from "./grid-stack-provider";
-import { GridStackRenderProvider } from "./grid-stack-render-provider";
+import { GridStackProvider } from "./gridstack/grid-stack-provider";
+import { GridStackRenderProvider } from "./gridstack/grid-stack-render-provider";
 import {
   GridStackRender,
   ComponentDataType,
   ComponentMap,
-} from "./grid-stack-render";
-import { useGridStackContext } from "./grid-stack-context";
-import { useGridStackWidgetContext } from "./grid-stack-widget-context";
+} from "./gridstack/grid-stack-render";
+import { useGridStackContext } from "./gridstack/grid-stack-context";
+import { useGridStackWidgetContext } from "./gridstack/grid-stack-widget-context";
 import { LocaleProvider, useLocale } from "./components/LocaleContext";
 
 export {
@@ -20,7 +20,7 @@ export {
 };
 
 import StackPage from "./components/stackpage";
-import {StackPageProps, StackPageOptions} from "./components/stackpage";
+import { StackPageProps, StackPageOptions } from "./components/stackpage";
 import {
   ComponentProps,
   PageProps,
@@ -35,7 +35,7 @@ import {
   GetSelectOptionsFn,
   gridOptions,
   subGridOptions,
-  FileUploadOptions
+  FileUploadOptions,
 } from "./components/stackoptions";
 
 import "./styles/index.css";
@@ -59,7 +59,7 @@ export {
   type GetSelectOptionsFn,
   type FileUploadOptions,
   gridOptions,
-  subGridOptions
+  subGridOptions,
 };
 
 //export { default as styles } from './styles/index.css';

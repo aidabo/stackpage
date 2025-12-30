@@ -4,7 +4,7 @@ import { ComponentType } from "react";
 import { GridStackWidgetContext } from "./grid-stack-widget-context";
 import { GridStackItemMenu } from "./grid-stack-Item-menu";
 import { GridStackAutoResizer } from "./grid-stack-autoresizer";
-import { useDataBinding } from "./components/useDataBinding";
+import { useDataBinding } from "../components/useDataBinding";
 
 // Parse widget metadata into usable component info
 function parseWidgetMeta(meta: GridStackWidget): {

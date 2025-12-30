@@ -41,7 +41,7 @@ import {
 } from "./stackoptions";
 
 import StackActions, { StackActionsRef } from "./stackactions";
-import { GridStackDropEvent } from "../grid-stack-render-provider";
+import { GridStackDropEvent } from "../gridstack/grid-stack-render-provider";
 import PageInfoDialogs from "./pageinfodialog";
 import { StackPageProvider } from "./StackPageProvider";
 import { useStackPage } from "./StackPageContext";
