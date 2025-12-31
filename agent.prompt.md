@@ -1,6 +1,7 @@
 # Project Context: StackPage Library
 
-**1. Overview**
+## Overview
+
 StackPage is a low-code library for building page editors. It operates on a Host/Lib architecture:
 
 - **The Host Project:** Provides custom components, default props, and API data sources (via callbacks).
@@ -26,26 +27,26 @@ StackPage is a low-code library for building page editors. It operates on a Host
 
 ---
 
-# Current Task: Implement Data & API Binding
+## Implement Data & API Binding
 
 **Current Status:** Schema editing and Page Save/Reload are functional.
 **Goal:** Complete the Data Binding and API Binding logic. (Event binding is next, but out of scope for now).
 
 **Implementation Plan (Step 2)**
 
-**1. UI Architecture & DataExplorer**
+### UI Architecture & DataExplorer
 
 - **DataExplorerDialog:** This modal serves as the primary interface for selecting data sources.
 - **API Integration:** The API selection dropdown and configuration should be accessible within this dialog to streamline the workflow.
 
-**2. Mapping Engine, Transformers & Persistence**
+### Mapping Engine, Transformers & Persistence
 
 - **Path Resolution:** Implement data retrieval using a library like **`lodash.get`** (or `dlv`) to support dot-notation JSON paths (e.g., `response.users[0].name`).
 - **Transformer Pipeline:** Implement a **Transformer Registry** in the Lib to allow data modification before injection (e.g., `toNumber`, `currency`, `formatDate`).
 - **Persistence (Crucial):** When a user maps an API data source to a component, the **Mapping Info** (Source ID, JSON Path, Transformer Name) must be saved into the component's persistent storage (e.g., `props.__bindings`).
 - **Schema Validation:** During mapping, the system must check the target component's `props.__schema`. If the transformed data type does not match the prop schema, the UI should show a warning.
 
-**3. Runtime Behavior (Lib Project Responsibility)**
+### Runtime Behavior (Lib Project Responsibility)
 
 - **Dynamic Binding Engine:** The StackPage Lib must contain a runtime engine that reads the saved **Mapping Info** on page load.
 - **Execution Flow:**
@@ -56,7 +57,7 @@ StackPage is a low-code library for building page editors. It operates on a Host
   5.  Inject the final value into the component props dynamically.
 - **Reloadability:** Ensure that this entire process happens automatically when the editor or page reloads, restoring the component's data state without user intervention.
 
-**4. Save binding and mapping info**
+### Save binding and mapping info
 
 Now binding api datasource, mapping, transoform with selected component instance props is already prepared by DataExplorerDialog, but props update to real value when page build and save with props, so when api datasource result updated, not reflect dynamically.
 
@@ -69,3 +70,27 @@ As above, please fix for me.
 5. when page save by handleSave , save \_\_binding info into props
 6. when page load , if has binding info in props, use resolver to perform binding, mapping, transform
 7. be careful check propertyTab and DataTab, DataTab show selected component instance props as form to edit mannually. if has binding setting, will show resolved data in form
+
+### How to bind next.js api route datasource
+
+- 前提条件：
+
+  StackPage 是一个库，位于目录：01-jibunsee-react/package/stack-page，使用 Vite、TypeScript 和 React 构建。该库用于生成页面，即构建页面。宿主应用是一个 Next.js 应用，它是为 Ghost CMS 定制的前端网站，位于目录：01-jibunsee-react。现在，我们需要将 StackPage 中的 DataSource 绑定到生成的页面中的控件。绑定到全局 API（可以直接调用的 HTTP/HTTPS 端点）的功能已经实现，但我们希望动态绑定到宿主 Next.js API，以便在 StackPage 生成的页面控件中显示最新数据。
+
+- 解决方案：
+
+  您之前提供了一个适配器解决方案，其中 StackPage 中的 DataSourceTab 定义允许指定由适配器提供的 DataSource，数据由宿主 Next.js 应用动态提供。这个解决方案不错；现在我们需要修改 StackPage 库和宿主应用来实现它。请记住：StackPage 是一个库，宿主应用程序是 Next.js 应用程序，DataSource 绑定需要动态解析，这意味着页面构建和页面加载时都会显示最新值。
+
+- 注意点：
+
+  能保证 runtime 时调用正确， 因为运行时 next.js api 是不可见的, 当绑定 next.js api 是假设数据同源，和 next.js app 有同样的 domain, next.config.js 有 proxy 设定来访问 Ghost CMS api 等
+
+---
+
+- Prerequisites:
+
+  StackPage is a library, directory: 01-jibunsee-react/package/stack-page, using Vite+TypeScript+React. This library is used to generate pages, i.e., build pages. The host app is a Next.js app, a customized front-end website for Ghost CMS, directory: 01-jibunsee-react. Now, we need to provide binding functionality from the DataSource in StackPage to controls within the generated pages. Binding to global APIs (HTTP/HTTPS endpoints that can be directly called) is already implemented, but we want to dynamically bind to the host Next.js API to display the latest data in the controls of the StackPage-generated pages.
+
+- Solution:
+
+  You previously provided an Adapter solution, where the DataSourceTab definition in StackPage allows specifying the DataSource provided by the Adapter, with data dynamically provided by the host Next.js app. This solution is good; now we need to modify the StackPage library and the host app to implement it. Please remember: StackPage is a library, the host app is the Next.js app, and the DataSource binding needs to be dynamically resolved, meaning that the latest value is displayed when the page is built and when the page is loaded.
