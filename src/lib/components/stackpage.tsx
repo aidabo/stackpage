@@ -52,6 +52,7 @@ import { ListTab } from "./ListTab";
 import { DataSourceTab } from "./DataSourceTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
+import { GetHostDataSourcesFn } from "./types";
 
 import "../styles/index.css";
 
@@ -73,6 +74,9 @@ export interface StackPageProps {
   onGetSelectOptions?: GetSelectOptionsFn;
   options?: StackPageOptions;
   children?: ReactNode;
+
+  // 新增：获取宿主数据源的函数
+  getHostDataSources?: GetHostDataSourcesFn;
 }
 
 // Mobile detection hook
@@ -136,6 +140,7 @@ const StackPageContent = ({
   onApiCall,
   onCustomAction,
   onGetSelectOptions,
+  getHostDataSources,
   children,
 }: StackPageProps) => {
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
@@ -665,7 +670,7 @@ const StackPageContent = ({
                       display: activeTab === "datasource" ? "block" : "none",
                     }}
                   >
-                    <DataSourceTab />
+                    <DataSourceTab getHostDataSources={getHostDataSources} />
                   </div>
                 </div>
 

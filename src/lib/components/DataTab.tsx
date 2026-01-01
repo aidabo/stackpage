@@ -316,7 +316,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       const dataSource = source.dataSources.find(
         (ds) => ds.id === binding.sourceId
       );
-      if (!dataSource || !dataSource.data) {
+      if (!dataSource || !(dataSource as any).data) {
         warnings.push({
           property: prop,
           message: `Data source "${binding.sourceId}" not found or has no data`,
@@ -326,7 +326,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       }
 
       // Get the value from the data source
-      const value = get(dataSource.data, binding.path);
+      const value = get((dataSource as any).data, binding.path);
 
       // Validate the binding
       const validationWarnings = validateBindingAgainstSchema(

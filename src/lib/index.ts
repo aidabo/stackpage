@@ -38,6 +38,12 @@ import {
   FileUploadOptions,
 } from "./components/stackoptions";
 
+import {
+  DataSource,
+  HostFunctionDataSource,
+  GetHostDataSourcesFn,
+} from "./components/types";
+
 import "./styles/index.css";
 
 export {
@@ -58,6 +64,9 @@ export {
   type CustomActionFn,
   type GetSelectOptionsFn,
   type FileUploadOptions,
+  type DataSource,
+  type HostFunctionDataSource,
+  type GetHostDataSourcesFn,
   gridOptions,
   subGridOptions,
 };

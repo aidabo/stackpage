@@ -1,4 +1,4 @@
-// types.ts
+// types.ts - 完整修改
 export type FieldType =
   | "text"
   | "textarea"
@@ -15,7 +15,7 @@ export type FieldType =
   | "email"
   | "password"
   | "date"
-  | "array"; // Add array type
+  | "array";
 
 export interface NamedList {
   id: string;
@@ -28,7 +28,6 @@ export interface NamedList {
   }>;
 }
 
-// List and DataSource types
 export interface ListItem {
   id: string;
   label: string;
@@ -42,43 +41,99 @@ export interface ListDefinition {
   items: ListItem[];
 }
 
-// types.ts
-export interface DataSource {
+// 基本数据源类型
+export interface BaseDataSource {
   id: string;
   name: string;
-  description: string;
-  type: "api" | "static" | "function";
+  description?: string;
+  category?: string;
+  tags?: string[];
+  icon?: string;
+}
+
+// 外部API数据源（用户创建）
+export interface ApiDataSource extends BaseDataSource {
+  type: "api";
   endpoint: string;
   method: "GET" | "POST" | "PUT" | "DELETE";
   headers: Record<string, string>;
   parameters: Record<string, any>;
-  mapping: Record<string, string>;
   refreshInterval: number;
   lastFetched?: string;
   data?: any;
-  category?: string; // 添加这个字段
 }
+
+// 静态数据源（用户创建）
+export interface StaticDataSource extends BaseDataSource {
+  type: "static";
+  data: any;
+}
+
+// 函数数据源（用户创建）
+export interface FunctionDataSource extends BaseDataSource {
+  type: "function";
+  functionCode: string;
+}
+
+// 宿主函数数据源（宿主提供，包含获取数据的函数）
+export interface HostFunctionDataSource extends BaseDataSource {
+  type: "host-function";
+  // 获取数据的函数
+  fetchData: (params?: Record<string, any>) => Promise<any>;
+  // 参数定义
+  parameters?: Array<{
+    name: string;
+    type: "string" | "number" | "boolean" | "array" | "object";
+    required?: boolean;
+    defaultValue?: any;
+    description?: string;
+  }>;
+}
+
+// 联合类型
+export type DataSource =
+  | ApiDataSource
+  | StaticDataSource
+  | FunctionDataSource
+  | HostFunctionDataSource;
+
+// 数据源配置对话框需要的类型
+export interface DataSourceConfig {
+  name: string;
+  description?: string;
+  category?: string;
+  endpoint?: string;
+  method?: "GET" | "POST" | "PUT" | "DELETE";
+  headers?: Record<string, string>;
+  parameters?: Record<string, any>;
+  data?: any;
+  functionCode?: string;
+  refreshInterval?: number;
+}
+
+// 数据源获取结果
+export interface DataSourceResult<T = any> {
+  success: boolean;
+  data: T;
+  error?: string;
+  timestamp: string;
+  sourceId: string;
+}
+
+// 宿主数据源提供者回调
+export type GetHostDataSourcesFn = () => Promise<HostFunctionDataSource[]>;
 
 export interface FieldSchema {
   key: string;
   label: string;
   type: FieldType;
-
-  // Options Source Configuration
-  options?: string[]; // Manual options
-  listRef?: string; // Reference to NamedList
-
-  // Data Source Configuration
-  dataSourceRef?: string; // Reference to DataSource
-  dataSourceLabelKey?: string; // Property to use as label (e.g., 'name')
-  dataSourceValueKey?: string; // Property to use as value (e.g., 'id')
-
-  // Select Field Active Source
-  activeSelectSource?: "options" | "list" | "api"; // 新增：当前激活的select配置源
-
-  // Array Configuration
-  itemSchema?: FieldSchema[]; // For 'array' type: define the shape of list items
-
+  options?: string[];
+  listRef?: string;
+  dataSourceRef?: string;
+  dataSourceLabelKey?: string;
+  dataSourceValueKey?: string;
+  activeSelectSource?: "options" | "list" | "api";
+  itemSchema?: FieldSchema[];
   placeholder?: string;
   description?: string;
 }

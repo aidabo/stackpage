@@ -25,8 +25,8 @@ export const useDataBinding = (props: any) => {
         if (!dataSource) return;
 
         // Get value from data source
-        if (dataSource.data !== undefined) {
-          let sourceData = dataSource.data;
+        if ((dataSource as any).data !== undefined) {
+          let sourceData = (dataSource as any).data;
 
           // Resolve based on selector if present
           if (selector) {

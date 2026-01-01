@@ -157,14 +157,20 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     }
 
     // For API data sources, fetch from endpoint
-    if (!ds.endpoint) {
-      setError("No endpoint configured for this data source");
+    if (ds.type === "api") {
+      if (!ds.endpoint) {
+        setError("No endpoint configured for this data source");
+        return;
+      }
+    } else {
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
+      if (ds.type !== "api") return;
+
       const url = new URL(ds.endpoint);
 
       // Add parameters to URL
