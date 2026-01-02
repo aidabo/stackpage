@@ -1,11 +1,4 @@
-// DataSourceDialog.tsx - 完整修改 (添加更好的自动补全)
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { DataSource, HostFunctionDataSource, DataSourceConfig } from "./types";
 import {
   XMarkIcon,
@@ -16,6 +9,9 @@ import {
   TableCellsIcon,
   ArrowPathIcon,
   CpuChipIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSourceService } from "./dataSourceService";
@@ -29,7 +25,7 @@ interface DataSourceDialogProps {
   getHostDataSources?: () => Promise<HostFunctionDataSource[]>;
 }
 
-// 常用Headers预定义 (更全面的列表)
+// 常用Headers预定义
 const COMMON_HEADERS = [
   {
     name: "Content-Type",
@@ -158,6 +154,12 @@ const COMMON_PARAMS = [
   "cursor",
   "since",
   "until",
+  "category",
+  "status",
+  "featured",
+  "published",
+  "author",
+  "tag",
 ];
 
 interface HeaderItem {
@@ -170,6 +172,7 @@ interface ParamItem {
   id: string;
   key: string;
   value: string;
+  isAdvanced?: boolean;
 }
 
 interface SuggestionItem {
@@ -226,7 +229,7 @@ const AutoCompleteInput: React.FC<{
             (item.value &&
               item.value.toLowerCase().includes(value.toLowerCase()))
         )
-        .slice(0, 10); // 限制显示数量
+        .slice(0, 10);
       setFilteredSuggestions(filtered);
       setShowSuggestions(true);
     } else {
@@ -335,6 +338,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
   const [headers, setHeaders] = useState<HeaderItem[]>([]);
   const [parameters, setParameters] = useState<ParamItem[]>([]);
+  const [showAdvancedParams, setShowAdvancedParams] = useState(false);
 
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -346,7 +350,11 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     HostFunctionDataSource[]
   >([]);
   const [isLoadingHostSources, setIsLoadingHostSources] = useState(false);
-  const [selectedHostSourceId, setSelectedHostSourceId] = useState<string>("");
+
+  // 关键：为Host Function数据源存储两个不同的标识
+  const [selectedHostSourceId, setSelectedHostSourceId] = useState<string>(""); // 宿主函数ID
+  const [selectedHostSource, setSelectedHostSource] =
+    useState<HostFunctionDataSource | null>(null); // 宿主函数对象
 
   // 数据源类型
   const [sourceType, setSourceType] = useState<DataSource["type"]>("api");
@@ -354,7 +362,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // 是否为编辑模式
   const isEditMode = !!initialData;
 
-  // 重置/Load数据
+  // Main Initialization Effect
   useEffect(() => {
     if (isOpen) {
       loadHostDataSources();
@@ -364,6 +372,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
         if (initialData.type === "host-function") {
           const hostSource = initialData as HostFunctionDataSource;
+          // Set ID immediately so UI can show it (even if options aren't loaded yet)
+          setSelectedHostSourceId(hostSource.hostFunctionId || "");
+
           setConfig({
             name: hostSource.name,
             description: hostSource.description || "",
@@ -374,6 +385,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
             parameters: hostSource.parameters || {},
             refreshInterval: 0,
           });
+
           if (hostSource.parameters) {
             setParameters(
               Object.entries(hostSource.parameters).map(
@@ -381,11 +393,11 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   id: `param-${index}`,
                   key,
                   value: String(value),
+                  isAdvanced: isAdvancedParam(key),
                 })
               )
             );
           }
-          setSelectedHostSourceId(hostSource.id);
         } else if (initialData.type === "api") {
           const apiSource = initialData;
           setConfig({
@@ -414,6 +426,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   id: `param-${index}`,
                   key,
                   value: String(value),
+                  isAdvanced: isAdvancedParam(key),
                 })
               )
             );
@@ -446,6 +459,38 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       setViewMode("json");
     }
   }, [isOpen, initialData]);
+
+  // Sync Effect: Match ID to Object when sources load or ID changes
+  useEffect(() => {
+    // Only run if we are looking for a host function
+    if (
+      (sourceType === "host-function" ||
+        initialData?.type === "host-function") &&
+      hostDataSources.length > 0
+    ) {
+      if (selectedHostSourceId) {
+        // Loose match to avoid string/number issues
+        const match = hostDataSources.find(
+          (s) => String(s.id) === String(selectedHostSourceId)
+        );
+        if (match) {
+          setSelectedHostSource(match);
+        } else {
+          console.warn(`Host source for ID ${selectedHostSourceId} not found.`);
+          // Fallback logic could go here if needed, e.g. matching by name
+          if (initialData?.type === "host-function") {
+            const nameMatch = hostDataSources.find(
+              (s) => s.name === (initialData as any).hostFunctionName
+            );
+            if (nameMatch) {
+              setSelectedHostSource(nameMatch);
+              setSelectedHostSourceId(nameMatch.id);
+            }
+          }
+        }
+      }
+    }
+  }, [hostDataSources, selectedHostSourceId, initialData, sourceType]);
 
   // 同步配置
   useEffect(() => {
@@ -501,7 +546,25 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setParameters([]);
     setTestResult(null);
     setSelectedHostSourceId("");
+    setSelectedHostSource(null);
     setSourceType("api");
+  };
+
+  // 判断是否为高级参数
+  const isAdvancedParam = (key: string): boolean => {
+    const advancedKeywords = [
+      "filter",
+      "sort",
+      "order",
+      "fields",
+      "expand",
+      "include",
+      "exclude",
+      "cursor",
+      "since",
+      "until",
+    ];
+    return advancedKeywords.some((kw) => key.toLowerCase().includes(kw));
   };
 
   // 选择宿主数据源
@@ -510,25 +573,22 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     if (!source) return;
 
     setSelectedHostSourceId(sourceId);
+    setSelectedHostSource(source);
     setSourceType("host-function");
-    setConfig({
-      name: source.name,
-      description: source.description || "",
-      category: source.category || "",
-      endpoint: "",
-      method: "GET",
-      headers: {},
-      parameters: source.parameters || {},
-      refreshInterval: 0,
-    });
-    if (source.parameters) {
-      setParameters(
-        Object.entries(source.parameters).map(([key, value], index) => ({
-          id: `param-${index}`,
-          key,
-          value: String(value),
-        }))
-      );
+
+    // 如果是新建模式，使用宿主数据源的基本信息作为起点
+    if (!isEditMode) {
+      setConfig({
+        name: `${source.name} - Custom`,
+        description: source.description || "",
+        category: source.category || "",
+        endpoint: "",
+        method: "GET",
+        headers: {},
+        parameters: {}, // 新建时清空参数，让用户配置
+        refreshInterval: 0,
+      });
+      setParameters([]);
     }
   };
 
@@ -564,6 +624,13 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     ]);
   };
 
+  const handleAddAdvancedParameter = () => {
+    setParameters([
+      ...parameters,
+      { id: `param-${Date.now()}`, key: "", value: "", isAdvanced: true },
+    ]);
+  };
+
   const handleUpdateParameter = (
     id: string,
     field: "key" | "value",
@@ -571,7 +638,14 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   ) => {
     setParameters(
       parameters.map((param) =>
-        param.id === id ? { ...param, [field]: value } : param
+        param.id === id
+          ? {
+              ...param,
+              [field]: value,
+              isAdvanced:
+                field === "key" ? isAdvancedParam(value) : param.isAdvanced,
+            }
+          : param
       )
     );
   };
@@ -600,37 +674,12 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     []
   );
 
-  // 缓存Header值建议
-  const headerValueSuggestionsCache = useRef<Record<string, SuggestionItem[]>>(
-    {}
-  );
-
-  // 获取Header值的建议
-  const getHeaderValueSuggestions = useCallback((headerName: string) => {
-    if (headerValueSuggestionsCache.current[headerName]) {
-      return headerValueSuggestionsCache.current[headerName];
-    }
-
-    const header = COMMON_HEADERS.find((h) => h.name === headerName);
-    let result: SuggestionItem[] = [];
-    if (header?.commonValues) {
-      result = header.commonValues.map((value) => ({
-        name: headerName,
-        value,
-        type: "value" as const,
-      }));
-    }
-
-    headerValueSuggestionsCache.current[headerName] = result;
-    return result;
-  }, []);
-
   if (!isOpen) return null;
 
-  // 处理保存
+  // 处理保存 - 关键修复：分离宿主函数ID和用户数据源名称
   const handleSave = () => {
     if (!config.name?.trim()) {
-      alert("Name is required");
+      alert("Data Source Name is required");
       return;
     }
 
@@ -647,17 +696,32 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
     switch (sourceType) {
       case "host-function":
-        const hostSource = hostDataSources.find(
-          (s) => s.id === selectedHostSourceId
-        );
-        if (!hostSource) {
-          alert("Host data source not found");
+        // 尝试即时解析宿主数据源（如果selectedHostSource为空但有ID）
+        let targetHostSource = selectedHostSource;
+        if (!targetHostSource && selectedHostSourceId) {
+          targetHostSource =
+            hostDataSources.find(
+              (s) => String(s.id) === String(selectedHostSourceId)
+            ) || null;
+        }
+
+        // 确保有选中的宿主数据源
+        if (!targetHostSource) {
+          alert("Please select a host function first");
           return;
         }
+
+        // 关键：创建新的数据源实例，保存宿主函数ID和fetchData函数引用
         newDataSource = {
           ...baseData,
-          ...hostSource,
           type: "host-function",
+          // 保存宿主函数的fetchData引用
+          fetchData: targetHostSource.fetchData,
+          // 保存宿主函数的ID，用于标识使用的是哪个宿主函数
+          hostFunctionId: targetHostSource.id,
+          // 保存宿主函数的原始名称，用于显示
+          hostFunctionName: targetHostSource.name,
+          // 用户配置的参数
           parameters: config.parameters || {},
         } as HostFunctionDataSource;
         break;
@@ -717,15 +781,27 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // 测试数据源
   const handleTest = async () => {
     if (sourceType === "host-function") {
-      const source = hostDataSources.find((s) => s.id === selectedHostSourceId);
-      if (!source) {
-        alert("Please select a host data source first");
+      // 尝试即时解析宿主数据源（如果selectedHostSource丢失）
+      let targetHostSource = selectedHostSource;
+      if (!targetHostSource && selectedHostSourceId) {
+        targetHostSource =
+          hostDataSources.find(
+            (s) => String(s.id) === String(selectedHostSourceId)
+          ) || null;
+      }
+
+      // 确保有选中的宿主数据源
+      if (!targetHostSource) {
+        alert("Please select a host function first");
         return;
       }
 
       setIsTesting(true);
       try {
-        const result = await source.fetchData(config.parameters || {});
+        // 使用宿主提供的函数和配置的参数进行测试
+        const result = await targetHostSource.fetchData(
+          config.parameters || {}
+        );
         setTestResult(result);
       } catch (error: any) {
         alert(`Test failed: ${error.message}`);
@@ -817,7 +893,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     }
   };
 
-  const isHostFunction = sourceType === "host-function";
+  // 获取基础参数和高级参数
+  const basicParameters = parameters.filter((p) => !p.isAdvanced);
+  const advancedParameters = parameters.filter((p) => p.isAdvanced);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -825,7 +903,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">
-            {initialData ? `Edit ${initialData.name}` : "Create Data Source"}
+            {initialData
+              ? `Edit Data Source: ${initialData.name}`
+              : "Create Data Source"}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <XMarkIcon className="w-6 h-6 text-gray-500" />
@@ -878,7 +958,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       onClick={() => setSourceType("api")}
                     >
                       <span className="text-lg">🌐</span>
-                      <span className="text-sm font-medium mt-1">API</span>
+                      <span className="text-sm font-medium mt-1">
+                        External API
+                      </span>
                     </button>
 
                     <button
@@ -925,15 +1007,19 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 </div>
               )}
 
-              {/* 宿主数据源选择 */}
-              {!initialData &&
-                sourceType === "host-function" &&
-                getHostDataSources && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
-                      <CpuChipIcon className="w-4 h-4" />
-                      Select Host Data Source
-                    </h3>
+              {/* Host Function配置区域 */}
+              {sourceType === "host-function" && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
+                    <CpuChipIcon className="w-4 h-4" />
+                    Host Function Configuration
+                  </h3>
+
+                  {/* 宿主函数选择/显示 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Host Function *
+                    </label>
                     <div className="flex gap-2">
                       <select
                         className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
@@ -941,11 +1027,11 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                         onChange={(e) => handleSelectHostSource(e.target.value)}
                         disabled={isLoadingHostSources}
                       >
-                        <option value="">Select a host data source...</option>
+                        <option value="">Select a host function...</option>
                         {hostDataSources.map((source) => (
                           <option key={source.id} value={source.id}>
-                            {source.name}{" "}
-                            {source.category ? `(${source.category})` : ""}
+                            {source.name}
+                            {source.category ? ` (${source.category})` : ""}
                           </option>
                         ))}
                       </select>
@@ -953,22 +1039,72 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                         <ArrowPathIcon className="w-5 h-5 animate-spin text-gray-400" />
                       )}
                     </div>
-                    {selectedHostSourceId && (
+
+                    {selectedHostSource && (
                       <div className="mt-3 p-3 bg-white rounded border">
-                        <p className="text-sm text-gray-600">
-                          Host function data source selected. You can test it in
-                          the "Test & Preview" tab.
-                        </p>
+                        <div className="flex items-start gap-3">
+                          <CpuChipIcon className="w-5 h-5 text-green-600 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-gray-900">
+                                {selectedHostSource.name}
+                              </h4>
+                              {selectedHostSource.category && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                  {selectedHostSource.category}
+                                </span>
+                              )}
+                            </div>
+                            {selectedHostSource.description && (
+                              <p className="text-sm text-gray-600 mb-2">
+                                {selectedHostSource.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <InformationCircleIcon className="w-4 h-4" />
+                              <span>
+                                This host function can be used to create
+                                multiple data sources with different parameters.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
-                )}
 
-              {/* 基本信息 */}
+                  {/* 说明 */}
+                  <div className="bg-blue-50 border border-blue-200 rounded p-3">
+                    <div className="flex items-start gap-2">
+                      <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-blue-800 font-medium mb-1">
+                          How Host Functions Work
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          • <strong>Host Function</strong> is like an API
+                          endpoint provided by the host application (e.g.,
+                          Next.js API route)
+                        </p>
+                        <p className="text-xs text-blue-700 mt-1">
+                          • <strong>Data Source Name</strong> is your custom
+                          name for this specific configuration
+                        </p>
+                        <p className="text-xs text-blue-700 mt-1">
+                          • You can create multiple data sources using the same
+                          host function with different parameters
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 数据源基本信息 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
+                    Data Source Name *
                   </label>
                   <input
                     type="text"
@@ -977,9 +1113,11 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     onChange={(e) =>
                       setConfig({ ...config, name: e.target.value })
                     }
-                    placeholder="My Data Source"
-                    disabled={isHostFunction && isEditMode}
+                    placeholder="e.g., Featured Products, Electronics List"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your custom name for this data source instance
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -992,8 +1130,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     onChange={(e) =>
                       setConfig({ ...config, category: e.target.value })
                     }
-                    placeholder="e.g. articles, users, products"
-                    disabled={isHostFunction && isEditMode}
+                    placeholder="e.g., products, users, articles"
                   />
                 </div>
               </div>
@@ -1008,13 +1145,15 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   onChange={(e) =>
                     setConfig({ ...config, description: e.target.value })
                   }
-                  placeholder="Describe what this data source provides..."
+                  placeholder="Describe what data this instance provides..."
                   rows={2}
-                  disabled={isHostFunction && isEditMode}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  How you'll use this specific data source configuration
+                </p>
               </div>
 
-              {/* API配置 */}
+              {/* External API配置 */}
               {sourceType === "api" && (
                 <>
                   <div>
@@ -1078,14 +1217,18 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                             placeholder="Header name"
                             type="key"
                           />
-                          <AutoCompleteInput
-                            value={header.value}
-                            onChange={(value) =>
-                              handleUpdateHeader(header.id, "value", value)
-                            }
-                            suggestions={getHeaderValueSuggestions(header.key)}
+                          <input
+                            type="text"
+                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             placeholder="Value"
-                            type="value"
+                            value={header.value}
+                            onChange={(e) =>
+                              handleUpdateHeader(
+                                header.id,
+                                "value",
+                                e.target.value
+                              )
+                            }
                           />
                           <button
                             onClick={() => handleRemoveHeader(header.id)}
@@ -1104,116 +1247,74 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       </button>
                     </div>
                   </div>
-
-                  {/* Parameters配置 */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Parameters
-                      </label>
-                      <div className="text-xs text-gray-500">
-                        {parameters.filter((p) => p.key.trim()).length}{" "}
-                        configured
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {parameters.map((param) => (
-                        <div key={param.id} className="flex gap-2 items-center">
-                          <AutoCompleteInput
-                            value={param.key}
-                            onChange={(value) =>
-                              handleUpdateParameter(param.id, "key", value)
-                            }
-                            suggestions={paramNameSuggestions}
-                            placeholder="Parameter name"
-                            type="key"
-                          />
-                          <input
-                            type="text"
-                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            placeholder="Value"
-                            value={param.value}
-                            onChange={(e) =>
-                              handleUpdateParameter(
-                                param.id,
-                                "value",
-                                e.target.value
-                              )
-                            }
-                          />
-                          <button
-                            onClick={() => handleRemoveParameter(param.id)}
-                            className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={handleAddParameter}
-                        className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center gap-2 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
-                      >
-                        <PlusIcon className="w-4 h-4" /> Add Parameter
-                      </button>
-                    </div>
-                  </div>
                 </>
               )}
 
-              {/* Static配置 */}
-              {sourceType === "static" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Static JSON Data *
-                  </label>
-                  <textarea
-                    className="w-full p-2 border rounded font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    value={
-                      config.data ? JSON.stringify(config.data, null, 2) : ""
-                    }
-                    onChange={(e) => {
-                      try {
-                        const parsed = JSON.parse(e.target.value);
-                        setConfig({ ...config, data: parsed });
-                      } catch {
-                        setConfig({ ...config, data: e.target.value });
-                      }
-                    }}
-                    placeholder='[{"id": 1, "name": "Example"}, {"id": 2, "name": "Another"}]'
-                    rows={6}
-                  />
+              {/* 参数配置 - 所有数据源类型通用 */}
+              <div className="border-t pt-6">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Query Parameters
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      ({parameters.filter((p) => p.key.trim()).length}{" "}
+                      configured)
+                    </span>
+                  </div>
                 </div>
-              )}
 
-              {/* Function配置 */}
-              {sourceType === "function" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Function Code *
-                  </label>
-                  <textarea
-                    className="w-full p-2 border rounded font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    value={config.functionCode || ""}
-                    onChange={(e) =>
-                      setConfig({ ...config, functionCode: e.target.value })
-                    }
-                    placeholder="// JavaScript function that returns data\n(params) => {\n  return { data: 'example' };\n}"
-                    rows={6}
-                  />
-                </div>
-              )}
-
-              {/* Host Function配置 */}
-              {sourceType === "host-function" && selectedHostSourceId && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                    Parameters
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    This host function can accept parameters when fetching data.
+                {/* 参数说明 */}
+                <div className="mb-4 p-3 bg-gray-50 rounded border">
+                  <p className="text-xs text-gray-600">
+                    <strong>Parameters define how data is fetched:</strong>
                   </p>
+                  <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                    <li>
+                      •{" "}
+                      <code className="bg-gray-200 px-1 rounded">
+                        category=electronics
+                      </code>{" "}
+                      - Filter by category
+                    </li>
+                    <li>
+                      •{" "}
+                      <code className="bg-gray-200 px-1 rounded">
+                        sort=price&order=desc
+                      </code>{" "}
+                      - Sort by price descending
+                    </li>
+                    <li>
+                      •{" "}
+                      <code className="bg-gray-200 px-1 rounded">
+                        fields=id,name,price
+                      </code>{" "}
+                      - Select specific fields
+                    </li>
+                    <li>
+                      •{" "}
+                      <code className="bg-gray-200 px-1 rounded">
+                        page=2&limit=20
+                      </code>{" "}
+                      - Pagination
+                    </li>
+                    <li>
+                      •{" "}
+                      <code className="bg-gray-200 px-1 rounded">
+                        featured=true
+                      </code>{" "}
+                      - Get featured items only
+                    </li>
+                  </ul>
+                </div>
+
+                {/* 基础参数 */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Basic Parameters
+                  </h4>
                   <div className="space-y-3">
-                    {parameters.map((param) => (
+                    {basicParameters.map((param) => (
                       <div key={param.id} className="flex gap-2 items-center">
                         <AutoCompleteInput
                           value={param.key}
@@ -1249,11 +1350,85 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       onClick={handleAddParameter}
                       className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center gap-2 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
                     >
-                      <PlusIcon className="w-4 h-4" /> Add Parameter
+                      <PlusIcon className="w-4 h-4" /> Add Basic Parameter
                     </button>
                   </div>
                 </div>
-              )}
+
+                {/* 高级参数 */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Advanced Parameters
+                      </h4>
+                      <button
+                        onClick={() =>
+                          setShowAdvancedParams(!showAdvancedParams)
+                        }
+                        className="text-gray-500 hover:text-gray-700"
+                      >
+                        {showAdvancedParams ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                    {showAdvancedParams && (
+                      <button
+                        onClick={handleAddAdvancedParameter}
+                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <PlusIcon className="w-3 h-3" /> Add Advanced
+                      </button>
+                    )}
+                  </div>
+
+                  {showAdvancedParams && (
+                    <div className="space-y-3">
+                      {advancedParameters.map((param) => (
+                        <div key={param.id} className="flex gap-2 items-center">
+                          <AutoCompleteInput
+                            value={param.key}
+                            onChange={(value) =>
+                              handleUpdateParameter(param.id, "key", value)
+                            }
+                            suggestions={paramNameSuggestions}
+                            placeholder="e.g. filter, sort, fields"
+                            type="key"
+                          />
+                          <input
+                            type="text"
+                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            placeholder="Value (e.g. name,asc or id,name,price)"
+                            value={param.value}
+                            onChange={(e) =>
+                              handleUpdateParameter(
+                                param.id,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                          />
+                          <button
+                            onClick={() => handleRemoveParameter(param.id)}
+                            className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      {advancedParameters.length === 0 && (
+                        <p className="text-sm text-gray-500 italic">
+                          No advanced parameters added. Use for filters,
+                          sorting, field selection, etc.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Refresh Interval */}
               {sourceType === "api" && (
@@ -1290,25 +1465,32 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
               {/* Test Controls */}
               <div className="flex justify-between items-center bg-gray-50 p-2 rounded border">
                 <div className="text-sm truncate mr-2 flex-1">
-                  <span className="font-bold mr-2">
-                    {sourceType === "api" && config.method}
-                    {sourceType === "host-function" && "Host Function"}
-                    {sourceType === "static" && "Static Data"}
-                    {sourceType === "function" && "Function"}
-                  </span>
-                  <span className="font-mono text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">
+                      {sourceType === "api" && config.method}
+                      {sourceType === "host-function" && "Host Function"}
+                      {sourceType === "static" && "Static Data"}
+                      {sourceType === "function" && "Function"}
+                    </span>
+                    {sourceType === "host-function" && selectedHostSource && (
+                      <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded">
+                        {selectedHostSource.name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-gray-600 font-mono text-xs mt-1 truncate">
                     {sourceType === "api" && config.endpoint}
                     {sourceType === "host-function" && config.name}
                     {sourceType === "static" && "Static JSON"}
                     {sourceType === "function" && "Custom Function"}
-                  </span>
+                  </div>
                 </div>
                 <button
                   onClick={handleTest}
                   disabled={
                     isTesting ||
                     (sourceType === "api" && !config.endpoint) ||
-                    (sourceType === "host-function" && !selectedHostSourceId) ||
+                    (sourceType === "host-function" && !selectedHostSource) ||
                     (sourceType === "static" && !config.data) ||
                     (sourceType === "function" && !config.functionCode)
                   }
@@ -1390,7 +1572,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
             disabled={
               !config.name?.trim() ||
               (sourceType === "api" && !config.endpoint?.trim()) ||
-              (sourceType === "host-function" && !selectedHostSourceId) ||
+              (sourceType === "host-function" && !selectedHostSource) ||
               (sourceType === "static" && !config.data) ||
               (sourceType === "function" && !config.functionCode)
             }
