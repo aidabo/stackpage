@@ -49,6 +49,8 @@ export interface BaseDataSource {
   category?: string;
   tags?: string[];
   icon?: string;
+  // 通用参数字段 - 所有数据源类型都可以有
+  parameters?: Record<string, any>;
 }
 
 // 外部API数据源（用户创建）
@@ -57,7 +59,6 @@ export interface ApiDataSource extends BaseDataSource {
   endpoint: string;
   method: "GET" | "POST" | "PUT" | "DELETE";
   headers: Record<string, string>;
-  parameters: Record<string, any>;
   refreshInterval: number;
   lastFetched?: string;
   data?: any;
@@ -78,16 +79,13 @@ export interface FunctionDataSource extends BaseDataSource {
 // 宿主函数数据源（宿主提供，包含获取数据的函数）
 export interface HostFunctionDataSource extends BaseDataSource {
   type: "host-function";
-  // 获取数据的函数
+  // 获取数据的函数 - 宿主提供
   fetchData: (params?: Record<string, any>) => Promise<any>;
-  // 参数定义
-  parameters?: Array<{
-    name: string;
-    type: "string" | "number" | "boolean" | "array" | "object";
-    required?: boolean;
-    defaultValue?: any;
-    description?: string;
-  }>;
+  // 宿主函数标识符（用于匹配宿主提供的函数）
+  hostFunctionId?: string;
+  // 宿主函数显示的名称
+  hostFunctionName?: string;
+  // 注意：不定义特殊parameters，使用BaseDataSource中的通用parameters字段
 }
 
 // 联合类型
