@@ -44,7 +44,7 @@ interface GridStackWidgetRendererProps {
     name: string;
     props: object;
   }) => void;
-  componentProps?: object; // Add this prop
+  componentProps?: any;
 }
 
 export function GridStackWidgetRenderer({
@@ -55,15 +55,23 @@ export function GridStackWidgetRenderer({
   showMenubar,
   isSelected = false,
   onWidgetSelect,
-  componentProps, // Add this
+  componentProps,
 }: GridStackWidgetRendererProps) {
   const componentData = parseWidgetMeta(meta);
 
   // Use the passed componentProps if available, otherwise use parsed props
-  // Use the passed componentProps if available, otherwise use parsed props
   const rawProps = componentProps || componentData.props;
+
   // Resolve bindings
   const props = useDataBinding(rawProps);
+
+  console.log(
+    `[GridStackWidgetRenderer] Rendering widget ${id} of type ${componentData.name}`,
+    {
+      props,
+      hasBindings: props?.__bindings ? Object.keys(props.__bindings).length : 0,
+    }
+  );
 
   const title = (props as any)?.title || `Widget ${id.slice(0, 4)}`;
 
@@ -72,7 +80,7 @@ export function GridStackWidgetRenderer({
       onWidgetSelect({
         id,
         name: componentData.name,
-        props: props, // Use the resolved props
+        props: props,
       });
     }
   };
@@ -94,7 +102,7 @@ export function GridStackWidgetRenderer({
           </div>
         )}
         <div className="widget-body flex-1 min-h-[40px] cursor-pointer">
-          <WidgetComponent {...props} /> {/* Use the resolved props */}
+          <WidgetComponent {...props} />
         </div>
       </div>
     </GridStackAutoResizer>

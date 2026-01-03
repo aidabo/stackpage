@@ -284,6 +284,20 @@ const StackPageContent = ({
       // If this widget has updated props in context, update its content
       if (child.id && widgetProps.has(child.id)) {
         const updatedProps = widgetProps.get(child.id);
+        console.log(
+          `[StackPage] Updating widget ${child.id} with props keys:`,
+          Object.keys(updatedProps || {})
+        );
+        if ((updatedProps as any).__bindings) {
+          console.log(
+            `[StackPage] Widget ${child.id} has bindings:`,
+            (updatedProps as any).__bindings
+          );
+        } else {
+          console.warn(
+            `[StackPage] Widget ${child.id} MISSING bindings in updatedProps`
+          );
+        }
 
         try {
           // Parse the existing content to preserve the component name

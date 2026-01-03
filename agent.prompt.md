@@ -94,3 +94,17 @@ As above, please fix for me.
 - Solution:
 
   You previously provided an Adapter solution, where the DataSourceTab definition in StackPage allows specifying the DataSource provided by the Adapter, with data dynamically provided by the host Next.js app. This solution is good; now we need to modify the StackPage library and the host app to implement it. Please remember: StackPage is a library, the host app is the Next.js app, and the DataSource binding needs to be dynamically resolved, meaning that the latest value is displayed when the page is built and when the page is loaded.
+
+## Fix data binding of Host function datasource
+
+I found the problem is that Host function do not dynamically fetch and bind, it always get blank data.
+
+Fix as following steps:
+
+1: In DataExplorerDialog, when "apply & bind" for Host function datasource, In fetchData function, no related process, it is ignored by endpoint check
+2: I want to use the same resolver for data mapping and bind process, currently three source files of DataExplorerDialog, useDataBinding, and StackPageProvider has related process code. Summary modify them to a shared function. and fetchMissingData in StackPageProvider seems unused, check and modify.
+3: mapping and binding rule:
+3.1: if schema is object type, always use first selected result item, even multiple selected and remember its id as current version to bind this record.
+3.2: if schema is array, use all result items or multiple selected items
+
+Please modify source step by step, tell me solution and how you done.

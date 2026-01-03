@@ -25,6 +25,7 @@ import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSource } from "./types";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { get } from "../utils/get";
+import { DataFetchUtils } from "../utils/dataFetchUtils"; // Import DataFetchUtils
 import { transformers as transformerRegistry } from "../utils/transformers";
 import {
   validateBindingAgainstSchema,
@@ -40,7 +41,7 @@ interface DataExplorerDialogProps {
     dataSourceId: string,
     _data?: any,
     transformers?: Record<string, string>,
-    selector?: { type: "id" | "index" | "all"; value?: string | number },
+    bindings?: Record<string, any>, // Changed selector to full bindings object
     ignoredFields?: string[]
   ) => void;
   onReleaseBindings?: () => void;
@@ -156,41 +157,14 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       return;
     }
 
-    // For API data sources, fetch from endpoint
-    if (ds.type === "api") {
-      if (!ds.endpoint) {
-        setError("No endpoint configured for this data source");
-        return;
-      }
-    } else {
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
     try {
-      if (ds.type !== "api") return;
-
-      const url = new URL(ds.endpoint);
-
-      // Add parameters to URL
-      Object.entries(ds.parameters || {}).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== "") {
-          url.searchParams.append(k, String(v));
-        }
-      });
-
-      const res = await fetch(url.toString(), {
-        method: ds.method || "GET",
-        headers: (ds.headers as any) || {},
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const json = await res.json();
-      setPreviewData(json);
+      const data = await DataFetchUtils.fetchDataSourceData(
+        ds,
+        ds.parameters || {}
+      );
+      setPreviewData(data);
       setSelectedRecord(null); // Reset selection
       setSelectedRecordIndex(null);
     } catch (err: any) {
@@ -350,37 +324,42 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
   // Apply mappings and bind selected record
   const applyMappingsAndBind = () => {
-    // Determine binding strategy
-    let selector: { type: "id" | "index" | "all"; value?: string | number } = {
-      type: "index",
-      value: selectedRecordIndex !== null ? selectedRecordIndex : 0,
-    };
+    // Determine binding strategy for each prop based on schema
 
-    // Check if we should bind all (Array mode)
-    // 1. If user selected multiple items
-    // 2. If the data is an array and we are not selecting a specific record (implicit all)
-    // 3. If target schema expects an array (TODO: Need to check specific prop schema)
+    // Construct full bindings object
+    const newBindings: Record<string, any> = {};
 
-    // For now, simple heuristic:
-    // If selectedItems > 1 -> ALL
-    // If single item selected:
-    //    If item has 'id' -> ID
-    //    Else -> INDEX
+    Object.entries(mappings).forEach(([prop, path]) => {
+      if (path && !ignoredFields.includes(prop)) {
+        // Determine specific selector based on prop schema if possible
+        const propSchema = schema?.properties?.[prop];
+        const targetType = propSchema?.type;
 
-    if (selectedItems.length > 1) {
-      selector = { type: "all" };
-    } else if (selectedRecord) {
-      if (selectedRecord.id !== undefined && selectedRecord.id !== null) {
-        selector = { type: "id", value: selectedRecord.id };
+        // Use the utility to get the correct selector for this specific property
+        // based on its type (array logic vs object logic)
+        const selector = DataFetchUtils.createBindingSelector(
+          selectedRecord,
+          selectedRecordIndex,
+          selectedItems,
+          targetType
+        );
+
+        newBindings[prop] = {
+          sourceId: selectedDataSourceId,
+          path: path,
+          transformer: transformers[prop],
+          selector: selector,
+          targetType: targetType,
+        };
       }
-    }
+    });
 
     onApplyMappings(
       mappings,
       selectedDataSourceId,
       previewData,
       transformers,
-      selector,
+      newBindings, // Pass the full bindings object
       ignoredFields
     );
     onClose();

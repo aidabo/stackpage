@@ -61,7 +61,12 @@ export const PropertiesTab = ({
   const currentProps = { ...currentInstanceProps, ...updatedPropsFromContext };
 
   // Extract schema and bindings, filter them out from the props that go to DataTab
-  const { __schema, __bindings, ...componentPropsWithoutSchema } = currentProps;
+  const {
+    __schema,
+    __bindings,
+    __ignoredMappings,
+    ...componentPropsWithoutSchema
+  } = currentProps;
 
   // Initialize schema for new components
   useEffect(() => {
@@ -117,12 +122,26 @@ export const PropertiesTab = ({
           ...data.formData,
           __schema: componentSchema, // Preserve the schema
           __bindings: data.formData.__bindings || __bindings, // Prioritize updated bindings
+          __ignoredMappings:
+            data.formData.__ignoredMappings || __ignoredMappings,
         };
         const updatedInstance = {
           ...selectedInstance,
           props: updatedProps,
         };
         setSelectedInstance(updatedInstance);
+        console.log(
+          "[PropertiesTab] Updating props with keys:",
+          Object.keys(updatedProps)
+        );
+        if (updatedProps.__bindings) {
+          console.log(
+            "[PropertiesTab] Preserving bindings:",
+            updatedProps.__bindings
+          );
+        } else {
+          console.warn("[PropertiesTab] Bindings missing in updatedProps!");
+        }
         updateProps(updatedProps);
       }
     },
@@ -138,6 +157,7 @@ export const PropertiesTab = ({
           ...componentPropsWithoutSchema,
           __schema: newSchema,
           __bindings: __bindings,
+          __ignoredMappings: __ignoredMappings,
         };
         const updatedInstance = {
           ...selectedInstance,

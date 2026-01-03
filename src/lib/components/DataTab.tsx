@@ -1,4 +1,3 @@
-// DataTab.tsx - 完整修复版本
 import React, {
   useMemo,
   useEffect,
@@ -42,9 +41,9 @@ import { useStackPage } from "./StackPageContext";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { get } from "../utils/get";
 import { LinkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { applyTransformer } from "../utils/transformers"; // Import the transformer function
 import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
+import { DataFetchUtils } from "../utils/dataFetchUtils";
 
 interface DataTabProps {
   selectedInstance: any;
@@ -67,7 +66,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   selectedInstance,
   componentType,
   componentProps,
-  // currentProps,
+  //currentProps,
   onPropertyChange,
   onFileUpload,
   // onApiCall,
@@ -91,6 +90,15 @@ export const DataTab: React.FC<DataTabProps> = ({
     [componentProps, bindings, componentSchema]
   );
   const resolvedProps = useDataBinding(fullProps);
+
+  //DEBUG
+  useEffect(() => {
+    console.log("DataTab - Props updated:", {
+      componentProps,
+      bindings: componentProps.__bindings,
+      resolvedProps,
+    });
+  }, [componentProps, resolvedProps]);
 
   const formRef = useRef<any>(null);
   const previousSchemaRef = useRef<any>(null);
@@ -146,7 +154,7 @@ export const DataTab: React.FC<DataTabProps> = ({
             "ui:classNames":
               (enhancedUiSchema[key]?.["ui:classNames"] || "") +
               " bg-zinc-300 border-l-4 border-blue-300 pl-4 py-2 rounded-r",
-            "ui:readonly": true, // Make bound fields read-only in UI
+            //"ui:readonly": true, // Make bound fields read-only in UI
           };
         });
       }
@@ -383,40 +391,49 @@ export const DataTab: React.FC<DataTabProps> = ({
     dataSourceId: string,
     _data?: any,
     transformers?: Record<string, string>,
-    selector?: { type: "id" | "index" | "all"; value?: string | number },
+    bindingsFromDialog?: Record<string, any>, // Renamed from bindings to avoid confusion
     ignoredFields?: string[]
   ) => {
     console.log("Applying mappings:", {
       mappings,
       dataSourceId,
       transformers,
-      selector,
+      bindingsFromDialog,
       ignoredFields,
     });
 
-    // Construct bindings object
+    // Use bindings from dialog if provided, otherwise create from mappings
     const newBindings: Record<string, any> = {};
+
+    if (bindingsFromDialog) {
+      // Use the bindings object from DataExplorerDialog directly
+      Object.assign(newBindings, bindingsFromDialog);
+    } else {
+      // Create bindings from mappings (backward compatibility)
+      Object.entries(mappings).forEach(([prop, path]) => {
+        if (path) {
+          const binding = {
+            sourceId: dataSourceId,
+            path: path,
+            transformer: transformers?.[prop] || undefined,
+            selector: { type: "index", value: 0 }, // Default selector
+            targetType: localComponentSchema?.properties?.[prop]?.type,
+          };
+          newBindings[prop] = binding;
+        }
+      });
+    }
+
+    // Validate bindings
     const validationErrors: string[] = [];
-
-    // Identify target type for null transformation logic
-    const getTargetType = (prop: string) => {
-      return localComponentSchema?.properties?.[prop]?.type;
-    };
-
-    Object.entries(mappings).forEach(([prop, path]) => {
-      if (path) {
-        const binding = {
-          sourceId: dataSourceId,
-          path: path,
-          transformer: transformers?.[prop] || undefined,
-          selector: selector, // Save the selector info
-          targetType: getTargetType(prop), // Save target type for null handling
-        };
-        newBindings[prop] = binding;
-
-        // Validate against schema if we have data
-        if (_data && schema?.properties?.[prop]) {
-          const value = get(_data, path);
+    if (_data) {
+      Object.entries(newBindings).forEach(([prop, binding]: [string, any]) => {
+        if (schema?.properties?.[prop]) {
+          const value = DataFetchUtils.getValueFromDataSource(
+            _data,
+            binding.path,
+            binding.selector
+          );
           const warnings = validateBindingAgainstSchema(
             binding,
             schema.properties[prop],
@@ -426,8 +443,8 @@ export const DataTab: React.FC<DataTabProps> = ({
             validationErrors.push(`${prop}: ${warnings.join(", ")}`);
           }
         }
-      }
-    });
+      });
+    }
 
     // Show warnings if any
     if (validationErrors.length > 0) {
@@ -435,16 +452,16 @@ export const DataTab: React.FC<DataTabProps> = ({
         "\n"
       )}\n\nDo you want to continue?`;
       if (!window.confirm(message)) {
-        return; // User cancelled
+        return;
       }
     }
 
-    // Update props with __bindings
+    // Update props with __bindings - CORRECTED: Merge with existing bindings
     const updatedProps = {
       ...componentProps,
       __bindings: {
-        ...(bindings || {}),
-        ...newBindings,
+        ...(bindings || {}), // Keep existing bindings
+        ...newBindings, // Add/overwrite with new bindings
       },
       __ignoredMappings: ignoredFields || [],
     };
@@ -458,23 +475,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       });
     }
 
-    // Apply immediate binding for preview if data is provided
-    if (_data) {
-      Object.entries(mappings).forEach(([prop, path]) => {
-        if (path) {
-          const value = get(_data, path);
-          if (value !== undefined) {
-            let transformedValue = value;
-            // Apply transformer if specified
-            if (transformers?.[prop]) {
-              transformedValue = applyTransformer(value, transformers[prop]);
-            }
-            updatedProps[prop] = transformedValue;
-          }
-        }
-      });
-    }
-
+    console.log("Final bindings to save:", updatedProps.__bindings);
     onPropertyChange({ formData: updatedProps });
   };
 
@@ -708,9 +709,29 @@ export const DataTab: React.FC<DataTabProps> = ({
                 widgets={widgets}
                 templates={templates}
                 liveValidate
+                // Add this to debug:
+                onError={(errors) => console.log("RJSF Errors:", errors)}
+                onSubmit={(data) => console.log("RJSF Submit:", data)}
               >
                 <div style={{ display: "none" }} />
               </Form>
+            </div>
+
+            {/* Also add a debug display: */}
+            <div className="p-4 bg-gray-100 border rounded mb-4">
+              <h4 className="font-bold mb-2">Debug Info:</h4>
+              <pre className="text-xs">
+                {JSON.stringify(
+                  {
+                    hasBindings: !!bindings && Object.keys(bindings).length > 0,
+                    bindings: bindings,
+                    resolvedPropsKeys: Object.keys(resolvedProps || {}),
+                    formDataKeys: Object.keys(componentProps || {}),
+                  },
+                  null,
+                  2
+                )}
+              </pre>
             </div>
 
             {/* Validation Warnings */}
@@ -744,7 +765,6 @@ export const DataTab: React.FC<DataTabProps> = ({
                 </div>
               </div>
             )}
-
             {/* Bindings Summary */}
             {bindings && Object.keys(bindings).length > 0 && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -792,7 +812,6 @@ export const DataTab: React.FC<DataTabProps> = ({
                 </div>
               </div>
             )}
-
             {/* Quick Actions */}
             {/*(onApiCall || onCustomAction) && (
               <div className="mt-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
@@ -886,7 +905,6 @@ export const DataTab: React.FC<DataTabProps> = ({
                 </div>
               </div>
             )*/}
-
             {/* No properties message */}
             {Object.keys(componentProps).length === 0 && (
               <div className="text-center py-12 text-gray-500">
@@ -972,6 +990,11 @@ export const DataTab: React.FC<DataTabProps> = ({
         schema={schema} // Pass the schema for type checking
         currentIgnoredFields={componentProps.__ignoredMappings || []}
         onReleaseBindings={handleReleaseBindings}
+        initialDataSourceId={
+          bindings && Object.keys(bindings).length > 0
+            ? bindings[Object.keys(bindings)[0]]?.sourceId
+            : undefined
+        }
       />
     </>
   );

@@ -1,7 +1,6 @@
-// StackPageProvider.tsx
-import React, { useState, ReactNode } from "react";
+import React, { useState, ReactNode, useEffect, useRef } from "react";
 import { StackPageContext, SourceData } from "./StackPageContext";
-import { DataSourceService } from "./dataSourceService";
+import { DataFetchUtils } from "../utils/dataFetchUtils";
 
 interface StackPageProviderProps {
   children: ReactNode;
@@ -39,51 +38,97 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     dataSources: [],
   });
 
-  // Fetch data for API sources
-  React.useEffect(() => {
-    const fetchMissingData = async () => {
-      let hasUpdates = false;
-      const updates = new Map<string, any>();
+  const hasFetchedInitialData = useRef(false);
 
-      const promises = source.dataSources.map(async (ds) => {
-        // Only fetch if it's an API source and data is missing
-        if (ds.type === "api" && ds.data === undefined) {
+  // Fetch data for dynamic data sources ONCE on page build/reload
+  useEffect(() => {
+    // Prevent fetching if already done or if no data sources
+    if (hasFetchedInitialData.current || source.dataSources.length === 0) {
+      return;
+    }
+
+    const fetchPageData = async () => {
+      const dynamicSources = source.dataSources.filter(
+        (ds) => ds.type !== "static" && (ds as any).data === undefined
+      );
+
+      if (dynamicSources.length === 0) {
+        hasFetchedInitialData.current = true;
+        return;
+      }
+
+      console.log(
+        "[StackPageProvider] Fetching page data for dynamic sources..."
+      );
+
+      try {
+        const fetchPromises = dynamicSources.map(async (ds) => {
           try {
             console.log(
-              `[StackPageProvider] Fetching data for source: ${ds.name}`
+              `[StackPageProvider] Fetching ${ds.type} source: ${ds.name}`
             );
-            const data = await DataSourceService.fetchDataSourceData(ds);
-            updates.set(ds.id, data);
-            hasUpdates = true;
-          } catch (e) {
+            const data = await DataFetchUtils.fetchDataSourceData(
+              ds,
+              ds.parameters || {}
+            );
+
+            return {
+              id: ds.id,
+              data,
+              success: true,
+            };
+          } catch (error: any) {
             console.error(
-              `[StackPageProvider] Failed to fetch data for ${ds.name}:`,
-              e
+              `[StackPageProvider] Failed to fetch ${ds.type} source ${ds.name}:`,
+              error
             );
+            return {
+              id: ds.id,
+              data: null,
+              success: false,
+              error: error.message,
+            };
           }
-        }
-      });
+        });
 
-      await Promise.all(promises);
+        const results = await Promise.all(fetchPromises);
 
-      if (hasUpdates) {
-        setSource((prev) => ({
-          ...prev,
-          dataSources: prev.dataSources.map((ds) => {
-            if (updates.has(ds.id)) {
-              return { ...ds, data: updates.get(ds.id) };
+        // Update data sources with fetched data
+        setSource((prev) => {
+          const updatedDataSources = prev.dataSources.map((ds) => {
+            const result = results.find((r) => r.id === ds.id);
+            if (result && result.success) {
+              return {
+                ...ds,
+                data: result.data,
+              };
             }
             return ds;
-          }),
-        }));
+          });
+
+          return {
+            ...prev,
+            dataSources: updatedDataSources,
+          };
+        });
+
+        console.log("[StackPageProvider] Page data fetch completed");
+        hasFetchedInitialData.current = true;
+      } catch (error) {
+        console.error("[StackPageProvider] Failed to fetch page data:", error);
+        hasFetchedInitialData.current = true; // Still mark as fetched to prevent retries
       }
     };
 
-    fetchMissingData();
-  }, [source.dataSources]);
+    fetchPageData();
+  }, [source.dataSources]); // Only runs when data sources are initially set
 
   const updateWidgetProps = (widgetId: string, props: object) => {
-    console.log("Updating widget props for:", widgetId, props);
+    console.log(
+      "[StackPageProvider] Updating widget props for:",
+      widgetId,
+      props
+    );
     setWidgetProps((prev) => new Map(prev).set(widgetId, props));
   };
 
@@ -94,8 +139,8 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     setSelectedInstance,
     attributes,
     setPageAttributes,
-    source, // Top level source
-    setSource, // Setter for source
+    source,
+    setSource,
     activeTab,
     setActiveTab,
     widgetProps,

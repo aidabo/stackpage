@@ -1,10 +1,10 @@
 // StackPageWidgetProps.ts
-import { useStackPageWidgetProps } from './StackPageContext';
+import { useStackPageWidgetProps } from "./StackPageContext";
 
 // Hook to get and update widget props for a specific widget
 export const useWidgetProps = (widgetId?: string) => {
   const { widgetProps, updateWidgetProps } = useStackPageWidgetProps();
-  
+
   const getProps = () => {
     if (!widgetId) return undefined;
     return widgetProps.get(widgetId);
@@ -19,6 +19,10 @@ export const useWidgetProps = (widgetId?: string) => {
     if (!widgetId) return;
     const currentProps = widgetProps.get(widgetId) || {};
     updateWidgetProps(widgetId, { ...currentProps, ...updates });
+    console.log(`[useWidgetProps] Updated props for widget ${widgetId}:`, {
+      ...currentProps,
+      ...updates,
+    });
   };
 
   return {
