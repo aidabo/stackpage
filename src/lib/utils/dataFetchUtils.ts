@@ -1,81 +1,25 @@
-import { DataSource, HostFunctionDataSource } from "../components/types";
+import { DataSource } from "../components/types";
 import { get } from "../utils/get";
+import { DataSourceService } from "../components/DataSourceService";
 
 export class DataFetchUtils {
-  // Unified data fetching for all data source types
   static async fetchDataSourceData(
     dataSource: DataSource,
     params?: Record<string, any>
   ): Promise<any> {
-    switch (dataSource.type) {
-      case "host-function":
-        const hostSource = dataSource as HostFunctionDataSource;
-        return await hostSource.fetchData(params || {});
+    console.log(
+      `[DataFetchUtils] Fetching data via DataSourceService for ${dataSource.name}`
+    );
 
-      case "api":
-        return await this.fetchApiData(dataSource, params);
+    const result = await DataSourceService.fetchDataSourceData(
+      dataSource,
+      params
+    );
 
-      case "static":
-        return dataSource.data;
-
-      case "function":
-        return await this.executeFunctionData(dataSource, params);
-
-      default:
-        throw new Error(
-          `Unsupported data source type: ${(dataSource as any).type}`
-        );
-    }
-  }
-
-  private static async fetchApiData(
-    dataSource: DataSource & { type: "api" },
-    params?: Record<string, any>
-  ): Promise<any> {
-    if (!dataSource.endpoint) {
-      throw new Error("Endpoint is required for API data sources");
-    }
-
-    const allParams = {
-      ...(dataSource.parameters || {}),
-      ...(params || {}),
-    };
-
-    const url = new URL(dataSource.endpoint);
-    Object.entries(allParams).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.append(key, String(value));
-      }
-    });
-
-    const response = await fetch(url.toString(), {
-      method: dataSource.method || "GET",
-      headers: dataSource.headers || {},
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    return await response.json();
-  }
-
-  private static async executeFunctionData(
-    dataSource: DataSource & { type: "function" },
-    params?: Record<string, any>
-  ): Promise<any> {
-    if (!dataSource.functionCode) {
-      throw new Error("Function code is required for function data sources");
-    }
-
-    try {
-      const func = new Function(
-        "params",
-        `return (${dataSource.functionCode})(params)`
-      );
-      return func(params || {});
-    } catch (error: any) {
-      throw new Error(`Function execution failed: ${error.message}`);
+    if (result.success) {
+      return result.data;
+    } else {
+      throw new Error(result.error || "Failed to fetch data");
     }
   }
 

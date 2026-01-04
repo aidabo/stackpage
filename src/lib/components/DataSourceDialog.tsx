@@ -14,15 +14,13 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { VisualDataPreview } from "./VisualDataPreview";
-import { DataSourceService } from "./dataSourceService";
+import { DataSourceService } from "./DataSourceService";
 
 interface DataSourceDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (ds: DataSource) => void;
   initialData?: DataSource | null;
-  // 宿主提供的数据源函数
-  getHostDataSources?: () => Promise<HostFunctionDataSource[]>;
 }
 
 // 常用Headers预定义
@@ -323,7 +321,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   onClose,
   onSave,
   initialData,
-  getHostDataSources,
 }) => {
   const [config, setConfig] = useState<DataSourceConfig>({
     name: "",
@@ -517,11 +514,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
   // 加载宿主数据源
   const loadHostDataSources = async () => {
-    if (!getHostDataSources) return;
-
     setIsLoadingHostSources(true);
     try {
-      const sources = await getHostDataSources();
+      // 从单例服务中获取已注册的宿主数据源
+      const sources = DataSourceService.getHostDataSources();
       setHostDataSources(sources);
     } catch (error) {
       console.error("Failed to load host data sources:", error);
@@ -779,52 +775,21 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   };
 
   // 测试数据源
+  // 测试数据源
   const handleTest = async () => {
-    if (sourceType === "host-function") {
-      // 尝试即时解析宿主数据源（如果selectedHostSource丢失）
-      let targetHostSource = selectedHostSource;
-      if (!targetHostSource && selectedHostSourceId) {
-        targetHostSource =
-          hostDataSources.find(
-            (s) => String(s.id) === String(selectedHostSourceId)
-          ) || null;
-      }
-
-      // 确保有选中的宿主数据源
-      if (!targetHostSource) {
-        alert("Please select a host function first");
-        return;
-      }
-
-      setIsTesting(true);
-      try {
-        // 使用宿主提供的函数和配置的参数进行测试
-        const result = await targetHostSource.fetchData(
-          config.parameters || {}
-        );
-        setTestResult(result);
-      } catch (error: any) {
-        alert(`Test failed: ${error.message}`);
-        setTestResult({
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        });
-      } finally {
-        setIsTesting(false);
-      }
+    // Validate required fields
+    if (sourceType === "host-function" && !selectedHostSourceId) {
+      alert("Please select a host function first");
       return;
     }
-
     if (sourceType === "api" && !config.endpoint?.trim()) {
       alert("Please enter an endpoint URL to test");
       return;
     }
-
     if (sourceType === "static" && !config.data) {
       alert("Please enter static data to test");
       return;
     }
-
     if (sourceType === "function" && !config.functionCode?.trim()) {
       alert("Please enter function code to test");
       return;
@@ -834,44 +799,35 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setTestResult(null);
 
     try {
-      let testDataSource: DataSource;
+      // Construct a temporary data source for testing
+      const testDataSource: DataSource = {
+        id: "test-temp-id",
+        name: config.name || "Test Source",
+        type: sourceType,
+        description: config.description,
+        category: config.category,
 
-      switch (sourceType) {
-        case "api":
-          testDataSource = {
-            id: "test",
-            name: "Test",
-            type: "api",
-            endpoint: config.endpoint!,
-            method: config.method!,
-            headers: config.headers!,
-            parameters: config.parameters!,
-            refreshInterval: 0,
-          };
-          break;
+        // API specific
+        endpoint: config.endpoint,
+        method: config.method,
+        headers: config.headers,
 
-        case "static":
-          testDataSource = {
-            id: "test",
-            name: "Test",
-            type: "static",
-            data: config.data,
-          };
-          break;
+        // Host function specific
+        hostFunctionId: selectedHostSourceId,
+        hostFunctionName: selectedHostSource?.name,
 
-        case "function":
-          testDataSource = {
-            id: "test",
-            name: "Test",
-            type: "function",
-            functionCode: config.functionCode!,
-          };
-          break;
+        // Static specific
+        data: config.data,
 
-        default:
-          throw new Error(`Unsupported type for test: ${sourceType}`);
-      }
+        // Function specific
+        functionCode: config.functionCode,
+      } as DataSource;
 
+      // Use DataSourceService to fetch/execute
+      console.log(
+        "[DataSourceDialog] Testing data source with Service:",
+        testDataSource
+      );
       const result = await DataSourceService.fetchDataSourceData(
         testDataSource,
         config.parameters
@@ -879,13 +835,14 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
       if (result.success) {
         setTestResult(result.data);
-        if (Array.isArray(result.data) && config.category) {
+        if (Array.isArray(result.data)) {
           setViewMode("visual");
         }
       } else {
         throw new Error(result.error);
       }
     } catch (e: any) {
+      console.error("Test failed:", e);
       alert(`Test failed: ${e.message}`);
       setTestResult({ error: e.message, timestamp: new Date().toISOString() });
     } finally {

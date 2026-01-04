@@ -25,7 +25,8 @@ import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSource } from "./types";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { get } from "../utils/get";
-import { DataFetchUtils } from "../utils/dataFetchUtils"; // Import DataFetchUtils
+import { DataFetchUtils } from "../utils/dataFetchUtils";
+import { DataSourceService } from "./DataSourceService";
 import { transformers as transformerRegistry } from "../utils/transformers";
 import {
   validateBindingAgainstSchema,
@@ -160,13 +161,21 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     setIsLoading(true);
     setError(null);
     try {
-      const data = await DataFetchUtils.fetchDataSourceData(
+      // Use DataSourceService to fetch data (supports host functions via registry)
+      const result = await DataSourceService.fetchDataSourceData(
         ds,
         ds.parameters || {}
       );
-      setPreviewData(data);
-      setSelectedRecord(null); // Reset selection
-      setSelectedRecordIndex(null);
+
+      if (result.success) {
+        //cache result into datasource
+        (ds as any).data = result.data;
+        setPreviewData(result.data);
+        setSelectedRecord(null); // Reset selection
+        setSelectedRecordIndex(null);
+      } else {
+        throw new Error(result.error);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to fetch data");
       console.error("Fetch error:", err);

@@ -17,14 +17,7 @@ import { useStackPage } from "./StackPageContext";
 import { DataSource, HostFunctionDataSource } from "./types";
 import { DataSourceDialog } from "./DataSourceDialog";
 
-interface DataSourceTabProps {
-  // 新增：获取宿主数据源的函数
-  getHostDataSources?: () => Promise<HostFunctionDataSource[]>;
-}
-
-export const DataSourceTab: React.FC<DataSourceTabProps> = ({
-  getHostDataSources,
-}): JSX.Element => {
+export const DataSourceTab: React.FC = (): JSX.Element => {
   const { source, setSource } = useStackPage();
 
   const [dataSources, setDataSources] = useState<DataSource[]>(
@@ -549,8 +542,6 @@ export const DataSourceTab: React.FC<DataSourceTabProps> = ({
         }}
         onSave={handleSaveDataSource}
         initialData={editingDataSource}
-        // 传递宿主数据源获取函数
-        getHostDataSources={getHostDataSources}
       />
     </div>
   );

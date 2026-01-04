@@ -1,7 +1,23 @@
-// dataSourceService.ts - 完全重写为统一的服务
 import { DataSource, DataSourceResult, HostFunctionDataSource } from "./types";
 
 export class DataSourceService {
+  // Static registry for host data sources
+  private static hostDataSourcesRegistry: HostFunctionDataSource[] = [];
+
+  // Method to set host data sources from the host app
+  static setHostDataSources(sources: HostFunctionDataSource[]) {
+    console.log(
+      "[DataSourceService] Setting host data sources:",
+      sources.length
+    );
+    DataSourceService.hostDataSourcesRegistry = sources;
+  }
+
+  // Get all registered host data sources
+  static getHostDataSources(): HostFunctionDataSource[] {
+    return [...DataSourceService.hostDataSourcesRegistry];
+  }
+
   // 获取数据源的数据（统一入口）
   static async fetchDataSourceData<T = any>(
     dataSource: DataSource,
@@ -14,9 +30,10 @@ export class DataSourceService {
 
       switch (dataSource.type) {
         case "host-function":
-          // 调用宿主提供的函数获取数据
-          const hostSource = dataSource as HostFunctionDataSource;
-          data = await hostSource.fetchData(params || {});
+          data = await this.fetchHostFunctionData(
+            dataSource as HostFunctionDataSource,
+            params
+          );
           break;
 
         case "api":
@@ -45,7 +62,7 @@ export class DataSourceService {
       };
     } catch (error: any) {
       console.error(
-        `Failed to fetch data from data source ${dataSource.name}:`,
+        `[DataSourceService] Failed to fetch data from data source ${dataSource.name}:`,
         error
       );
 
@@ -57,6 +74,85 @@ export class DataSourceService {
         sourceId: dataSource.id,
       };
     }
+  }
+
+  // Fetch data for host-function data source
+  private static async fetchHostFunctionData(
+    dataSource: HostFunctionDataSource,
+    params?: Record<string, any>
+  ): Promise<any> {
+    console.log(
+      `[DataSourceService] Fetching host-function data for ${dataSource.name}`
+    );
+
+    // If the data source already has a fetchData function (from dialog testing), use it
+    if (dataSource.fetchData) {
+      console.log(
+        `[DataSourceService] Using direct fetchData for ${dataSource.name}`
+      );
+      return await dataSource.fetchData(params || {});
+    }
+
+    // Look up in the registry by hostFunctionId
+    let hostFunc: HostFunctionDataSource | undefined;
+
+    if (dataSource.hostFunctionId) {
+      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+        (h) => h.id === dataSource.hostFunctionId
+      );
+
+      if (hostFunc) {
+        console.log(
+          `[DataSourceService] Found host function by ID ${dataSource.hostFunctionId} for ${dataSource.name}`
+        );
+      }
+    }
+
+    // If not found by ID, try by name
+    if (!hostFunc && dataSource.hostFunctionName) {
+      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+        (h) => h.name === dataSource.hostFunctionName
+      );
+
+      if (hostFunc) {
+        console.log(
+          `[DataSourceService] Found host function by name ${dataSource.hostFunctionName} for ${dataSource.name}`
+        );
+      }
+    }
+
+    // If still not found, try to find by any matching name
+    if (!hostFunc && dataSource.name) {
+      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+        (h) =>
+          h.name.toLowerCase().includes(dataSource.name.toLowerCase()) ||
+          dataSource.name.toLowerCase().includes(h.name.toLowerCase())
+      );
+
+      if (hostFunc) {
+        console.log(
+          `[DataSourceService] Found host function by approximate name match for ${dataSource.name}`
+        );
+      }
+    }
+
+    if (!hostFunc || !hostFunc.fetchData) {
+      const available = DataSourceService.hostDataSourcesRegistry
+        .map((f) => f.name)
+        .join(", ");
+      throw new Error(
+        `Host function for data source "${dataSource.name}" not found. ` +
+          `Available functions: ${available || "none"}`
+      );
+    }
+
+    // Merge parameters: data source parameters + passed params
+    const allParams = {
+      ...(dataSource.parameters || {}),
+      ...(params || {}),
+    };
+
+    return await hostFunc.fetchData(allParams);
   }
 
   // 获取API数据

@@ -1,7 +1,7 @@
 import { useGridStackContext } from "./grid-stack-context";
 import { useGridStackRenderContext } from "./grid-stack-render-context";
 import { GridStackWidget } from "gridstack";
-import { ComponentType, useMemo } from "react";
+import { ComponentType } from "react";
 import { GridStackWidgetRenderer } from "./grid-stack-widget-render";
 import {
   useStackPageWidgetProps,
@@ -76,18 +76,12 @@ export function GridStackRender({
       )}
 
       {Array.from(_rawWidgetMetaMap.value.entries()).map(([id, meta]) => {
-        const { name, props: metaProps } = useMemo(
-          () => parseWidgetMeta(meta),
-          [meta]
-        );
+        const { name, props: metaProps } = parseWidgetMeta(meta);
         const WidgetComponent = componentMap[name];
         const widgetContainer = getWidgetContainer(id);
 
         // Use updated props from StackPageContext if available, otherwise use meta props
-        const props = useMemo(
-          () => widgetProps.get(id) || metaProps,
-          [widgetProps, meta]
-        );
+        const props = widgetProps.get(id) || metaProps;
 
         console.log(`[GridStackRenderer] Rendering widget ${id}`, props);
 

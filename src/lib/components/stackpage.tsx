@@ -39,7 +39,6 @@ import {
   CustomActionFn,
   GetSelectOptionsFn,
 } from "./stackoptions";
-import { DataFetchUtils } from "../utils/dataFetchUtils";
 
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../gridstack/grid-stack-render-provider";
@@ -53,7 +52,8 @@ import { ListTab } from "./ListTab";
 import { DataSourceTab } from "./DataSourceTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
-import { GetHostDataSourcesFn } from "./types";
+import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
+import { DataSourceService } from "./DataSourceService";
 
 import "../styles/index.css";
 
@@ -75,7 +75,6 @@ export interface StackPageProps {
   onGetSelectOptions?: GetSelectOptionsFn;
   options?: StackPageOptions;
   children?: ReactNode;
-
   // 新增：获取宿主数据源的函数
   getHostDataSources?: GetHostDataSourcesFn;
 }
@@ -217,6 +216,23 @@ const StackPageContent = ({
     async (pageid: string): Promise<any> => {
       const pageProps = await onLoadLayout(pageid);
 
+      // Load host data sources from the host app
+      let hostDataSources: HostFunctionDataSource[] = [];
+      if (getHostDataSources) {
+        try {
+          hostDataSources = await getHostDataSources();
+          console.log(
+            "[StackPage] Loaded host data sources:",
+            hostDataSources.length
+          );
+
+          // Register host data sources with DataSourceService
+          DataSourceService.setHostDataSources(hostDataSources);
+        } catch (error) {
+          console.error("[StackPage] Failed to load host data sources:", error);
+        }
+      }
+
       // Pre-fetch data for dynamic sources used in bindings
       if (pageProps.source && pageProps.layout) {
         try {
@@ -255,7 +271,7 @@ const StackPageContent = ({
 
           // 2. Fetch data for these sources if they are dynamic
           if (requiredSourceIds.size > 0 && pageProps.source.dataSources) {
-            const updates: Array<{ id: string; data: any }> = [];
+            const updates: Array<{ id: string; result: any }> = [];
 
             for (const ds of pageProps.source.dataSources) {
               if (
@@ -267,11 +283,11 @@ const StackPageContent = ({
                   console.log(
                     `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`
                   );
-                  const data = await DataFetchUtils.fetchDataSourceData(
+                  const result = await DataSourceService.fetchDataSourceData(
                     ds,
                     ds.parameters || {}
                   );
-                  updates.push({ id: ds.id, data });
+                  updates.push({ id: ds.id, result });
                 } catch (err) {
                   console.error(
                     `[StackPage] Failed to pre-fetch source ${ds.name}`,
@@ -286,7 +302,7 @@ const StackPageContent = ({
               pageProps.source.dataSources = pageProps.source.dataSources.map(
                 (ds) => {
                   const update = updates.find((u) => u.id === ds.id);
-                  return update ? { ...ds, data: update.data } : ds;
+                  return update ? { ...ds, data: update.result.data } : ds;
                 }
               );
             }
@@ -778,7 +794,7 @@ const StackPageContent = ({
                       display: activeTab === "datasource" ? "block" : "none",
                     }}
                   >
-                    <DataSourceTab getHostDataSources={getHostDataSources} />
+                    <DataSourceTab />
                   </div>
                 </div>
 
