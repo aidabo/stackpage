@@ -244,6 +244,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                 "feature_image",
                 "profile_image",
                 "image",
+                "url",
                 "cover_image",
                 "primary_author.profile_image",
                 "authors[0].profile_image",
