@@ -127,3 +127,18 @@ how to identify select type should use summaried shared functions, current versi
 
 1. createBindingSelector
 2. getValueFromDataSource
+
+## error fix:
+
+not correcct reflected binding info when open DataExplorerDialog:
+
+1. no Ignore field setting, when ignore some fields
+2. selected record not right
+3. remove index select type, three type:
+
+we assume has id for each record
+id for single,
+ids for multiple selected but not all and schema array type
+all not selected or all selected
+
+for ignore column , add a checkbox to ignore all fields
