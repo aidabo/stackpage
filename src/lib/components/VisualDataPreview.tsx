@@ -286,7 +286,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                   onClick={() => handleSelectItem(index)}
                 >
                   {/* Selection Checkbox */}
-                  <div className="absolute top-3 left-3 z-10">
+                  <div className="relative top-3 left-3 z-10">
                     <div
                       className={`w-5 h-5 rounded border flex items-center justify-center ${
                         isSelected

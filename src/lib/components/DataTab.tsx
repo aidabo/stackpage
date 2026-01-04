@@ -709,29 +709,9 @@ export const DataTab: React.FC<DataTabProps> = ({
                 widgets={widgets}
                 templates={templates}
                 liveValidate
-                // Add this to debug:
-                onError={(errors) => console.log("RJSF Errors:", errors)}
-                onSubmit={(data) => console.log("RJSF Submit:", data)}
               >
                 <div style={{ display: "none" }} />
               </Form>
-            </div>
-
-            {/* Also add a debug display: */}
-            <div className="p-4 bg-gray-100 border rounded mb-4">
-              <h4 className="font-bold mb-2">Debug Info:</h4>
-              <pre className="text-xs">
-                {JSON.stringify(
-                  {
-                    hasBindings: !!bindings && Object.keys(bindings).length > 0,
-                    bindings: bindings,
-                    resolvedPropsKeys: Object.keys(resolvedProps || {}),
-                    formDataKeys: Object.keys(componentProps || {}),
-                  },
-                  null,
-                  2
-                )}
-              </pre>
             </div>
 
             {/* Validation Warnings */}
@@ -765,6 +745,7 @@ export const DataTab: React.FC<DataTabProps> = ({
                 </div>
               </div>
             )}
+
             {/* Bindings Summary */}
             {bindings && Object.keys(bindings).length > 0 && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -812,99 +793,7 @@ export const DataTab: React.FC<DataTabProps> = ({
                 </div>
               </div>
             )}
-            {/* Quick Actions */}
-            {/*(onApiCall || onCustomAction) && (
-              <div className="mt-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-800 mb-4">
-                  Quick Actions
-                </h4>
-                <div className="flex flex-wrap gap-3">
-                  {onApiCall &&
-                    Object.entries(componentProps).some(([_, value]) =>
-                      isApiField(value)
-                    ) && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const apiEndpoints = Object.entries(
-                              componentProps
-                            ).filter(([_, value]) => isApiField(value));
 
-                            for (const [key, endpoint] of apiEndpoints) {
-                              await handleApiCall(
-                                key,
-                                endpoint as any,
-                                onApiCall
-                              );
-                            }
-
-                            if (apiEndpoints.length === 0) {
-                              alert("No API endpoints found");
-                            } else {
-                              alert(
-                                `Called ${apiEndpoints.length} API endpoint(s)`
-                              );
-                            }
-                          } catch (error) {
-                            console.error("Failed to call APIs:", error);
-                            alert("Failed to call APIs");
-                          }
-                        }}
-                        className="px-4 py-3 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
-                      >
-                        Call All API Endpoints
-                      </button>
-                    )}
-
-                  {onCustomAction &&
-                    Object.entries(componentProps).some(([_, value]) =>
-                      isCustomActionField(value)
-                    ) && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const customActions = Object.entries(
-                              componentProps
-                            ).filter(([_, value]) =>
-                              isCustomActionField(value)
-                            );
-
-                            for (const [key, actionValue] of customActions) {
-                              const actionName = (actionValue as any).replace(
-                                "/customaction/",
-                                ""
-                              );
-                              await handleCustomAction(
-                                key,
-                                actionName,
-                                currentProps,
-                                onCustomAction
-                              );
-                            }
-
-                            if (customActions.length === 0) {
-                              alert("No custom actions found");
-                            } else {
-                              alert(
-                                `Executed ${customActions.length} custom action(s)`
-                              );
-                            }
-                          } catch (error) {
-                            console.error(
-                              "Failed to execute custom actions:",
-                              error
-                            );
-                            alert("Failed to execute actions");
-                          }
-                        }}
-                        className="px-4 py-3 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 transition-colors font-medium"
-                      >
-                        Execute All Custom Actions
-                      </button>
-                    )}
-                </div>
-              </div>
-            )*/}
             {/* No properties message */}
             {Object.keys(componentProps).length === 0 && (
               <div className="text-center py-12 text-gray-500">

@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { GridStackOptions, GridStackWidget } from "gridstack";
 
-export function PageInfo(
-  {pageInfo}: 
-  {pageInfo: any
-}) {
+export function PageInfo({ pageInfo }: { pageInfo: any }) {
   const [layout, setLayout] = useState<
     GridStackOptions | GridStackWidget[] | undefined
   >(undefined);
