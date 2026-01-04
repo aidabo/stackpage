@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { createPortal } from "react-dom";
 import { GridStackWidget } from "gridstack";
 import { ComponentType } from "react";
@@ -57,13 +58,16 @@ export function GridStackWidgetRenderer({
   onWidgetSelect,
   componentProps,
 }: GridStackWidgetRendererProps) {
-  const componentData = parseWidgetMeta(meta);
+  const componentData = useMemo(() => parseWidgetMeta(meta), [meta]);
 
   // Use the passed componentProps if available, otherwise use parsed props
-  const rawProps = componentProps || componentData.props;
+  const rawProps = useMemo(() => {
+    return componentProps || componentData.props;
+  }, [componentProps, componentData.props]);
 
   // Resolve bindings
   const props = useDataBinding(rawProps);
+  //const props = rawProps;
 
   console.log(
     `[GridStackWidgetRenderer] Rendering widget ${id} of type ${componentData.name}`,

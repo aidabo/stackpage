@@ -39,6 +39,7 @@ import {
   CustomActionFn,
   GetSelectOptionsFn,
 } from "./stackoptions";
+import { DataFetchUtils } from "../utils/dataFetchUtils";
 
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../gridstack/grid-stack-render-provider";
@@ -215,6 +216,86 @@ const StackPageContent = ({
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
       const pageProps = await onLoadLayout(pageid);
+
+      // Pre-fetch data for dynamic sources used in bindings
+      if (pageProps.source && pageProps.layout) {
+        try {
+          // 1. Identify all Source IDs used in the layout
+          const requiredSourceIds = new Set<string>();
+
+          const traverseAndCollect = (nodes: GridStackWidget[]) => {
+            nodes.forEach((node) => {
+              if (node.content) {
+                try {
+                  const content = JSON.parse(node.content);
+                  if (content.props?.__bindings) {
+                    Object.values(content.props.__bindings).forEach(
+                      (b: any) => {
+                        if (b?.sourceId) {
+                          requiredSourceIds.add(b.sourceId);
+                        }
+                      }
+                    );
+                  }
+                } catch (e) {
+                  // ignore parse error
+                }
+              }
+              if (node.subGridOpts?.children) {
+                traverseAndCollect(node.subGridOpts.children);
+              }
+            });
+          };
+
+          const layoutChildren = Array.isArray(pageProps.layout)
+            ? pageProps.layout
+            : pageProps.layout.children || [];
+
+          traverseAndCollect(layoutChildren);
+
+          // 2. Fetch data for these sources if they are dynamic
+          if (requiredSourceIds.size > 0 && pageProps.source.dataSources) {
+            const updates: Array<{ id: string; data: any }> = [];
+
+            for (const ds of pageProps.source.dataSources) {
+              if (
+                requiredSourceIds.has(ds.id) &&
+                ds.type !== "static" /*&&
+                (ds as any).data === undefined*/
+              ) {
+                try {
+                  console.log(
+                    `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`
+                  );
+                  const data = await DataFetchUtils.fetchDataSourceData(
+                    ds,
+                    ds.parameters || {}
+                  );
+                  updates.push({ id: ds.id, data });
+                } catch (err) {
+                  console.error(
+                    `[StackPage] Failed to pre-fetch source ${ds.name}`,
+                    err
+                  );
+                }
+              }
+            }
+
+            // 3. Update pageProps.source with fetched data
+            if (updates.length > 0) {
+              pageProps.source.dataSources = pageProps.source.dataSources.map(
+                (ds) => {
+                  const update = updates.find((u) => u.id === ds.id);
+                  return update ? { ...ds, data: update.data } : ds;
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error("[StackPage] Error during data pre-fetching:", error);
+        }
+      }
+
       setPageProps(pageProps);
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
@@ -284,10 +365,6 @@ const StackPageContent = ({
       // If this widget has updated props in context, update its content
       if (child.id && widgetProps.has(child.id)) {
         const updatedProps = widgetProps.get(child.id);
-        console.log(
-          `[StackPage] Updating widget ${child.id} with props keys:`,
-          Object.keys(updatedProps || {})
-        );
         if ((updatedProps as any).__bindings) {
           console.log(
             `[StackPage] Widget ${child.id} has bindings:`,
@@ -334,18 +411,35 @@ const StackPageContent = ({
     }
   };
 
+  /**
+   * Delete result of API and Host-function binding datasource when save
+   * because when loading, re-fetched new data
+   * @returns
+   */
+  const deleteDataSourceDataWhenSaveForAPI = () => {
+    //for api and Host-function, delete data
+    const ds = source.dataSources.map((d) => {
+      if (d.type !== "static") {
+        delete (d as any)?.data;
+      }
+      return d;
+    });
+    return { lists: source.lists, dataSources: ds };
+  };
+
   const getCurrentPageProps = () => {
     let layout = stackActionsRef.current?.saveLayout();
     if (layout) {
       // Update the layout with the latest props from context
       layout = updateLayoutWithNewProps(layout, widgetProps);
     }
+    const savedSource = deleteDataSourceDataWhenSaveForAPI();
     const currentPageProps: PageProps = {
       ...pageProps,
       id: pageid,
       layout: layout,
       attributes: attributes,
-      source: source,
+      source: savedSource,
       type: attributes.type,
       title: attributes.title,
       status: attributes.status,

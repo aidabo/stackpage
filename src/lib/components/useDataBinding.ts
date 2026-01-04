@@ -1,100 +1,10 @@
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo } from "react";
 import { useStackPage } from "./StackPageContext";
 import { get } from "../utils/get";
 import { TransformerRegistry } from "../utils/TransformerRegistry";
-import { DataFetchUtils } from "../utils/dataFetchUtils";
 
 export const useDataBinding = (props: any) => {
-  const { source, setSource } = useStackPage();
-  const fetchedSourcesRef = useRef<Set<string>>(new Set());
-
-  // Fetch missing data ONCE when component mounts or bindings change
-  useEffect(() => {
-    const fetchMissingData = async () => {
-      if (!props?.__bindings) return;
-
-      const updates: Array<{ sourceId: string; data: any }> = [];
-
-      // Check each binding for missing data
-      for (const [propKey, binding] of Object.entries(props.__bindings)) {
-        if (typeof binding !== "object" || !binding) {
-          console.warn(
-            `[useDataBinding] Invalid binding for property ${propKey}:`,
-            binding
-          );
-          continue;
-        }
-
-        const { sourceId } = binding as any;
-        if (!sourceId) {
-          console.warn(
-            `[useDataBinding] No sourceId in binding for property ${propKey}`
-          );
-          continue;
-        }
-
-        // Skip if we already processed this source
-        if (fetchedSourcesRef.current.has(sourceId)) continue;
-
-        const dataSource = source.dataSources.find((ds) => ds.id === sourceId);
-        if (!dataSource) {
-          console.warn(
-            `[useDataBinding] Data source ${sourceId} not found for property ${propKey}`
-          );
-          continue;
-        }
-
-        // Skip static data sources and sources that already have data
-        if (
-          dataSource.type === "static" ||
-          (dataSource as any).data !== undefined
-        ) {
-          fetchedSourcesRef.current.add(sourceId);
-          continue;
-        }
-
-        // Fetch missing data
-        try {
-          console.log(
-            `[useDataBinding] Fetching missing data for ${dataSource.type} source: ${dataSource.name}`
-          );
-          const data = await DataFetchUtils.fetchDataSourceData(
-            dataSource,
-            dataSource.parameters || {}
-          );
-
-          updates.push({
-            sourceId,
-            data,
-          });
-          fetchedSourcesRef.current.add(sourceId);
-        } catch (error) {
-          console.error(
-            `[useDataBinding] Failed to fetch data for ${dataSource.name}:`,
-            error
-          );
-        }
-      }
-
-      // Update context if we fetched any data
-      if (updates.length > 0) {
-        setSource((prev) => {
-          const updatedDataSources = prev.dataSources.map((ds) => {
-            const update = updates.find((u) => u.sourceId === ds.id);
-            return update ? { ...ds, data: update.data } : ds;
-          });
-
-          // Return new object to trigger re-render
-          return {
-            ...prev,
-            dataSources: updatedDataSources,
-          };
-        });
-      }
-    };
-
-    fetchMissingData();
-  }, [props?.__bindings]); // Only depend on bindings
+  const { source } = useStackPage();
 
   const boundProps = useMemo(() => {
     console.log("[useDataBinding] Resolving props with bindings:", {
@@ -102,11 +12,11 @@ export const useDataBinding = (props: any) => {
         props?.__bindings && Object.keys(props.__bindings).length > 0
       ),
       bindings: props?.__bindings,
+      sourceDataSourcesCount: source.dataSources.length,
     });
 
-    // 1. If no bindings, return original props (filtering out internal properties)
+    // 1. If no bindings, return original props
     if (!props?.__bindings || Object.keys(props.__bindings).length === 0) {
-      // Return original props including internal properties
       return props || {};
     }
 
@@ -116,7 +26,6 @@ export const useDataBinding = (props: any) => {
     // 3. Process each binding
     Object.entries(props.__bindings).forEach(
       ([propKey, binding]: [string, any]) => {
-        // Validate binding structure
         if (!binding || typeof binding !== "object") {
           console.warn(
             `[useDataBinding] Invalid binding structure for ${propKey}:`,
@@ -125,7 +34,8 @@ export const useDataBinding = (props: any) => {
           return;
         }
 
-        const { sourceId, path, transformer, selector, targetType } = binding;
+        const { sourceId, path, transformer, selector /*targetType*/ } =
+          binding;
 
         if (!sourceId || !path) {
           console.warn(
@@ -146,10 +56,11 @@ export const useDataBinding = (props: any) => {
 
         const sourceData = (dataSource as any).data;
 
-        if (!sourceData) {
+        if (sourceData === undefined) {
           console.warn(
             `[useDataBinding] No data available from source ${sourceId} for prop ${propKey}`
           );
+          // Don't set the property if data is not available
           return;
         }
 
@@ -194,28 +105,18 @@ export const useDataBinding = (props: any) => {
           }
         }
 
-        // Inject value with null/undefined handling
+        // Only set the value if we got something
         if (value !== undefined) {
           newProps[propKey] = value;
-        } else if (value === null || value === undefined) {
-          // Handle null/undefined based on target type
-          if (targetType === "string") {
-            newProps[propKey] = "";
-          } else if (targetType === "number") {
-            newProps[propKey] = 0;
-          } else if (targetType === "boolean") {
-            newProps[propKey] = false;
-          } else if (targetType === "array") {
-            newProps[propKey] = [];
-          } else if (targetType === "object") {
-            newProps[propKey] = {};
-          }
+          console.log(`[useDataBinding] Set ${propKey} =`, value);
+        } else {
+          console.log(
+            `[useDataBinding] No value found for ${propKey}, keeping original`
+          );
         }
       }
     );
 
-    // Do NOT remove internal properties before returning, as requested by user
-    // const { __bindings, __schema, __ignoredMappings, ...cleanProps } = newProps;
     return newProps;
   }, [props, source.dataSources]);
 
