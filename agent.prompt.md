@@ -108,3 +108,22 @@ Fix as following steps:
 3.2: if schema is array, use all result items or multiple selected items
 
 Please modify source step by step, tell me solution and how you done.
+
+## Now fix following problem:
+
+- Reflect existed binding info:
+
+For DataExplorerDialog, from DataTab click "Data Binding" button, if selected component instance already bound, and props.\_\_bindings has correct binding info, the DataExplorerDialog not reflected bound field name, and ignoreMappings also not reflected, and in the visualDataPreview, selected record of datasource not reflected
+
+- Binding info's select type change:
+
+DataExplorerDialog and useDataBinding use DataFetchUtils's function to identify select type of mapping and binding, now select type has three pattern, id or index for schema type object component, only binding one selected record, and all for all datasource record. i want to change as following:
+
+1. id for schema type object component or the first record
+2. ids, multiple selected records with id as key to find, this for schema type array
+3. all all datasource records
+
+how to identify select type should use summaried shared functions, current version is dataFetchUtils's two functions:
+
+1. createBindingSelector
+2. getValueFromDataSource
