@@ -60,6 +60,7 @@ interface DataTabProps {
   componentSchema: any;
   onSchemaChange?: (schema: any) => void;
   bindings?: Record<string, any>;
+  ignoredFields?: string[];
 }
 
 export const DataTab: React.FC<DataTabProps> = ({
@@ -77,6 +78,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   componentSchema,
   onSchemaChange,
   bindings,
+  ignoredFields,
 }) => {
   const { source } = useStackPage();
 
@@ -85,9 +87,10 @@ export const DataTab: React.FC<DataTabProps> = ({
     () => ({
       ...componentProps,
       __bindings: bindings,
+      __ignoredMappings: ignoredFields,
       __schema: componentSchema, // Pass schema to useDataBinding
     }),
-    [componentProps, bindings, componentSchema]
+    [componentProps, bindings, componentSchema, ignoredFields]
   );
   const resolvedProps = useDataBinding(fullProps);
 
@@ -95,7 +98,6 @@ export const DataTab: React.FC<DataTabProps> = ({
   useEffect(() => {
     console.log("DataTab - Props updated:", {
       componentProps,
-      bindings: componentProps.__bindings,
       resolvedProps,
     });
   }, [componentProps, resolvedProps]);
@@ -877,7 +879,7 @@ export const DataTab: React.FC<DataTabProps> = ({
         }
         currentBindings={bindings} // Add this line
         schema={schema}
-        currentIgnoredFields={componentProps.__ignoredMappings || []}
+        currentIgnoredFields={ignoredFields || []}
         onReleaseBindings={handleReleaseBindings}
         initialDataSourceId={
           bindings && Object.keys(bindings).length > 0

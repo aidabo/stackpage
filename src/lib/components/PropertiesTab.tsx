@@ -277,6 +277,7 @@ export const PropertiesTab = ({
             componentSchema={componentSchema as any}
             onSchemaChange={handleSchemaChange} // 新增：传递schema变更处理函数
             bindings={__bindings}
+            ignoredFields={__ignoredMappings}
           />
         )}
 
