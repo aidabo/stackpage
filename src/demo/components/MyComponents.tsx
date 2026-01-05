@@ -38,6 +38,31 @@ export const componentMapProvider = () => ({
     </div>
   ),
 
+  CardList: ({
+    items = [
+      // Default: single card if no array is passed
+      { title: "Card", content: "Card content", shadow: true, border: true },
+    ],
+  }) => {
+    return (
+      <div className="card-grid gap-4">
+        {items.map((card, index) => (
+          // Destructure card props with fallbacks
+          <div
+            key={`card-${index}`}
+            className={`rounded-lg p-4 
+            ${card.border ?? true ? "border" : ""} 
+            ${card.shadow ?? true ? "shadow-sm" : ""}
+          `}
+          >
+            <h3 className="font-bold text-lg mb-2">{card.title ?? "Card"}</h3>
+            <p className="text-gray-600">{card.content ?? "Card content"}</p>
+          </div>
+        ))}
+      </div>
+    );
+  },
+
   Input: ({
     placeholder = "Enter text",
     value = "",
@@ -326,78 +351,86 @@ export const componentMapProvider = () => ({
   },
 
   AvatarStack: ({
-  users = [
-    {
-      name: "John Doe",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face",
-    },
-    {
-      name: "Jane Smith",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face",
-    },
-    {
-      name: "Mike Johnson",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=face",
-    },
-    {
-      name: "Sarah Wilson",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&h=120&fit=crop&crop=face",
-    },
-    {
-      name: "David Brown",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face",
-    },
-    {
-      name: "Emily Davis",
-      image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&crop=face",
-    },
-  ],
-  maxDisplay = 6,
-  shape = "circle", // "circle" or "rectangle"
-  showNames = true,
-}) => {
-  const displayUsers = users.slice(0, maxDisplay);
+    users = [
+      {
+        name: "John Doe",
+        image:
+          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face",
+      },
+      {
+        name: "Jane Smith",
+        image:
+          "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=120&h=120&fit=crop&crop=face",
+      },
+      {
+        name: "Mike Johnson",
+        image:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=face",
+      },
+      {
+        name: "Sarah Wilson",
+        image:
+          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&h=120&fit=crop&crop=face",
+      },
+      {
+        name: "David Brown",
+        image:
+          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face",
+      },
+      {
+        name: "Emily Davis",
+        image:
+          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&crop=face",
+      },
+    ],
+    maxDisplay = 6,
+    shape = "circle", // "circle" or "rectangle"
+    showNames = true,
+  }) => {
+    const displayUsers = users.slice(0, maxDisplay);
 
-  return (
-    <div className="flex items-center justify-center min-h-[32px] w-full overflow-x-scroll rounded-lg p-2 lg:overflow-visible">
-      <div className="flex items-end space-x-3">
-        {displayUsers.map((user, index) => (
-          <div 
-            className={`relative min-w-[32px] w-full max-w-[384px] aspect-square group flex flex-col items-center ${
-              shape === "circle" ? "rounded-full" : "rounded-lg"
-            }`} 
-            key={index}
-          >
-            <div className={`w-full h-full overflow-hidden ${
-              shape === "circle" ? "rounded-full" : "rounded-lg"
-            }`}>
-              <img
-                src={user.image}
-                alt={user.name}
-                className="object-cover w-full h-full hover:scale-110 transition-transform"
-              />
-            </div>
-            
-            {/* Name below image */}
-            {showNames && (
-              <div className="mt-2 text-center">
-                <p className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
-                  {user.name}
-                </p>
+    return (
+      <div className="flex items-center justify-center min-h-[32px] w-full overflow-x-scroll rounded-lg p-2 lg:overflow-visible">
+        <div className="flex items-end space-x-3">
+          {displayUsers.map((user, index) => (
+            <div
+              className={`relative min-w-[32px] w-full max-w-[384px] aspect-square group flex flex-col items-center ${
+                shape === "circle" ? "rounded-full" : "rounded-lg"
+              }`}
+              key={index}
+            >
+              <div
+                className={`w-full h-full overflow-hidden ${
+                  shape === "circle" ? "rounded-full" : "rounded-lg"
+                }`}
+              >
+                <img
+                  src={user.image}
+                  alt={user.name}
+                  className="object-cover w-full h-full hover:scale-110 transition-transform"
+                />
               </div>
-            )}
-            
-            {/* Hover tooltip (optional - can be removed if not needed) */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg">
-              {user.name}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black"></div>
+
+              {/* Name below image */}
+              {showNames && (
+                <div className="mt-2 text-center">
+                  <p className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
+                    {user.name}
+                  </p>
+                </div>
+              )}
+
+              {/* Hover tooltip (optional - can be removed if not needed) */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-lg">
+                {user.name}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black"></div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  );
-},
+    );
+  },
 
   StatsCard: ({
     title = "Stats Title",
@@ -443,6 +476,10 @@ export const componentPropsProvider = () => {
       shadow: true,
       border: true,
     },
+    CardList: [
+      { title: "Card", content: "Card content", shadow: true, border: true },
+      { title: "Card2", content: "Card content2", shadow: true, border: true },
+    ],
     Input: {
       placeholder: "Enter text here",
       value: "",

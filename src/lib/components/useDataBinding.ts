@@ -34,8 +34,7 @@ export const useDataBinding = (props: any) => {
           return;
         }
 
-        const { sourceId, path, transformer, selector /*targetType*/ } =
-          binding;
+        const { sourceId, path, transformer, selector } = binding;
 
         if (!sourceId || !path) {
           console.warn(
@@ -64,44 +63,86 @@ export const useDataBinding = (props: any) => {
           return;
         }
 
-        // Apply selector logic
         let value: any;
 
-        if (selector?.type === "all" && Array.isArray(sourceData) && path) {
-          // Map over array for array-type bindings
-          value = sourceData.map((item: any) => {
-            let val = get(item, path);
-            if (transformer) {
-              val = TransformerRegistry.apply(transformer, val);
-            }
-            return val;
-          });
-          console.log(
-            `[useDataBinding] Bound prop ${propKey} to array (${value.length} items)`
-          );
-        } else {
-          // Get single value
-          let selectedData = sourceData;
+        // Handle different selector types
+        if (selector) {
+          switch (selector.type) {
+            case "id":
+              // Find single record by ID
+              if (Array.isArray(sourceData)) {
+                const selectedItem = sourceData.find(
+                  (item: any) => String(item.id) === String(selector.value)
+                );
+                if (selectedItem) {
+                  value = get(selectedItem, path);
+                }
+              } else {
+                value = get(sourceData, path);
+              }
+              break;
 
-          // Apply selector if present
-          if (selector && Array.isArray(selectedData)) {
-            if (selector.type === "id" && selector.value !== undefined) {
-              selectedData = selectedData.find(
-                (item: any) => String(item.id) === String(selector.value)
-              );
-            } else if (
-              selector.type === "index" &&
-              selector.value !== undefined
-            ) {
-              selectedData = selectedData[Number(selector.value)];
-            }
+            case "ids":
+              // Find multiple records by IDs
+              if (Array.isArray(sourceData) && Array.isArray(selector.value)) {
+                const selectedItems = sourceData.filter((item: any) =>
+                  selector.value.includes(String(item.id))
+                );
+                if (selectedItems.length > 0) {
+                  value = selectedItems.map((item: any) => get(item, path));
+                }
+              }
+              break;
+
+            case "index":
+              // Find single record by index
+              if (Array.isArray(sourceData)) {
+                const selectedItem = sourceData[Number(selector.value)];
+                if (selectedItem) {
+                  value = get(selectedItem, path);
+                }
+              } else {
+                value = get(sourceData, path);
+              }
+              break;
+
+            case "all":
+              // Use all records
+              if (Array.isArray(sourceData)) {
+                value = sourceData.map((item: any) => get(item, path));
+              } else {
+                value = get(sourceData, path);
+              }
+              break;
+
+            default:
+              // Fallback to direct path
+              value = get(sourceData, path);
+              break;
           }
+        } else {
+          // No selector, use direct path
+          value = get(sourceData, path);
+        }
 
-          value = get(selectedData, path);
-
-          // Apply transformer
-          if (transformer && value !== undefined) {
-            value = TransformerRegistry.apply(transformer, value);
+        // Apply transformer if specified
+        if (transformer && value !== undefined) {
+          try {
+            if (Array.isArray(value)) {
+              value = value.map((item: any) =>
+                TransformerRegistry.apply(transformer, item)
+              );
+            } else {
+              value = TransformerRegistry.apply(transformer, value);
+            }
+            console.log(
+              `[useDataBinding] Applied transformer ${transformer} to ${propKey}`
+            );
+          } catch (error) {
+            console.error(
+              `[useDataBinding] Transformer error for ${propKey}:`,
+              error
+            );
           }
         }
 

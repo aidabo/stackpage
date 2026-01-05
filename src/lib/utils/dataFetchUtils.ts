@@ -23,20 +23,55 @@ export class DataFetchUtils {
     }
   }
 
-  // Unified binding logic based on schema type
   static createBindingSelector(
     selectedRecord: any,
     selectedRecordIndex: number | null,
     selectedItems: number[],
-    targetSchemaType?: string // "object" or "array"
-  ): { type: "id" | "index" | "all"; value?: string | number } {
-    // Rule 3.1: If schema expects object type OR target is object, use single item
-    if (targetSchemaType === "object" || !targetSchemaType) {
-      // Always use first selected item for object binding
-      if (selectedRecord) {
-        if (selectedRecord.id !== undefined && selectedRecord.id !== null) {
-          return { type: "id", value: selectedRecord.id };
-        }
+    targetSchemaType?: string,
+    data?: any[] // Add data parameter to check for IDs
+  ): {
+    type: "id" | "ids" | "index" | "all";
+    value?: string | number | string[];
+  } {
+    // Helper to check if record has ID
+    const hasId = (record: any) =>
+      record && record.id !== undefined && record.id !== null;
+
+    // Helper to get ID from record
+    const getId = (record: any) => String(record.id);
+
+    // Rule 1: id for schema type object component or single record
+    if (
+      targetSchemaType === "object" ||
+      !targetSchemaType ||
+      selectedItems.length <= 1
+    ) {
+      if (selectedRecord && hasId(selectedRecord)) {
+        return { type: "id", value: getId(selectedRecord) };
+      }
+      return {
+        type: "index",
+        value: selectedRecordIndex !== null ? selectedRecordIndex : 0,
+      };
+    }
+
+    // Rule 2: ids for multiple selected records (schema type array)
+    if (targetSchemaType === "array" && selectedItems.length > 1 && data) {
+      // Get selected records
+      const selectedRecords = selectedItems
+        .map((index) => data[index])
+        .filter(Boolean);
+
+      // Check if all selected records have IDs
+      const allHaveIds = selectedRecords.every(hasId);
+
+      if (allHaveIds) {
+        return {
+          type: "ids",
+          value: selectedRecords.map((record) => getId(record)),
+        };
+      } else {
+        // Fallback to index for records without IDs
         return {
           type: "index",
           value: selectedRecordIndex !== null ? selectedRecordIndex : 0,
@@ -44,20 +79,8 @@ export class DataFetchUtils {
       }
     }
 
-    // Rule 3.2: If schema expects array type, use all selected items
-    if (targetSchemaType === "array") {
-      if (selectedItems.length > 1) {
-        return { type: "all" };
-      } else if (selectedRecord) {
-        if (selectedRecord.id !== undefined && selectedRecord.id !== null) {
-          return { type: "id", value: selectedRecord.id };
-        }
-        return {
-          type: "index",
-          value: selectedRecordIndex !== null ? selectedRecordIndex : 0,
-        };
-      }
-    }
+    // Rule 3: all for all data source records (explicit choice)
+    // Note: This should be triggered by a UI control, not automatically
 
     // Default fallback
     return {
@@ -66,32 +89,55 @@ export class DataFetchUtils {
     };
   }
 
-  // Get value from data source with selector using the same get function as useDataBinding
   static getValueFromDataSource(
     data: any,
     path: string,
-    selector?: { type: "id" | "index" | "all"; value?: string | number }
+    selector?: {
+      type: "id" | "ids" | "index" | "all";
+      value?: string | number | string[];
+    }
   ): any {
     if (!data) return undefined;
 
     let sourceData = data;
 
     // Apply selector if present
-    if (selector) {
-      if (Array.isArray(sourceData)) {
-        if (selector.type === "id" && selector.value !== undefined) {
-          sourceData = sourceData.find(
-            (item: any) => String(item.id) === String(selector.value)
-          );
-        } else if (selector.type === "index" && selector.value !== undefined) {
-          sourceData = sourceData[Number(selector.value)];
-        }
-        // For 'all' type, keep as array
+    if (selector && Array.isArray(sourceData)) {
+      switch (selector.type) {
+        case "id":
+          if (selector.value !== undefined) {
+            sourceData = sourceData.find(
+              (item: any) => String(item.id) === String(selector.value)
+            );
+          }
+          break;
+
+        case "ids":
+          if (selector.value && Array.isArray(selector.value)) {
+            sourceData = sourceData.filter((item: any) =>
+              (selector.value! as any).includes(String(item.id))
+            );
+          }
+          break;
+
+        case "index":
+          if (selector.value !== undefined) {
+            sourceData = sourceData[Number(selector.value)];
+          }
+          break;
+
+        case "all":
+          // Keep all data
+          break;
       }
     }
 
-    // Use the same get function as in useDataBinding
     if (!path) return sourceData;
+
+    // If sourceData is array after selector, map over each item
+    if (Array.isArray(sourceData) && path) {
+      return sourceData.map((item: any) => get(item, path));
+    }
 
     return get(sourceData, path);
   }

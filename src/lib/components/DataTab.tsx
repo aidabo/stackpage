@@ -831,7 +831,6 @@ export const DataTab: React.FC<DataTabProps> = ({
           </div>
         </div>
       </ErrorBoundary>
-
       {/* Schema Editor Dialog */}
       <SchemaEditorDialog
         isOpen={showSchemaEditor}
@@ -876,7 +875,8 @@ export const DataTab: React.FC<DataTabProps> = ({
               )
             : {}
         }
-        schema={schema} // Pass the schema for type checking
+        currentBindings={bindings} // Add this line
+        schema={schema}
         currentIgnoredFields={componentProps.__ignoredMappings || []}
         onReleaseBindings={handleReleaseBindings}
         initialDataSourceId={

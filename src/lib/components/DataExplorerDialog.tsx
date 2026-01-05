@@ -42,7 +42,7 @@ interface DataExplorerDialogProps {
     dataSourceId: string,
     _data?: any,
     transformers?: Record<string, string>,
-    bindings?: Record<string, any>, // Changed selector to full bindings object
+    bindings?: Record<string, any>,
     ignoredFields?: string[]
   ) => void;
   onReleaseBindings?: () => void;
@@ -54,6 +54,7 @@ interface DataExplorerDialogProps {
   mappableProps: string[];
   currentMappings: Record<string, string>;
   currentTransformers?: Record<string, string>;
+  currentBindings?: Record<string, any>;
   initialDataSourceId?: string;
   schema?: any;
   currentIgnoredFields?: string[];
@@ -69,6 +70,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   mappableProps,
   currentMappings = {},
   currentTransformers,
+  currentBindings,
   initialDataSourceId,
   schema,
   currentIgnoredFields,
@@ -107,6 +109,9 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     currentTransformers || {}
   );
 
+  // Binding Mode State
+  const [bindToAll, setBindToAll] = useState<boolean>(false);
+
   // Resize State
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [dialogSize, setDialogSize] = useState({
@@ -125,12 +130,22 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
   // Initialize mappings, transformers, and ignored fields
   useEffect(() => {
+    console.log("[DataExplorerDialog] Initializing from props:", {
+      currentMappings,
+      currentTransformers,
+      currentIgnoredFields,
+    });
+
     setMappings(currentMappings);
+
     if (currentTransformers) {
       setTransformers(currentTransformers);
     }
+
     if (currentIgnoredFields) {
       setIgnoredFields(currentIgnoredFields);
+    } else {
+      setIgnoredFields([]);
     }
   }, [currentMappings, currentTransformers, currentIgnoredFields]);
 
@@ -155,24 +170,25 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       setPreviewData(ds.data);
       setSelectedRecord(null); // Reset selection on data change
       setSelectedRecordIndex(null);
+      setSelectedItems([]);
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      // Use DataSourceService to fetch data (supports host functions via registry)
       const result = await DataSourceService.fetchDataSourceData(
         ds,
         ds.parameters || {}
       );
 
       if (result.success) {
-        //cache result into datasource
+        // Cache result into datasource
         (ds as any).data = result.data;
         setPreviewData(result.data);
         setSelectedRecord(null); // Reset selection
         setSelectedRecordIndex(null);
+        setSelectedItems([]);
       } else {
         throw new Error(result.error);
       }
@@ -200,11 +216,91 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     ) {
       setSelectedRecord(previewData[0]);
       setSelectedRecordIndex(0);
+      setSelectedItems([0]);
     } else if (previewData && !Array.isArray(previewData) && !selectedRecord) {
       setSelectedRecord(previewData);
       setSelectedRecordIndex(0);
+      setSelectedItems([0]);
     }
   }, [previewData, selectedRecord]);
+
+  // Restore selection from existing bindings
+  useEffect(() => {
+    if (
+      previewData &&
+      currentBindings &&
+      Object.keys(currentBindings).length > 0
+    ) {
+      console.log(
+        "[DataExplorerDialog] Restoring selection from existing bindings:",
+        currentBindings
+      );
+
+      // Get the first binding to determine selection
+      const firstBinding = Object.values(currentBindings)[0] as any;
+
+      if (firstBinding && firstBinding.selector && Array.isArray(previewData)) {
+        const selector = firstBinding.selector;
+
+        console.log("[DataExplorerDialog] Restoring selector:", selector);
+
+        switch (selector.type) {
+          case "id":
+            // Find record by ID
+            const recordById = previewData.find(
+              (item: any) => String(item.id) === String(selector.value)
+            );
+            if (recordById) {
+              const index = previewData.indexOf(recordById);
+              setSelectedRecord(recordById);
+              setSelectedRecordIndex(index);
+              setSelectedItems([index]);
+            }
+            break;
+
+          case "ids":
+            // Find records by IDs
+            if (selector.value && Array.isArray(selector.value)) {
+              const indices: number[] = [];
+              previewData.forEach((item: any, index: number) => {
+                if (selector.value.includes(String(item.id))) {
+                  indices.push(index);
+                }
+              });
+              if (indices.length > 0) {
+                setSelectedItems(indices);
+                setSelectedRecord(previewData[indices[0]]);
+                setSelectedRecordIndex(indices[0]);
+              }
+            }
+            break;
+
+          case "index":
+            // Select by index
+            if (selector.value !== undefined) {
+              const index = Number(selector.value);
+              if (previewData[index]) {
+                setSelectedRecord(previewData[index]);
+                setSelectedRecordIndex(index);
+                setSelectedItems([index]);
+              }
+            }
+            break;
+
+          case "all":
+            // Select all
+            setBindToAll(true);
+            const allIndices = previewData.map((_, index) => index);
+            setSelectedItems(allIndices);
+            if (previewData.length > 0) {
+              setSelectedRecord(previewData[0]);
+              setSelectedRecordIndex(0);
+            }
+            break;
+        }
+      }
+    }
+  }, [previewData, currentBindings]);
 
   const currentDS = dataSources.find((d) => d.id === selectedDataSourceId);
 
@@ -215,7 +311,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     const extractFields = (obj: any, path = "", level = 0): string[] => {
       const fields: string[] = [];
 
-      if (!obj || typeof obj !== "object" || level > 5) return fields; // Increased depth limit
+      if (!obj || typeof obj !== "object" || level > 5) return fields;
 
       Object.keys(obj).forEach((key) => {
         const value = obj[key];
@@ -278,6 +374,41 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     });
   };
 
+  // Handle ignore field change
+  const handleIgnoreChange = (prop: string, isIgnored: boolean) => {
+    if (isIgnored) {
+      // Add to ignored fields
+      setIgnoredFields((prev) => {
+        const newIgnored = [...prev, prop];
+        console.log(
+          `[DataExplorerDialog] Ignoring ${prop}, ignoredFields:`,
+          newIgnored
+        );
+        return newIgnored;
+      });
+
+      // Remove mapping for this field
+      const newMappings = { ...mappings };
+      delete newMappings[prop];
+      setMappings(newMappings);
+
+      // Remove transformer for this field
+      const newTransformers = { ...transformers };
+      delete newTransformers[prop];
+      setTransformers(newTransformers);
+    } else {
+      // Remove from ignored fields
+      setIgnoredFields((prev) => {
+        const newIgnored = prev.filter((f) => f !== prop);
+        console.log(
+          `[DataExplorerDialog] Unignoring ${prop}, ignoredFields:`,
+          newIgnored
+        );
+        return newIgnored;
+      });
+    }
+  };
+
   // Handle record selection from VisualDataPreview
   const handleSelectRecord = (record: any, index: number) => {
     setSelectedRecord(record);
@@ -290,6 +421,31 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
     // Auto-map record fields to component properties
     autoMapRecordToProps(record);
+  };
+
+  // Handle multi-select toggle
+  const handleToggleSelection = (index: number) => {
+    setSelectedItems((prev) => {
+      if (prev.includes(index)) {
+        // Remove from selection
+        const newSelection = prev.filter((i) => i !== index);
+        if (newSelection.length > 0) {
+          // Update selected record to first in selection
+          setSelectedRecord(previewData[newSelection[0]]);
+          setSelectedRecordIndex(newSelection[0]);
+        } else {
+          setSelectedRecord(null);
+          setSelectedRecordIndex(null);
+        }
+        return newSelection;
+      } else {
+        // Add to selection
+        const newSelection = [...prev, index];
+        setSelectedRecord(previewData[index]);
+        setSelectedRecordIndex(index);
+        return newSelection;
+      }
+    });
   };
 
   const autoMapRecordToProps = (_record: any) => {
@@ -333,25 +489,28 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
   // Apply mappings and bind selected record
   const applyMappingsAndBind = () => {
-    // Determine binding strategy for each prop based on schema
-
-    // Construct full bindings object
     const newBindings: Record<string, any> = {};
 
     Object.entries(mappings).forEach(([prop, path]) => {
       if (path && !ignoredFields.includes(prop)) {
-        // Determine specific selector based on prop schema if possible
         const propSchema = schema?.properties?.[prop];
         const targetType = propSchema?.type;
 
-        // Use the utility to get the correct selector for this specific property
-        // based on its type (array logic vs object logic)
-        const selector = DataFetchUtils.createBindingSelector(
-          selectedRecord,
-          selectedRecordIndex,
-          selectedItems,
-          targetType
-        );
+        // Determine selector based on binding mode and schema
+        let selector;
+        if (bindToAll && targetType === "array") {
+          // Bind all records for array properties
+          selector = { type: "all" as const };
+        } else {
+          // Use DataFetchUtils to create appropriate selector
+          selector = DataFetchUtils.createBindingSelector(
+            selectedRecord,
+            selectedRecordIndex,
+            selectedItems,
+            targetType,
+            Array.isArray(previewData) ? previewData : undefined
+          );
+        }
 
         newBindings[prop] = {
           sourceId: selectedDataSourceId,
@@ -368,7 +527,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       selectedDataSourceId,
       previewData,
       transformers,
-      newBindings, // Pass the full bindings object
+      newBindings,
       ignoredFields
     );
     onClose();
@@ -463,6 +622,23 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   // Remove filter
   const removeFilter = (id: number) => {
     setFilters(filters.filter((f) => f.id !== id));
+  };
+
+  // Select all records
+  const handleSelectAll = () => {
+    if (Array.isArray(previewData) && previewData.length > 0) {
+      const allIndices = previewData.map((_, index) => index);
+      setSelectedItems(allIndices);
+      setSelectedRecord(previewData[0]);
+      setSelectedRecordIndex(0);
+    }
+  };
+
+  // Clear selection
+  const handleClearSelection = () => {
+    setSelectedItems([]);
+    setSelectedRecord(null);
+    setSelectedRecordIndex(null);
   };
 
   // Resize handlers
@@ -810,6 +986,37 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   </button>
                 </div>
 
+                {/* Selection Controls */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-gray-600">
+                    {selectedItems.length > 0 ? (
+                      <span className="font-medium text-blue-600">
+                        {selectedItems.length} record(s) selected
+                      </span>
+                    ) : (
+                      <span>No records selected</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSelectAll}
+                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded border border-blue-300"
+                      disabled={
+                        !Array.isArray(previewData) || previewData.length === 0
+                      }
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={handleClearSelection}
+                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded border border-gray-300"
+                      disabled={selectedItems.length === 0}
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                </div>
+
                 {/* Filters */}
                 {filters.length > 0 && (
                   <div className="flex flex-wrap gap-2 items-center mb-2">
@@ -885,6 +1092,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                     }
                   }}
                   onSelectRecord={handleSelectRecord}
+                  onToggleSelection={handleToggleSelection}
                   searchTerm={searchTerm}
                   filters={filters}
                   selectedIndices={selectedItems}
@@ -896,11 +1104,17 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                 <div className="p-3 border-t bg-white flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      Record{" "}
-                      {selectedRecordIndex !== null
-                        ? `#${selectedRecordIndex + 1}`
-                        : ""}{" "}
-                      selected
+                      {selectedItems.length > 1 ? (
+                        <span>{selectedItems.length} records selected</span>
+                      ) : (
+                        <span>
+                          Record{" "}
+                          {selectedRecordIndex !== null
+                            ? `#${selectedRecordIndex + 1}`
+                            : ""}{" "}
+                          selected
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => {
@@ -998,8 +1212,43 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                 </div>
 
                 <div className="flex-1 overflow-auto p-4 bg-gray-50 min-h-0">
+                  {/* Bind to all checkbox for array properties */}
+                  {schema &&
+                    Object.values(schema.properties || {}).some(
+                      (prop: any) => prop.type === "array"
+                    ) && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <label className="flex items-center gap-2 text-sm text-blue-800">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            checked={bindToAll}
+                            onChange={(e) => {
+                              setBindToAll(e.target.checked);
+                              if (
+                                e.target.checked &&
+                                Array.isArray(previewData)
+                              ) {
+                                // Select all records when enabling bind to all
+                                const allIndices = previewData.map(
+                                  (_, index) => index
+                                );
+                                setSelectedItems(allIndices);
+                              }
+                            }}
+                          />
+                          Bind all records to array properties (instead of
+                          selected records)
+                        </label>
+                        <p className="text-xs text-blue-600 mt-1 ml-6">
+                          When enabled, all records from the data source will be
+                          bound to array-type properties.
+                        </p>
+                      </div>
+                    )}
+
                   <div className="bg-white rounded-lg border border-gray-200 shadow-sm min-w-[1000px]">
-                    {/* Table Header - Adjusted column widths for better readability */}
+                    {/* Table Header */}
                     <div className="grid grid-cols-12 gap-3 p-3 border-b bg-gray-50">
                       <div className="col-span-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Ignored
@@ -1044,18 +1293,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                 checked={ignoredFields.includes(prop)}
                                 onChange={(e) => {
-                                  const isIgnored = e.target.checked;
-                                  if (isIgnored) {
-                                    setIgnoredFields([...ignoredFields, prop]);
-                                    // Remove mapping for this field
-                                    const newMappings = { ...mappings };
-                                    delete newMappings[prop];
-                                    setMappings(newMappings);
-                                  } else {
-                                    setIgnoredFields(
-                                      ignoredFields.filter((f) => f !== prop)
-                                    );
-                                  }
+                                  handleIgnoreChange(prop, e.target.checked);
                                 }}
                               />
                             </div>
@@ -1147,6 +1385,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 onChange={(e) =>
                                   updateTransformer(prop, e.target.value)
                                 }
+                                disabled={ignoredFields.includes(prop)}
                               >
                                 <option value="">None</option>
                                 {Object.keys(transformerRegistry).map((key) => (
@@ -1160,6 +1399,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             {/* Type Check Column */}
                             <div className="col-span-2">
                               {fieldPath &&
+                                !ignoredFields.includes(prop) &&
                                 checkTypeCompatibility(
                                   fieldPath,
                                   prop,
@@ -1169,30 +1409,36 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
                             {/* Preview Column */}
                             <div className="col-span-2 min-w-0">
-                              {previewValue !== undefined &&
-                              previewValue !== null ? (
-                                <div
-                                  className="text-xs font-mono bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 truncate"
-                                  title={String(previewValue)}
-                                >
-                                  {typeof previewValue === "object"
-                                    ? `[${
-                                        Array.isArray(previewValue)
-                                          ? "Array"
-                                          : "Object"
-                                      }]`
-                                    : String(previewValue).substring(0, 25)}
-                                  {String(previewValue).length > 25
-                                    ? "..."
-                                    : ""}
-                                </div>
-                              ) : fieldPath ? (
-                                <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 truncate">
-                                  Not found
-                                </div>
+                              {!ignoredFields.includes(prop) ? (
+                                previewValue !== undefined &&
+                                previewValue !== null ? (
+                                  <div
+                                    className="text-xs font-mono bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 truncate"
+                                    title={String(previewValue)}
+                                  >
+                                    {typeof previewValue === "object"
+                                      ? `[${
+                                          Array.isArray(previewValue)
+                                            ? "Array"
+                                            : "Object"
+                                        }]`
+                                      : String(previewValue).substring(0, 25)}
+                                    {String(previewValue).length > 25
+                                      ? "..."
+                                      : ""}
+                                  </div>
+                                ) : fieldPath ? (
+                                  <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200 truncate">
+                                    Not found
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400 italic">
+                                    -
+                                  </span>
+                                )
                               ) : (
                                 <span className="text-xs text-gray-400 italic">
-                                  -
+                                  Ignored
                                 </span>
                               )}
                             </div>
@@ -1205,8 +1451,13 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   {/* Action Buttons */}
                   <div className="mt-6 flex justify-between items-center flex-shrink-0">
                     <div className="text-sm text-gray-500">
-                      {Object.keys(mappings).filter((k) => mappings[k]).length}{" "}
-                      mapped
+                      <div>
+                        {
+                          Object.keys(mappings).filter((k) => mappings[k])
+                            .length
+                        }{" "}
+                        mapped, {ignoredFields.length} ignored
+                      </div>
                     </div>
                     <div className="flex gap-3">
                       {onReleaseBindings && (

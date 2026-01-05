@@ -69,6 +69,7 @@ export const PropertiesTab = ({
   } = currentProps;
 
   // Initialize schema for new components
+  // In the useEffect for initializing schema:
   useEffect(() => {
     if (
       selectedInstance &&
@@ -79,9 +80,13 @@ export const PropertiesTab = ({
         const generatedSchema = generateSchemaFromCurrentProps(
           componentPropsWithoutSchema
         );
+
+        // Preserve existing bindings when creating schema
         const updatedProps = {
           ...componentPropsWithoutSchema,
           __schema: generatedSchema,
+          __bindings: __bindings || {}, // Preserve bindings
+          __ignoredMappings: __ignoredMappings || [], // Preserve ignored mappings
         };
 
         const updatedInstance = {

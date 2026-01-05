@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   PhotoIcon,
   CalendarIcon,
@@ -14,6 +14,7 @@ interface VisualDataPreviewProps {
   category?: string;
   onBind: (path: string, isArray: boolean) => void;
   onSelectRecord?: (record: any, index: number) => void;
+  onToggleSelection?: (index: number) => void; // New prop
   viewMode?: "grid" | "list";
   searchTerm?: string;
   selectedIndices?: number[];
@@ -25,42 +26,74 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
   category,
   onBind,
   onSelectRecord,
+  onToggleSelection,
   viewMode = "grid",
   searchTerm = "",
   selectedIndices = [],
   filters = [],
 }) => {
+  // Use selectedIndices directly from props (controlled component)
   const [selectedItems, setSelectedItems] = useState<number[]>(selectedIndices);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setSelectedItems(selectedIndices);
+  }, [selectedIndices]);
 
   // Handle item selection
   const handleSelectItem = (index: number) => {
-    const newSelected = [...selectedItems];
-    const itemIndex = newSelected.indexOf(index);
-
-    if (itemIndex > -1) {
-      newSelected.splice(itemIndex, 1); // Remove if already selected
+    if (onToggleSelection) {
+      // Call parent handler if provided
+      onToggleSelection(index);
     } else {
-      newSelected.push(index); // Add if not selected
-    }
+      // Fallback to local state management
+      const newSelected = [...selectedItems];
+      const itemIndex = newSelected.indexOf(index);
 
-    setSelectedItems(newSelected);
+      if (itemIndex > -1) {
+        newSelected.splice(itemIndex, 1); // Remove if already selected
+      } else {
+        newSelected.push(index); // Add if not selected
+      }
 
-    // Notify parent if callback provided
-    if (onSelectRecord) {
-      const item = filteredData[index];
-      onSelectRecord(item, index);
+      setSelectedItems(newSelected);
+
+      // Notify parent if callback provided
+      if (onSelectRecord) {
+        const item = filteredData[index];
+        onSelectRecord(item, index);
+      }
     }
   };
 
   // Handle select all in current view
   const handleSelectAll = () => {
-    const allIndices = Array.from({ length: filteredData.length }, (_, i) => i);
-    setSelectedItems(allIndices);
+    if (onToggleSelection) {
+      // If parent controls selection, we need a different approach
+      // For now, just select all locally
+      const allIndices = Array.from(
+        { length: filteredData.length },
+        (_, i) => i
+      );
+      setSelectedItems(allIndices);
+    } else {
+      const allIndices = Array.from(
+        { length: filteredData.length },
+        (_, i) => i
+      );
+      setSelectedItems(allIndices);
+    }
   };
 
   // Handle clear all selections
   const handleClearAll = () => {
-    setSelectedItems([]);
+    if (onToggleSelection) {
+      // If parent controls selection, we need a different approach
+      // For now, just clear locally
+      setSelectedItems([]);
+    } else {
+      setSelectedItems([]);
+    }
   };
 
   // Filter data based on search term
@@ -202,7 +235,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {selectedItems.length > 0 && (
+          {!onToggleSelection && selectedItems.length > 0 && (
             <>
               <button
                 onClick={handleClearAll}
@@ -324,7 +357,6 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                     {imageData?.value && typeof imageData.value === "string" ? (
                       <img
                         src={imageData.value}
-                        alt="Preview"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -428,7 +460,9 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSelectItem(index);
-                          onSelectRecord && onSelectRecord(item, index);
+                          if (onSelectRecord) {
+                            onSelectRecord(item, index);
+                          }
                         }}
                         className={`text-xs px-2 py-1 rounded transition-colors ${
                           isSelected
@@ -544,7 +578,9 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSelectItem(index);
-                              onSelectRecord && onSelectRecord(item, index);
+                              if (onSelectRecord) {
+                                onSelectRecord(item, index);
+                              }
                             }}
                             className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
                           >
@@ -558,7 +594,9 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectItem(index);
-                        onSelectRecord && onSelectRecord(item, index);
+                        if (onSelectRecord) {
+                          onSelectRecord(item, index);
+                        }
                       }}
                       className={`px-3 py-1.5 text-xs rounded transition-all flex-shrink-0 ${
                         isSelected
