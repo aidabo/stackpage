@@ -234,3 +234,83 @@ For example:
 ```
 
 ## Binding path use lodash.get path and saved
+
+Following CardList Component has items as props, but datasource fetched no items key, so array binding not work, how to resolve this case
+
+```json
+    CardList: {
+      items: [
+        { title: "Card", content: "Card content", shadow: true, border: true },
+        {
+          title: "Card2",
+          content: "Card content2",
+          shadow: true,
+          border: true,
+        },
+      ],
+    },
+```
+
+And datasource result is:
+
+```json
+[
+  {
+    "title": "Card",
+    "content": "Card content",
+    "shadow": true,
+    "border": true
+  },
+  {
+    "title": "Card2",
+    "content": "Card content2",
+    "shadow": true,
+    "border": true
+  }
+]
+```
+
+```json ___schema
+  "__schema": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "title": "Items",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "content": {
+              "title": "Content",
+              "type": "string"
+            },
+            "shadow": {
+              "title": "Shadow",
+              "type": "boolean"
+            },
+            "border": {
+              "title": "Border",
+              "type": "boolean"
+            }
+          }
+        },
+        "x-array-binding": true
+      }
+    },
+    "required": []
+  },
+```
+
+Now current version already has following functionalities and works .
+
+1. Can mapping and binding primary field type and array.
+2. The path use lodash.get and binding resolved OK.
+
+But has following problem:
+On DataExplorerDialog when select transform function of uppercase, it preview value text is UPPERCASED and OK, but on the DataTab seems transform not worked, it is original text, check it and make sure:
+When "Apply & Bind" clicked, tranform should work for DataTab
+When page reload, useDataBinding called and transform also should work
