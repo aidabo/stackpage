@@ -51,6 +51,8 @@ export interface BaseDataSource {
   icon?: string;
   // 通用参数字段 - 所有数据源类型都可以有
   parameters?: Record<string, any>;
+  // NEW: Wrapper key for array results
+  wrapperKey?: string;
 }
 
 // 外部API数据源（用户创建）

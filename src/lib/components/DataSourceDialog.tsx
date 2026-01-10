@@ -356,6 +356,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // 数据源类型
   const [sourceType, setSourceType] = useState<DataSource["type"]>("api");
 
+  // Wrapper key for array results
+  const [wrapperKey, setWrapperKey] = useState<string>("");
+
   // 是否为编辑模式
   const isEditMode = !!initialData;
 
@@ -366,6 +369,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
       if (initialData) {
         setSourceType(initialData.type);
+        setWrapperKey(initialData.wrapperKey || ""); // Initialize wrapperKey
 
         if (initialData.type === "host-function") {
           const hostSource = initialData as HostFunctionDataSource;
@@ -544,6 +548,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setSelectedHostSourceId("");
     setSelectedHostSource(null);
     setSourceType("api");
+    setWrapperKey(""); // Reset wrapper key
   };
 
   // 判断是否为高级参数
@@ -688,6 +693,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       description: config.description?.trim() || "",
       category: config.category?.trim(),
       tags: initialData?.tags || [],
+      wrapperKey: wrapperKey.trim() || undefined, // Include wrapper key
     };
 
     switch (sourceType) {
@@ -775,7 +781,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   };
 
   // 测试数据源
-  // 测试数据源
   const handleTest = async () => {
     // Validate required fields
     if (sourceType === "host-function" && !selectedHostSourceId) {
@@ -806,6 +811,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
         type: sourceType,
         description: config.description,
         category: config.category,
+        wrapperKey: wrapperKey.trim() || undefined, // Include wrapper key in test
 
         // API specific
         endpoint: config.endpoint,
@@ -1413,6 +1419,98 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   </p>
                 </div>
               )}
+
+              {/* Array Wrapping Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Array Wrapping (Optional)
+                </h3>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-2">
+                    <InformationCircleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800 mb-1">
+                        When to use Array Wrapping
+                      </p>
+                      <p className="text-xs text-yellow-700 mb-2">
+                        If your data source returns an array and your component
+                        expects an object with a specific property containing
+                        that array (e.g., {"{items: [...]}"}), set a wrapper key
+                        here.
+                      </p>
+                      <div className="text-xs text-yellow-700 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono bg-yellow-100 px-1 rounded">
+                            Without wrapper:
+                          </span>
+                          <code className="text-xs">[item1, item2, item3]</code>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono bg-yellow-100 px-1 rounded">
+                            With wrapper key "items":
+                          </span>
+                          <code className="text-xs">
+                            {"{items: [item1, item2, item3]}"}
+                          </code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Wrapper Key
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      value={wrapperKey}
+                      onChange={(e) => setWrapperKey(e.target.value)}
+                      placeholder="e.g., items, products, users"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave empty to keep the original array format
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Example Usage
+                    </label>
+                    <div className="p-2 bg-gray-50 rounded border text-xs font-mono">
+                      {wrapperKey ? (
+                        <div>
+                          <span className="text-gray-700">
+                            Component property:
+                          </span>
+                          <span className="text-blue-600"> {wrapperKey}</span>
+                          <div className="mt-1 text-gray-500">
+                            ↳ will bind to:{" "}
+                            <span className="text-green-600">
+                              {wrapperKey}[]
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-gray-700">
+                            Component property:
+                          </span>
+                          <span className="text-blue-600"> arrayField</span>
+                          <div className="mt-1 text-gray-500">
+                            ↳ will bind to:{" "}
+                            <span className="text-green-600">[]</span> (direct
+                            array)
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1466,6 +1564,43 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 </button>
               </div>
 
+              {/* Array Info Banner */}
+              {Array.isArray(testResult) && (
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                  <div className="flex items-start gap-2">
+                    <InformationCircleIcon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-700">
+                      <p className="font-medium">Array Result Detected</p>
+                      <p className="mt-1">
+                        This data source returns an array with{" "}
+                        <strong>{testResult.length}</strong> items.
+                        {wrapperKey ? (
+                          <span>
+                            {" "}
+                            It will be wrapped as:{" "}
+                            <code className="font-mono">
+                              {"{"}
+                              {wrapperKey}: [...]{"}"}
+                            </code>
+                          </span>
+                        ) : (
+                          " It will be used as a direct array."
+                        )}
+                      </p>
+                      {wrapperKey && (
+                        <p className="mt-1 text-xs">
+                          <strong>Binding Tip:</strong> Use path{" "}
+                          <code className="bg-blue-100 px-1 rounded">
+                            {wrapperKey}[]
+                          </code>{" "}
+                          to access array items
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* View Mode Toggles */}
               {testResult && (
                 <div className="flex justify-end">
@@ -1502,13 +1637,25 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   </div>
                 ) : viewMode === "visual" ? (
                   <VisualDataPreview
-                    data={testResult}
+                    data={
+                      wrapperKey && Array.isArray(testResult)
+                        ? { [wrapperKey]: testResult }
+                        : testResult
+                    }
                     category={config.category}
                     onBind={() => console.log("Bind preview")}
                   />
                 ) : (
                   <div className="bg-gray-900 text-gray-100 p-4 font-mono text-xs overflow-auto h-full w-full">
-                    <pre>{JSON.stringify(testResult, null, 2)}</pre>
+                    <pre>
+                      {JSON.stringify(
+                        wrapperKey && Array.isArray(testResult)
+                          ? { [wrapperKey]: testResult }
+                          : testResult,
+                        null,
+                        2
+                      )}
+                    </pre>
                   </div>
                 )}
               </div>

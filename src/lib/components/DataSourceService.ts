@@ -54,6 +54,14 @@ export class DataSourceService {
           );
       }
 
+      // Apply wrapper key if specified and data is an array
+      if (dataSource.wrapperKey && Array.isArray(data)) {
+        console.log(
+          `[DataSourceService] Applying wrapper key "${dataSource.wrapperKey}" to array result`
+        );
+        data = { [dataSource.wrapperKey]: data };
+      }
+
       return {
         success: true,
         data,
