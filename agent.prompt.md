@@ -145,8 +145,9 @@ for ignore column , add a checkbox to ignore all fields
 
 ## Mapping for array element
 
-Some fields is an array element, how to mapping and binding and setting on DataExplorerDialog
-for example:
+Now continue data binding, when one item is an array, check schema if it is, let us can binding and mapping array element field as normal, we can recursive array element only one times, and array element field binding field setting as normal on DataExplorerDialog, check uploaded files, give me solution and changed source
+
+For example:
 
 ```json
  AvatarStack: ({
@@ -231,3 +232,5 @@ for example:
     );
   },
 ```
+
+## Binding path use lodash.get path and saved
