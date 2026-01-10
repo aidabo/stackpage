@@ -8,6 +8,7 @@ import {
   EyeIcon,
   LinkIcon,
 } from "@heroicons/react/24/outline";
+import { get } from "../utils/get";
 
 interface VisualDataPreviewProps {
   data: any;
@@ -151,13 +152,39 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
       }
     }
 
-    // Try nested paths
+    // Try nested paths including array element paths
     for (const key of keys) {
       const parts = key.split(".");
       let current = item;
-      for (const part of parts) {
+      let pathUsed = "";
+
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        pathUsed = pathUsed ? `${pathUsed}.${part}` : part;
+
         if (current && typeof current === "object") {
-          if (part.includes("[")) {
+          // Handle array element notation like users[].name
+          if (part.includes("[]")) {
+            const match = part.match(/(\w+)\[\]/);
+            if (match) {
+              const [, arrayName] = match;
+              current = current[arrayName];
+
+              // Check if it's an array and we have an element field
+              if (
+                Array.isArray(current) &&
+                current.length > 0 &&
+                i < parts.length - 1
+              ) {
+                const elementField = parts.slice(i + 1).join(".");
+                const values = current.map((item) => get(item, elementField));
+                return { value: values, key };
+              }
+              continue;
+            }
+          }
+          // Handle specific array index
+          else if (part.includes("[") && part.includes("]")) {
             const match = part.match(/(\w+)\[(\d+)\]/);
             if (match) {
               const [, arrayName, index] = match;
@@ -171,6 +198,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
           break;
         }
       }
+
       if (current !== undefined && current !== null) {
         return { value: current, key };
       }
@@ -351,7 +379,11 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                     className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      imageData && onBind(`${index}.${imageData.key}`, false);
+                      if (imageData) {
+                        // Check if the key is an array element path
+                        const isArrayElement = imageData.key.includes("[]");
+                        onBind(imageData.key, isArrayElement);
+                      }
                     }}
                   >
                     {imageData?.value && typeof imageData.value === "string" ? (
@@ -395,7 +427,11 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                         className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          tagData && onBind(`${index}.${tagData.key}`, false);
+                          if (tagData) {
+                            // Check if the key is an array element path
+                            const isArrayElement = tagData.key.includes("[]");
+                            onBind(tagData.key, isArrayElement);
+                          }
                         }}
                       >
                         <TagIcon className="w-3 h-3" />
@@ -407,7 +443,11 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                         className="flex items-center gap-1 text-xs text-gray-600 hover:text-blue-600 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          dateData && onBind(`${index}.${dateData.key}`, false);
+                          if (dateData) {
+                            // Check if the key is an array element path
+                            const isArrayElement = dateData.key.includes("[]");
+                            onBind(dateData.key, isArrayElement);
+                          }
                         }}
                       >
                         <CalendarIcon className="w-3 h-3" />
@@ -424,7 +464,11 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                       className="font-semibold text-gray-800 text-sm mb-2 line-clamp-2 hover:text-blue-600 cursor-pointer p-1 -m-1 rounded hover:bg-blue-50"
                       onClick={(e) => {
                         e.stopPropagation();
-                        titleData && onBind(`${index}.${titleData.key}`, false);
+                        if (titleData) {
+                          // Check if the key is an array element path
+                          const isArrayElement = titleData.key.includes("[]");
+                          onBind(titleData.key, isArrayElement);
+                        }
                       }}
                       title={titleData ? `Bind: ${titleData.key}` : ""}
                     >
@@ -444,8 +488,12 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                         className="flex items-center gap-2 text-xs text-gray-600 hover:text-blue-600 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
-                          authorData &&
-                            onBind(`${index}.${authorData.key}`, false);
+                          if (authorData) {
+                            // Check if the key is an array element path
+                            const isArrayElement =
+                              authorData.key.includes("[]");
+                            onBind(authorData.key, isArrayElement);
+                          }
                         }}
                       >
                         <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
@@ -541,8 +589,12 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                             className="text-sm font-medium text-gray-800 truncate hover:text-blue-600 cursor-pointer"
                             onClick={(e) => {
                               e.stopPropagation();
-                              titleData &&
-                                onBind(`${index}.${titleData.key}`, false);
+                              if (titleData) {
+                                // Check if the key is an array element path
+                                const isArrayElement =
+                                  titleData.key.includes("[]");
+                                onBind(titleData.key, isArrayElement);
+                              }
                             }}
                           >
                             {String(titleData?.value || "Untitled")}

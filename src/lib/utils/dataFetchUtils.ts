@@ -1,6 +1,7 @@
 import { DataSource } from "../components/types";
 import { get } from "../utils/get";
 import { DataSourceService } from "../components/DataSourceService";
+import { ArrayBindingUtils } from "./ArrayBindingUtils";
 
 export class DataFetchUtils {
   static async fetchDataSourceData(
@@ -28,7 +29,7 @@ export class DataFetchUtils {
     selectedRecordIndex: number | null,
     selectedItems: number[],
     targetSchemaType?: string,
-    data?: any[] // Add data parameter to check for IDs
+    data?: any[]
   ): {
     type: "id" | "ids" | "index" | "all";
     value?: string | number | string[];
@@ -79,9 +80,6 @@ export class DataFetchUtils {
       }
     }
 
-    // Rule 3: all for all data source records (explicit choice)
-    // Note: This should be triggered by a UI control, not automatically
-
     // Default fallback
     return {
       type: "index",
@@ -99,46 +97,12 @@ export class DataFetchUtils {
   ): any {
     if (!data) return undefined;
 
-    let sourceData = data;
-
-    // Apply selector if present
-    if (selector && Array.isArray(sourceData)) {
-      switch (selector.type) {
-        case "id":
-          if (selector.value !== undefined) {
-            sourceData = sourceData.find(
-              (item: any) => String(item.id) === String(selector.value)
-            );
-          }
-          break;
-
-        case "ids":
-          if (selector.value && Array.isArray(selector.value)) {
-            sourceData = sourceData.filter((item: any) =>
-              (selector.value! as any).includes(String(item.id))
-            );
-          }
-          break;
-
-        case "index":
-          if (selector.value !== undefined) {
-            sourceData = sourceData[Number(selector.value)];
-          }
-          break;
-
-        case "all":
-          // Keep all data
-          break;
-      }
+    // Check if this is an array element path
+    if (path && path.includes("[]")) {
+      return ArrayBindingUtils.getArrayElementData(data, path, selector);
     }
 
-    if (!path) return sourceData;
-
-    // If sourceData is array after selector, map over each item
-    if (Array.isArray(sourceData) && path) {
-      return sourceData.map((item: any) => get(item, path));
-    }
-
-    return get(sourceData, path);
+    // Use lodash.get for regular paths
+    return get(data, path);
   }
 }

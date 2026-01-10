@@ -372,6 +372,47 @@ export const extractDataSourceReference = (value: string): string | null => {
   return match ? match[1] : null;
 };
 
+/**
+ * Extract array element paths from schema for data binding
+ * This is a duplicate of ArrayBindingUtils.extractMappableArrayFields for convenience
+ */
+export const extractArrayElementPaths = (
+  schema: any,
+  basePath: string = ""
+): string[] => {
+  if (!schema?.properties) return [];
+
+  const fields: string[] = [];
+
+  Object.entries(schema.properties).forEach(
+    ([key, propSchema]: [string, any]) => {
+      const currentPath = basePath ? `${basePath}.${key}` : key;
+
+      if (propSchema.type === "array" && propSchema.items?.type === "object") {
+        // Add the array itself
+        fields.push(currentPath);
+
+        // Add array element fields (one level deep)
+        if (propSchema.items.properties) {
+          Object.keys(propSchema.items.properties).forEach((itemKey) => {
+            fields.push(`${currentPath}[].${itemKey}`);
+          });
+        }
+      } else if (propSchema.type === "object" && propSchema.properties) {
+        // For nested objects, add the path
+        fields.push(currentPath);
+        // Recursively extract from nested objects
+        fields.push(...extractArrayElementPaths(propSchema, currentPath));
+      } else {
+        // For primitive types
+        fields.push(currentPath);
+      }
+    }
+  );
+
+  return fields;
+};
+
 export const inferPropertySchema = (key: string, value: any): any => {
   const type = typeof value;
   const keyLower = key.toLowerCase();
@@ -564,6 +605,9 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
   const required: string[] = [];
 
   Object.entries(props).forEach(([key, value]) => {
+    // Skip internal properties
+    if (key.startsWith("__")) return;
+
     const property: any = {
       title: key.charAt(0).toUpperCase() + key.slice(1),
     };
@@ -573,7 +617,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       property.type = "number";
       property.default = value || 0;
     }
-    // Then check arrays
+    // Then check arrays - IMPORTANT: This handles arrays of objects
     else if (Array.isArray(value)) {
       if (value.length === 0) {
         // Empty array - default to string array
@@ -592,7 +636,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           // Array of objects - treat as true array
           property.type = "array";
 
-          // 为数组项生成详细的 schema
+          // Generate detailed schema for array items
           property.items = {
             type: "object",
             properties: Object.keys(firstElement).reduce((acc, itemKey) => {
@@ -601,7 +645,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
                 title: itemKey.charAt(0).toUpperCase() + itemKey.slice(1),
               };
 
-              // 检查数组项中的媒体类型
+              // Check for media types in array items
               if (isFileTypeField(itemKey, itemValue)) {
                 itemProp.type = "string";
                 itemProp.format = "uri";
@@ -617,19 +661,19 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
                   itemProp["x-media-type"] = "file";
                 }
               }
-              // 检查数组项中的数字类型
+              // Check for number types in array items
               else if (isNumberField(itemKey, itemValue)) {
                 itemProp.type = "number";
               }
-              // 检查数组项中的日期类型
+              // Check for date types in array items
               else if (isDateField(itemKey, itemValue)) {
                 itemProp.type = "string";
                 itemProp.format = "date";
               }
-              // 处理其他类型
+              // Handle other types
               else if (typeof itemValue === "string") {
                 itemProp.type = "string";
-                // 长文本检测
+                // Long text detection
                 if (itemValue.length > 80) {
                   itemProp.format = "textarea";
                 }
@@ -645,10 +689,18 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
               return acc;
             }, {} as any),
           };
+
+          // Add a marker for array binding support
+          property["x-array-binding"] = true;
         } else {
           // Array of simple types (string, number, boolean) - treat as select field
-          property.type = "string";
-          property.enum = value;
+          property.type = "array";
+          property.items = { type: typeof firstElement };
+
+          // If it's strings and looks like options, set as enum
+          if (typeof firstElement === "string" && value.length <= 10) {
+            property.enum = value;
+          }
         }
       }
     }
@@ -744,7 +796,7 @@ export const generateUiSchema = (schema: any): any => {
     ([key, property]: [string, any]) => {
       uiSchema[key] = {};
 
-      // 传递扩展属性
+      // Pass through extension properties
       if (property["x-active-select-source"]) {
         uiSchema[key]["x-active-select-source"] =
           property["x-active-select-source"];
@@ -757,6 +809,9 @@ export const generateUiSchema = (schema: any): any => {
       }
       if (property["x-media-type"]) {
         uiSchema[key]["x-media-type"] = property["x-media-type"];
+      }
+      if (property["x-array-binding"]) {
+        uiSchema[key]["x-array-binding"] = property["x-array-binding"];
       }
 
       // Handle array types

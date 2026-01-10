@@ -1,7 +1,15 @@
+// useDataBinding.ts - Complete updated file
 import { useMemo } from "react";
 import { useStackPage } from "./StackPageContext";
 import { get } from "../utils/get";
-import { TransformerRegistry } from "../utils/TransformerRegistry";
+import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
+
+// Simple transformer registry - replace with your actual one
+const transformerRegistry: Record<string, (value: any) => any> = {
+  number: (value) => Number(value),
+  string: (value) => String(value),
+  boolean: (value) => Boolean(value),
+};
 
 export const useDataBinding = (props: any) => {
   const { source } = useStackPage();
@@ -34,7 +42,8 @@ export const useDataBinding = (props: any) => {
           return;
         }
 
-        const { sourceId, path, transformer, selector } = binding;
+        const { sourceId, path, transformer, selector, isArrayElement } =
+          binding;
 
         if (!sourceId || !path) {
           console.warn(
@@ -59,70 +68,73 @@ export const useDataBinding = (props: any) => {
           console.warn(
             `[useDataBinding] No data available from source ${sourceId} for prop ${propKey}`
           );
-          // Don't set the property if data is not available
           return;
         }
 
         let value: any;
 
-        // Handle different selector types
-        if (selector) {
-          switch (selector.type) {
-            case "id":
-              // Find single record by ID
-              if (Array.isArray(sourceData)) {
-                const selectedItem = sourceData.find(
-                  (item: any) => String(item.id) === String(selector.value)
-                );
-                if (selectedItem) {
-                  value = get(selectedItem, path);
+        // Handle array element bindings
+        if (isArrayElement || path.includes("[]")) {
+          value = ArrayBindingUtils.getArrayElementData(
+            sourceData,
+            path,
+            selector
+          );
+        } else {
+          // Handle regular binding with selector
+          if (selector) {
+            switch (selector.type) {
+              case "id":
+                if (Array.isArray(sourceData)) {
+                  const selectedItem = sourceData.find(
+                    (item: any) => String(item.id) === String(selector.value)
+                  );
+                  if (selectedItem) {
+                    value = get(selectedItem, path);
+                  }
+                } else {
+                  value = get(sourceData, path);
                 }
-              } else {
-                value = get(sourceData, path);
-              }
-              break;
+                break;
 
-            case "ids":
-              // Find multiple records by IDs
-              if (Array.isArray(sourceData) && Array.isArray(selector.value)) {
-                const selectedItems = sourceData.filter((item: any) =>
-                  selector.value.includes(String(item.id))
-                );
-                if (selectedItems.length > 0) {
+              case "ids":
+                if (
+                  Array.isArray(sourceData) &&
+                  Array.isArray(selector.value)
+                ) {
+                  const selectedItems = sourceData.filter((item: any) =>
+                    selector.value.includes(String(item.id))
+                  );
                   value = selectedItems.map((item: any) => get(item, path));
                 }
-              }
-              break;
+                break;
 
-            case "index":
-              // Find single record by index
-              if (Array.isArray(sourceData)) {
-                const selectedItem = sourceData[Number(selector.value)];
-                if (selectedItem) {
-                  value = get(selectedItem, path);
+              case "index":
+                if (Array.isArray(sourceData)) {
+                  const selectedItem = sourceData[Number(selector.value)];
+                  if (selectedItem) {
+                    value = get(selectedItem, path);
+                  }
+                } else {
+                  value = get(sourceData, path);
                 }
-              } else {
-                value = get(sourceData, path);
-              }
-              break;
+                break;
 
-            case "all":
-              // Use all records
-              if (Array.isArray(sourceData)) {
-                value = sourceData.map((item: any) => get(item, path));
-              } else {
-                value = get(sourceData, path);
-              }
-              break;
+              case "all":
+                if (Array.isArray(sourceData)) {
+                  value = sourceData.map((item: any) => get(item, path));
+                } else {
+                  value = get(sourceData, path);
+                }
+                break;
 
-            default:
-              // Fallback to direct path
-              value = get(sourceData, path);
-              break;
+              default:
+                value = get(sourceData, path);
+                break;
+            }
+          } else {
+            value = get(sourceData, path);
           }
-        } else {
-          // No selector, use direct path
-          value = get(sourceData, path);
         }
 
         // Apply transformer if specified
@@ -130,14 +142,11 @@ export const useDataBinding = (props: any) => {
           try {
             if (Array.isArray(value)) {
               value = value.map((item: any) =>
-                TransformerRegistry.apply(transformer, item)
+                transformerRegistry[transformer](item)
               );
             } else {
-              value = TransformerRegistry.apply(transformer, value);
+              value = transformerRegistry[transformer](value);
             }
-            console.log(
-              `[useDataBinding] Applied transformer ${transformer} to ${propKey}`
-            );
           } catch (error) {
             console.error(
               `[useDataBinding] Transformer error for ${propKey}:`,
@@ -150,10 +159,6 @@ export const useDataBinding = (props: any) => {
         if (value !== undefined) {
           newProps[propKey] = value;
           console.log(`[useDataBinding] Set ${propKey} =`, value);
-        } else {
-          console.log(
-            `[useDataBinding] No value found for ${propKey}, keeping original`
-          );
         }
       }
     );

@@ -32,6 +32,7 @@ import {
   validateBindingAgainstSchema,
   getTypeCompatibilityDisplay,
 } from "../utils/bindingValidation";
+import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 
 interface DataExplorerDialogProps {
   isOpen: boolean;
@@ -324,16 +325,35 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
         if (value && typeof value === "object" && !Array.isArray(value)) {
           fields.push(...extractFields(value, currentPath, level + 1));
         }
-        // Handle arrays of objects (show first item as example)
+        // Handle arrays of objects - show element fields with [] notation (one level deep)
         else if (
           Array.isArray(value) &&
           value.length > 0 &&
           typeof value[0] === "object"
         ) {
-          fields.push(`${currentPath}[0]`);
-          fields.push(
-            ...extractFields(value[0], `${currentPath}[0]`, level + 1)
-          );
+          // Add array reference
+          fields.push(`${currentPath}[]`);
+
+          // Extract first element's fields with [] notation
+          const firstElement = value[0];
+          Object.keys(firstElement).forEach((elementKey) => {
+            // Only go one level deep
+            const elementValue = firstElement[elementKey];
+            if (
+              elementValue &&
+              typeof elementValue === "object" &&
+              !Array.isArray(elementValue)
+            ) {
+              // For nested objects in array elements, add the path but don't drill deeper
+              fields.push(`${currentPath}[].${elementKey}`);
+            } else {
+              fields.push(`${currentPath}[].${elementKey}`);
+            }
+          });
+        }
+        // Handle arrays of primitives
+        else if (Array.isArray(value) && value.length > 0) {
+          fields.push(`${currentPath}[]`);
         }
       });
 
@@ -456,9 +476,27 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       // Skip ignored fields
       if (ignoredFields.includes(prop)) return;
 
+      // Get schema for this property
+      const propSchema = schema?.properties?.[prop];
+      const isArrayField = propSchema?.type === "array";
+
       // Try to find matching field in record
       const field = dataFields.find((f) => {
         const fieldName = f.split(".").pop() || "";
+        const isArrayElement = f.includes("[]");
+
+        // For array fields, prefer array element fields
+        if (isArrayField && isArrayElement) {
+          return (
+            fieldName.toLowerCase() === prop.toLowerCase() ||
+            prop.toLowerCase().includes(fieldName.toLowerCase()) ||
+            fieldName.toLowerCase().includes(prop.toLowerCase())
+          );
+        }
+
+        // For non-array fields, avoid array element fields
+        if (!isArrayField && isArrayElement) return false;
+
         return (
           fieldName.toLowerCase() === prop.toLowerCase() ||
           prop.toLowerCase().includes(fieldName.toLowerCase()) ||
@@ -470,14 +508,21 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
         newMappings[prop] = field;
 
         // Auto-select transformer based on field type and schema
-        if (schema?.properties?.[prop]) {
-          const propType = schema.properties[prop].type;
-          const value = get(_record, field);
+        if (propSchema) {
+          const propType = propSchema.type;
+          let value = get(_record, field);
+
+          // For array element paths, get the first element's value
+          if (field.includes("[]") && Array.isArray(value)) {
+            value = value[0];
+          }
 
           if (propType === "number" && typeof value !== "number") {
             newTransformers[prop] = "number";
           } else if (propType === "string" && typeof value !== "string") {
             newTransformers[prop] = "string";
+          } else if (propType === "boolean" && typeof value !== "boolean") {
+            newTransformers[prop] = "boolean";
           }
         }
       }
@@ -495,12 +540,21 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       if (path && !ignoredFields.includes(prop)) {
         const propSchema = schema?.properties?.[prop];
         const targetType = propSchema?.type;
+        const isArrayElementPath = path.includes("[]");
 
         // Determine selector based on binding mode and schema
         let selector;
         if (bindToAll && targetType === "array") {
           // Bind all records for array properties
           selector = { type: "all" as const };
+        } else if (isArrayElementPath && targetType === "array") {
+          // For array element paths binding to array properties
+          // Use array selector that matches the selected items
+          selector = ArrayBindingUtils.createArraySelector(
+            selectedItems,
+            Array.isArray(previewData) ? previewData : [],
+            bindToAll
+          );
         } else {
           // Use DataFetchUtils to create appropriate selector
           selector = DataFetchUtils.createBindingSelector(
@@ -518,6 +572,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
           transformer: transformers[prop],
           selector: selector,
           targetType: targetType,
+          isArrayElement: isArrayElementPath,
         };
       }
     });
@@ -536,6 +591,24 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   // Get preview value for a field
   const getPreviewValue = (fieldPath: string) => {
     if (!selectedRecord || !fieldPath) return null;
+
+    // Check if it's an array element path
+    if (fieldPath.includes("[]")) {
+      const { arrayPath, elementField } =
+        ArrayBindingUtils.parseArrayElementPath(fieldPath);
+      const array = get(selectedRecord, arrayPath);
+
+      if (!Array.isArray(array) || array.length === 0) return null;
+
+      if (elementField) {
+        // Return first element's value for preview
+        return get(array[0], elementField);
+      }
+
+      // Return first array element for preview
+      return array[0];
+    }
+
     return get(selectedRecord, fieldPath);
   };
 
@@ -549,6 +622,12 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
     if (transformerId && transformerRegistry[transformerId]) {
       try {
+        // Handle array values
+        if (Array.isArray(rawValue)) {
+          return rawValue.map((item) =>
+            transformerRegistry[transformerId](item)
+          );
+        }
         return transformerRegistry[transformerId](rawValue);
       } catch (error) {
         console.error(`Transformer error (${transformerId}):`, error);
@@ -1407,23 +1486,26 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                                 )}
                             </div>
 
-                            {/* Preview Column */}
+                            {/* Preview Column - UPDATED CODE */}
                             <div className="col-span-2 min-w-0">
                               {!ignoredFields.includes(prop) ? (
                                 previewValue !== undefined &&
                                 previewValue !== null ? (
                                   <div
                                     className="text-xs font-mono bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200 truncate"
-                                    title={String(previewValue)}
+                                    title={
+                                      Array.isArray(previewValue)
+                                        ? `Array with ${previewValue.length} items`
+                                        : String(previewValue)
+                                    }
                                   >
-                                    {typeof previewValue === "object"
-                                      ? `[${
-                                          Array.isArray(previewValue)
-                                            ? "Array"
-                                            : "Object"
-                                        }]`
+                                    {Array.isArray(previewValue)
+                                      ? `[Array: ${previewValue.length} items]`
+                                      : typeof previewValue === "object"
+                                      ? `[Object]`
                                       : String(previewValue).substring(0, 25)}
-                                    {String(previewValue).length > 25
+                                    {!Array.isArray(previewValue) &&
+                                    String(previewValue).length > 25
                                       ? "..."
                                       : ""}
                                   </div>

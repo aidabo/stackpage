@@ -44,6 +44,7 @@ import { LinkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
 import { DataFetchUtils } from "../utils/dataFetchUtils";
+import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 
 interface DataTabProps {
   selectedInstance: any;
@@ -312,14 +313,47 @@ export const DataTab: React.FC<DataTabProps> = ({
     }> = [];
 
     Object.entries(bindings).forEach(([prop, binding]: [string, any]) => {
-      const propSchema = localComponentSchema?.properties?.[prop];
+      // Handle array field bindings (e.g., "users[].name")
+      // Extract the base property name from array notation
+      let baseProp = prop;
+      let arrayField = "";
+
+      if (prop.includes("[].")) {
+        // This is an array field binding
+        const parts = prop.split("[].");
+        baseProp = parts[0]; // "users"
+        arrayField = parts[1]; // "name"
+      } else if (prop.endsWith("[]")) {
+        // Binding to entire array
+        baseProp = prop.replace("[]", "");
+      }
+
+      // Get the schema for the base property
+      const propSchema = localComponentSchema?.properties?.[baseProp];
+
       if (!propSchema) {
         warnings.push({
           property: prop,
-          message: `Property "${prop}" not found in schema`,
+          message: `Property "${baseProp}" not found in schema`,
           severity: "warning",
         });
         return;
+      }
+
+      // For array fields, check if the nested field exists in array items schema
+      if (
+        arrayField &&
+        propSchema.type === "array" &&
+        propSchema.items?.properties
+      ) {
+        const itemSchema = propSchema.items.properties[arrayField];
+        if (!itemSchema) {
+          warnings.push({
+            property: prop,
+            message: `Field "${arrayField}" not found in array "${baseProp}" items schema`,
+            severity: "warning",
+          });
+        }
       }
 
       // Find the data source
@@ -338,20 +372,32 @@ export const DataTab: React.FC<DataTabProps> = ({
       // Get the value from the data source
       const value = get((dataSource as any).data, binding.path);
 
-      // Validate the binding
-      const validationWarnings = validateBindingAgainstSchema(
-        binding,
-        propSchema,
-        value
-      );
+      // For array field validation, use the item schema if available
+      let validationSchema = propSchema;
+      if (
+        arrayField &&
+        propSchema.type === "array" &&
+        propSchema.items?.properties
+      ) {
+        validationSchema = propSchema.items.properties[arrayField];
+      }
 
-      validationWarnings.forEach((message) => {
-        warnings.push({
-          property: prop,
-          message,
-          severity: validationWarnings.length > 1 ? "error" : "warning",
+      // Validate the binding
+      if (validationSchema) {
+        const validationWarnings = validateBindingAgainstSchema(
+          binding,
+          validationSchema,
+          value
+        );
+
+        validationWarnings.forEach((message) => {
+          warnings.push({
+            property: prop,
+            message,
+            severity: validationWarnings.length > 1 ? "error" : "warning",
+          });
         });
-      });
+      }
     });
 
     setValidationWarnings(warnings);
@@ -758,33 +804,40 @@ export const DataTab: React.FC<DataTabProps> = ({
                   <table className="w-full text-sm text-left">
                     <tbody>
                       {Object.entries(bindings).map(
-                        ([prop, binding]: [string, any]) => (
-                          <tr
-                            key={prop}
-                            className="border-b border-blue-100 last:border-0"
-                          >
-                            <td className="py-1.5 pr-4 font-medium text-blue-700 align-top whitespace-nowrap">
-                              {prop}
-                            </td>
-                            <td className="py-1.5 text-blue-600 font-mono text-xs align-top break-all">
-                              {binding.path}
-                              {binding.transformer && (
-                                <span className="block text-amber-700 text-[10px]">
-                                  → {binding.transformer}
-                                </span>
-                              )}
-                              {binding.selector && (
-                                <span className="block text-gray-500 text-[10px]">
-                                  [{binding.selector.type}
-                                  {binding.selector.value !== undefined
-                                    ? `:${binding.selector.value}`
-                                    : ""}
-                                  ]
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        )
+                        ([prop, binding]: [string, any]) => {
+                          // Display array fields with proper notation
+                          const displayProp = prop.includes("[].")
+                            ? prop.replace("[]", "") // Show as "users.name" instead of "users[].name"
+                            : prop;
+
+                          return (
+                            <tr
+                              key={prop}
+                              className="border-b border-blue-100 last:border-0"
+                            >
+                              <td className="py-1.5 pr-4 font-medium text-blue-700 align-top whitespace-nowrap">
+                                {displayProp}
+                              </td>
+                              <td className="py-1.5 text-blue-600 font-mono text-xs align-top break-all">
+                                {binding.path}
+                                {binding.transformer && (
+                                  <span className="block text-amber-700 text-[10px]">
+                                    → {binding.transformer}
+                                  </span>
+                                )}
+                                {binding.selector && (
+                                  <span className="block text-gray-500 text-[10px]">
+                                    [{binding.selector.type}
+                                    {binding.selector.value !== undefined
+                                      ? `:${binding.selector.value}`
+                                      : ""}
+                                    ]
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        }
                       )}
                     </tbody>
                   </table>
@@ -851,7 +904,9 @@ export const DataTab: React.FC<DataTabProps> = ({
         dataSources={source.dataSources || []}
         onApplyMappings={handleApplyMappings}
         onBindRecord={handleBindRecord}
-        mappableProps={Object.keys(componentProps).filter(
+        mappableProps={ArrayBindingUtils.extractMappableArrayFields(
+          schema
+        ).filter(
           (k) =>
             k !== "__schema" && k !== "__bindings" && k !== "__ignoredMappings"
         )}
@@ -877,7 +932,7 @@ export const DataTab: React.FC<DataTabProps> = ({
               )
             : {}
         }
-        currentBindings={bindings} // Add this line
+        currentBindings={bindings}
         schema={schema}
         currentIgnoredFields={ignoredFields || []}
         onReleaseBindings={handleReleaseBindings}
