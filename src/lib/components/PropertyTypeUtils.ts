@@ -694,7 +694,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           property["x-array-binding"] = true;
         } else {
           // Array of simple types (string, number, boolean) - treat as select field
-          property.type = "array";
+          property.type = "string";
           property.items = { type: typeof firstElement };
 
           // If it's strings and looks like options, set as enum
@@ -820,8 +820,9 @@ export const generateUiSchema = (schema: any): any => {
           // Array of objects - use ArrayOfObjectsWidget
           uiSchema[key]["ui:widget"] = "ArrayOfObjectsWidget";
         } else {
-          // Simple array - use default array widget
-          uiSchema[key]["ui:widget"] = "array";
+          // Simple array - let RJSF handle it with default ArrayField
+          // Do NOT set ui:widget to "array" as it doesn't exist
+          // uiSchema[key]["ui:widget"] = "array";
         }
       }
       // Handle number type
