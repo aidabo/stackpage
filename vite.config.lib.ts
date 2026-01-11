@@ -27,12 +27,20 @@ export default defineConfig({
     },
     outDir: path.resolve(__dirname, "dist/lib"),
     rollupOptions: {
-      external: ["react", "react-dom", "gridstack"],
+      external: [
+        "react",
+        "react-dom",
+        "gridstack",
+        "lodash",
+        "react-router-dom",
+      ],
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
           gridstack: "GridStack",
+          lodash: "_",
+          "react-router-dom": "ReactRouterDOM",
         },
         // Ensure proper module handling
         interop: "auto",
