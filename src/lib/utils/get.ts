@@ -155,4 +155,22 @@ function isArrayIndex(key: string): boolean {
   return /^\d+$/.test(key) && parseInt(key, 10) >= 0;
 }
 
+/**
+ * Extract the base array path from an array element path
+ * Example: "posts[].title" -> "posts"
+ */
+export function getBaseArrayPath(path: string): string {
+  if (!path.includes("[]")) return path;
+
+  const match = path.match(/(.*)\[\]/);
+  return match ? match[1] : path;
+}
+
+/**
+ * Check if a path is an array element path
+ */
+export function isArrayElementPath(path: string): boolean {
+  return path.includes("[]");
+}
+
 export default get;

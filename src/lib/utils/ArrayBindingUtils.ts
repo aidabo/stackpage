@@ -1,4 +1,4 @@
-// utils/ArrayBindingUtils.ts - Complete updated file
+// utils/ArrayBindingUtils.ts - Remove applySimpleTransformer
 import { get } from "./get";
 
 export class ArrayBindingUtils {
@@ -80,12 +80,9 @@ export class ArrayBindingUtils {
 
   /**
    * Get array data from source data for array element binding
+   * SIMPLIFIED: Always returns all records, ignores selector
    */
-  static getArrayElementData(
-    sourceData: any,
-    path: string,
-    selector?: any
-  ): any[] {
+  static getArrayElementData(sourceData: any, path: string): any[] {
     if (!path.includes("[]")) {
       // Regular path, not an array element
       const value = get(sourceData, path);
@@ -99,95 +96,14 @@ export class ArrayBindingUtils {
     const arrayData = get(sourceData, arrayPath);
     if (!Array.isArray(arrayData)) return [];
 
-    // Apply selector if provided
-    const selectedArray = this.applyArraySelector(arrayData, selector);
-
+    // ALWAYS RETURN ALL RECORDS - ignore selector
     if (!elementField) {
       // Return the entire array objects
-      return selectedArray;
+      return arrayData;
     }
 
     // Extract specific field from each element
-    return selectedArray.map((item) => get(item, elementField));
-  }
-
-  private static applyArraySelector(arrayData: any[], selector?: any): any[] {
-    if (!selector) return arrayData;
-
-    switch (selector.type) {
-      case "id":
-        if (selector.value !== undefined) {
-          const item = arrayData.find(
-            (item: any) => String(item.id) === String(selector.value)
-          );
-          return item ? [item] : [];
-        }
-        break;
-
-      case "ids":
-        if (selector.value && Array.isArray(selector.value)) {
-          return arrayData.filter((item: any) =>
-            selector.value.includes(String(item.id))
-          );
-        }
-        break;
-
-      case "index":
-        if (selector.value !== undefined) {
-          const item = arrayData[Number(selector.value)];
-          return item ? [item] : [];
-        }
-        break;
-
-      case "all":
-        return arrayData;
-
-      default:
-        return arrayData;
-    }
-
-    return arrayData;
-  }
-
-  /**
-   * Create a selector for array binding
-   */
-  static createArraySelector(
-    selectedItems: number[],
-    previewData: any[],
-    bindToAll: boolean = false
-  ): any {
-    if (bindToAll) {
-      return { type: "all" as const };
-    }
-
-    if (selectedItems.length === 0) {
-      return { type: "index" as const, value: 0 };
-    }
-
-    if (selectedItems.length === 1) {
-      // Try to use ID if available
-      const selectedItem = previewData[selectedItems[0]];
-      if (selectedItem && selectedItem.id !== undefined) {
-        return { type: "id" as const, value: String(selectedItem.id) };
-      }
-      return { type: "index" as const, value: selectedItems[0] };
-    }
-
-    // Multiple items selected
-    const selectedRecords = selectedItems.map((idx) => previewData[idx]);
-    const allHaveIds = selectedRecords.every(
-      (item) => item && item.id !== undefined
-    );
-
-    if (allHaveIds) {
-      return {
-        type: "ids" as const,
-        value: selectedRecords.map((item) => String(item.id)),
-      };
-    }
-
-    return { type: "index" as const, value: selectedItems[0] };
+    return arrayData.map((item) => get(item, elementField));
   }
 
   /**

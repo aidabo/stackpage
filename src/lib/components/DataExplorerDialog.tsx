@@ -543,18 +543,15 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
         const isArrayElementPath = path.includes("[]");
 
         // Determine selector based on binding mode and schema
+        // Determine selector based on binding mode and schema
         let selector;
         if (bindToAll && targetType === "array") {
           // Bind all records for array properties
           selector = { type: "all" as const };
         } else if (isArrayElementPath && targetType === "array") {
           // For array element paths binding to array properties
-          // Use array selector that matches the selected items
-          selector = ArrayBindingUtils.createArraySelector(
-            selectedItems,
-            Array.isArray(previewData) ? previewData : [],
-            bindToAll
-          );
+          // Simply use "all" selector as specific item selection is handled by resolving logic
+          selector = { type: "all" as const };
         } else {
           // Use DataFetchUtils to create appropriate selector
           selector = DataFetchUtils.createBindingSelector(

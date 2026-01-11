@@ -24,6 +24,27 @@ export class DataFetchUtils {
     }
   }
 
+  /**
+   * SIMPLIFIED: For array binding, always returns all records
+   * For non-array binding, can still use selector if needed
+   */
+  static getValueFromDataSource(
+    data: any,
+    path: string,
+    targetType?: string
+  ): any {
+    if (!data) return undefined;
+
+    // For array bindings (targetType === "array"), always get all records
+    if (targetType === "array" || path.includes("[]")) {
+      // Use ArrayBindingUtils which always returns all records
+      return ArrayBindingUtils.getArrayElementData(data, path);
+    }
+
+    // For non-array paths, use regular get
+    return get(data, path);
+  }
+
   static createBindingSelector(
     selectedRecord: any,
     selectedRecordIndex: number | null,
@@ -87,22 +108,22 @@ export class DataFetchUtils {
     };
   }
 
-  static getValueFromDataSource(
-    data: any,
-    path: string,
-    selector?: {
-      type: "id" | "ids" | "index" | "all";
-      value?: string | number | string[];
-    }
-  ): any {
-    if (!data) return undefined;
+  /**
+   * Get value for a specific binding (simplified version)
+   */
+  static getBindingValue(data: any, binding: any): any {
+    if (!data || !binding) return undefined;
 
-    // Check if this is an array element path
-    if (path && path.includes("[]")) {
-      return ArrayBindingUtils.getArrayElementData(data, path, selector);
+    const { path, targetType } = binding;
+
+    if (!path) return undefined;
+
+    // For array bindings, always get all records
+    if (targetType === "array" || path.includes("[]")) {
+      return ArrayBindingUtils.getArrayElementData(data, path);
     }
 
-    // Use lodash.get for regular paths
+    // For regular bindings, use get
     return get(data, path);
   }
 }

@@ -315,9 +315,9 @@ On DataExplorerDialog when select transform function of uppercase, it preview va
 When "Apply & Bind" clicked, tranform should work for DataTab
 When page reload, useDataBinding called and transform also should work
 
-## How to resolve array binding result as props schema
+## How to resolve Array binding result as props schema
 
-On DataExplorerDialog, for array item to binding, as lodash.get format, that is good, and binding and mapping is simple.
+On DataExplorerDialog, for array item to binding, as lodash.get format, that is good, and binding & mapping is simple.
 following is binding and schema generated when "apply & bind" clicked.
 
 {
@@ -335,7 +335,7 @@ following is binding and schema generated when "apply & bind" clicked.
 "border": true
 }
 ],
-"**bindings": {
+"\_\_bindings": {
 "items": {
 "sourceId": "ds_1768052270218_64m57v8k9",
 "path": "posts",
@@ -365,7 +365,7 @@ following is binding and schema generated when "apply & bind" clicked.
 "isArrayElement": true
 }
 },
-"**ignoredMappings": [
+"\*\*ignoredMappings": [
 "items[].shadow",
 "items[].border"
 ],
@@ -422,3 +422,9 @@ Above maybe is good solution
 Please check and modify sources specially about useDataBindings, get.ts, dataFetchUtils, ArrayBindingUtils, and keep DataExplorerDialog's lodash binding solution.
 
 And for simple Array Binding only for all element of array, but \_\_ignoredmapping fields not binding fields
+
+Array maybe can receusive only one time: two array example of datasource,
+
+1. { posts: [{title: "my post title", content: "my content 1"}, {title: "my post title 2", content: "my content 2"}]}
+
+2: {maxsize: 6, show: true, users: [ {name: "jhon", email:"kkk@email.com"}, {name: "jhon222", email:"kkk222@email.com"}] }
