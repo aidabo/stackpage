@@ -56,7 +56,12 @@ export const componentMapProvider = () => ({
           `}
           >
             <h3 className="font-bold text-lg mb-2">{card.title ?? "Card"}</h3>
-            <p className="text-gray-600">{card.content ?? "Card content"}</p>
+            <p
+              className="text-gray-600"
+              onClick={() => alert(JSON.stringify(card))}
+            >
+              {card.content ?? "Card content"}
+            </p>
           </div>
         ))}
       </div>
@@ -476,10 +481,17 @@ export const componentPropsProvider = () => {
       shadow: true,
       border: true,
     },
-    CardList: [
-      { title: "Card", content: "Card content", shadow: true, border: true },
-      { title: "Card2", content: "Card content2", shadow: true, border: true },
-    ],
+    CardList: {
+      items: [
+        { title: "Card", content: "Card content", shadow: true, border: true },
+        {
+          title: "Card2",
+          content: "Card content2",
+          shadow: true,
+          border: true,
+        },
+      ],
+    },
     Input: {
       placeholder: "Enter text here",
       value: "",
