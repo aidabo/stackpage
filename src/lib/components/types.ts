@@ -53,6 +53,7 @@ export interface BaseDataSource {
   parameters?: Record<string, any>;
   // NEW: Wrapper key for array results
   wrapperKey?: string;
+  data?: any;
 }
 
 // 外部API数据源（用户创建）
@@ -63,7 +64,6 @@ export interface ApiDataSource extends BaseDataSource {
   headers: Record<string, string>;
   refreshInterval: number;
   lastFetched?: string;
-  data?: any;
 }
 
 // 静态数据源（用户创建）

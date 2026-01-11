@@ -314,3 +314,111 @@ But has following problem:
 On DataExplorerDialog when select transform function of uppercase, it preview value text is UPPERCASED and OK, but on the DataTab seems transform not worked, it is original text, check it and make sure:
 When "Apply & Bind" clicked, tranform should work for DataTab
 When page reload, useDataBinding called and transform also should work
+
+## How to resolve array binding result as props schema
+
+On DataExplorerDialog, for array item to binding, as lodash.get format, that is good, and binding and mapping is simple.
+following is binding and schema generated when "apply & bind" clicked.
+
+{
+"items": [
+{
+"title": "Card",
+"content": "Card content",
+"shadow": true,
+"border": true
+},
+{
+"title": "Card2",
+"content": "Card content2",
+"shadow": true,
+"border": true
+}
+],
+"**bindings": {
+"items": {
+"sourceId": "ds_1768052270218_64m57v8k9",
+"path": "posts",
+"selector": {
+"type": "index",
+"value": 0
+},
+"targetType": "array",
+"isArrayElement": false
+},
+"items[].title": {
+"sourceId": "ds_1768052270218_64m57v8k9",
+"path": "posts[].title",
+"selector": {
+"type": "index",
+"value": 0
+},
+"isArrayElement": true
+},
+"items[].content": {
+"sourceId": "ds_1768052270218_64m57v8k9",
+"path": "posts[].html",
+"selector": {
+"type": "index",
+"value": 0
+},
+"isArrayElement": true
+}
+},
+"**ignoredMappings": [
+"items[].shadow",
+"items[].border"
+],
+"\_\_schema": {
+"type": "object",
+"properties": {
+"items": {
+"title": "Items",
+"type": "array",
+"items": {
+"type": "object",
+"properties": {
+"title": {
+"title": "Title",
+"type": "string"
+},
+"content": {
+"title": "Content",
+"type": "string"
+},
+"shadow": {
+"title": "Shadow",
+"type": "boolean"
+},
+"border": {
+"title": "Border",
+"type": "boolean"
+}
+}
+},
+"x-array-binding": true
+}
+},
+"required": []
+}
+}
+
+Now how to resolve the problem, use \_\_binding info to get data as props structure.
+Because useDataBinding is called to get most new value of props to pass to selected component instance, see grid-stack-widget-render
+
+How about do as following
+Check **binding info, if has an array binding, for example as above: **bindings."items", then find array's binding fields and use these info to get data from datasource, items's binding field: items[].\*\*\*
+
+above example in \_\_bindings:
+array: items
+array binding fields:
+items[].title -> path:posts[].title,
+items[].content -> path:posts[].html
+items[]: is object not array
+
+So for array create a general function to resolve all mapping and bindings about array and array fields as last result which is format of props.
+Above maybe is good solution
+
+Please check and modify sources specially about useDataBindings, get.ts, dataFetchUtils, ArrayBindingUtils, and keep DataExplorerDialog's lodash binding solution.
+
+And for simple Array Binding only for all element of array, but \_\_ignoredmapping fields not binding fields
