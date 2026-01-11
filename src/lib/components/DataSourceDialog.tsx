@@ -359,6 +359,12 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // Wrapper key for array results
   const [wrapperKey, setWrapperKey] = useState<string>("");
 
+  // Static JSON string input
+  const [staticJsonString, setStaticJsonString] = useState<string>("");
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [jsonSize, setJsonSize] = useState<number>(0);
+  const MAX_JSON_SIZE = 80 * 1024; // 80KB limit
+
   // 是否为编辑模式
   const isEditMode = !!initialData;
 
@@ -440,14 +446,12 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
             category: staticSource.category || "",
             data: staticSource.data,
           });
-        } else if (initialData.type === "function") {
-          const funcSource = initialData;
-          setConfig({
-            name: funcSource.name,
-            description: funcSource.description || "",
-            category: funcSource.category || "",
-            functionCode: funcSource.functionCode,
-          });
+          // Initialize static JSON string
+          if (staticSource.data) {
+            const jsonStr = JSON.stringify(staticSource.data, null, 2);
+            setStaticJsonString(jsonStr);
+            setJsonSize(new Blob([jsonStr]).size);
+          }
         }
 
         if ((initialData as any).data) {
@@ -758,16 +762,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
         };
         break;
 
-      case "function":
-        if (!config.functionCode?.trim()) {
-          alert("Function code is required for function data sources");
-          return;
-        }
-        newDataSource = {
-          ...baseData,
-          type: "function",
-          functionCode: config.functionCode.trim(),
-        };
         break;
 
       default:
@@ -795,10 +789,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       alert("Please enter static data to test");
       return;
     }
-    if (sourceType === "function" && !config.functionCode?.trim()) {
-      alert("Please enter function code to test");
-      return;
-    }
 
     setIsTesting(true);
     setTestResult(null);
@@ -824,9 +814,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
         // Static specific
         data: config.data,
-
-        // Function specific
-        functionCode: config.functionCode,
       } as DataSource;
 
       // Use DataSourceService to fetch/execute
@@ -952,19 +939,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     >
                       <span className="text-lg">📁</span>
                       <span className="text-sm font-medium mt-1">Static</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`p-3 border rounded-lg flex flex-col items-center justify-center transition-colors ${
-                        sourceType === "function"
-                          ? "border-yellow-500 bg-yellow-50 text-yellow-600"
-                          : "border-gray-300 hover:border-yellow-300"
-                      }`}
-                      onClick={() => setSourceType("function")}
-                    >
-                      <CodeBracketIcon className="w-5 h-5" />
-                      <span className="text-sm font-medium mt-1">Function</span>
                     </button>
                   </div>
                 </div>
@@ -1420,6 +1394,78 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 </div>
               )}
 
+              {/* Static Data Editor */}
+              {sourceType === "static" && (
+                <div className="border-t pt-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3 flex justify-between items-center">
+                    <span>Static JSON Data *</span>
+                    <span
+                      className={`text-xs ${
+                        jsonSize > MAX_JSON_SIZE
+                          ? "text-red-600 font-bold"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      Size: {(jsonSize / 1024).toFixed(2)} KB / 80 KB
+                    </span>
+                  </h4>
+
+                  <div className="relative">
+                    <textarea
+                      className={`w-full h-64 p-3 border rounded font-mono text-sm leading-relaxed outline-none transition ${
+                        jsonError || jsonSize > MAX_JSON_SIZE
+                          ? "border-red-300 focus:ring-2 focus:ring-red-200"
+                          : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      }`}
+                      value={staticJsonString}
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        setStaticJsonString(newValue);
+                        const size = new Blob([newValue]).size;
+                        setJsonSize(size);
+
+                        // Size validation
+                        if (size > MAX_JSON_SIZE) {
+                          setJsonError(
+                            `Data size exceeds limit (${(size / 1024).toFixed(
+                              2
+                            )} KB > 80 KB)`
+                          );
+                          setConfig({ ...config, data: null }); // Invalidate data if too large
+                          return;
+                        }
+
+                        // JSON Syntax validation
+                        try {
+                          const parsed = JSON.parse(newValue);
+                          setJsonError(null);
+                          setConfig({ ...config, data: parsed });
+                        } catch (err: any) {
+                          setJsonError("Invalid JSON syntax");
+                          // Don't update config.data if invalid JSON, or clear it
+                          setConfig({ ...config, data: null });
+                        }
+                      }}
+                      placeholder='e.g., [{"id": 1, "name": "Item 1"}]'
+                    />
+                    {jsonError && (
+                      <div className="absolute bottom-3 right-3 text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
+                        {jsonError}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-2 text-xs text-gray-500 flex gap-2 items-start">
+                    <InformationCircleIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <p>
+                      Enter valid JSON array or object. Data will be saved
+                      directly in the application configuration. Large datasets
+                      should use an external API instead.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Array Wrapping Section */}
               <div className="border-t pt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">
@@ -1525,7 +1571,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       {sourceType === "api" && config.method}
                       {sourceType === "host-function" && "Host Function"}
                       {sourceType === "static" && "Static Data"}
-                      {sourceType === "function" && "Function"}
                     </span>
                     {sourceType === "host-function" && selectedHostSource && (
                       <span className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded">
@@ -1537,7 +1582,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     {sourceType === "api" && config.endpoint}
                     {sourceType === "host-function" && config.name}
                     {sourceType === "static" && "Static JSON"}
-                    {sourceType === "function" && "Custom Function"}
                   </div>
                 </div>
                 <button
@@ -1546,8 +1590,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     isTesting ||
                     (sourceType === "api" && !config.endpoint) ||
                     (sourceType === "host-function" && !selectedHostSource) ||
-                    (sourceType === "static" && !config.data) ||
-                    (sourceType === "function" && !config.functionCode)
+                    (sourceType === "static" && !config.data)
                   }
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap transition"
                 >
@@ -1677,8 +1720,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
               !config.name?.trim() ||
               (sourceType === "api" && !config.endpoint?.trim()) ||
               (sourceType === "host-function" && !selectedHostSource) ||
-              (sourceType === "static" && !config.data) ||
-              (sourceType === "function" && !config.functionCode)
+              (sourceType === "static" && !config.data)
             }
             className="px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm font-medium shadow-sm transition"
           >

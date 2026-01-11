@@ -44,10 +44,6 @@ export class DataSourceService {
           data = dataSource.data;
           break;
 
-        case "function":
-          data = await this.executeFunctionData(dataSource, params);
-          break;
-
         default:
           throw new Error(
             `Unsupported data source type: ${(dataSource as any).type}`
@@ -199,27 +195,6 @@ export class DataSourceService {
     return await response.json();
   }
 
-  // 执行函数数据源
-  private static async executeFunctionData(
-    dataSource: DataSource & { type: "function" },
-    params?: Record<string, any>
-  ): Promise<any> {
-    if (!dataSource.functionCode) {
-      throw new Error("Function code is required for function data sources");
-    }
-
-    try {
-      // 注意：在生产环境中应该使用安全的沙箱执行
-      const func = new Function(
-        "params",
-        `return (${dataSource.functionCode})(params)`
-      );
-      return func(params || {});
-    } catch (error: any) {
-      throw new Error(`Function execution failed: ${error.message}`);
-    }
-  }
-
   // 批量获取多个数据源的数据
   static async fetchMultipleDataSources(
     dataSources: DataSource[],
@@ -247,10 +222,6 @@ export class DataSourceService {
 
     if (dataSource.type === "api" && !dataSource.endpoint?.trim()) {
       errors.push("Endpoint is required for API data sources");
-    }
-
-    if (dataSource.type === "function" && !dataSource.functionCode?.trim()) {
-      errors.push("Function code is required for function data sources");
     }
 
     return errors;

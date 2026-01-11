@@ -72,12 +72,6 @@ export interface StaticDataSource extends BaseDataSource {
   data: any;
 }
 
-// 函数数据源（用户创建）
-export interface FunctionDataSource extends BaseDataSource {
-  type: "function";
-  functionCode: string;
-}
-
 // 宿主函数数据源（宿主提供，包含获取数据的函数）
 export interface HostFunctionDataSource extends BaseDataSource {
   type: "host-function";
@@ -94,7 +88,6 @@ export interface HostFunctionDataSource extends BaseDataSource {
 export type DataSource =
   | ApiDataSource
   | StaticDataSource
-  | FunctionDataSource
   | HostFunctionDataSource;
 
 // 数据源配置对话框需要的类型
@@ -107,7 +100,7 @@ export interface DataSourceConfig {
   headers?: Record<string, string>;
   parameters?: Record<string, any>;
   data?: any;
-  functionCode?: string;
+
   refreshInterval?: number;
 }
 

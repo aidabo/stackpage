@@ -7,7 +7,6 @@ import {
   PencilIcon,
   GlobeAltIcon,
   DocumentTextIcon,
-  CodeBracketIcon,
   CpuChipIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -103,8 +102,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
         return "bg-blue-100 text-blue-800";
       case "static":
         return "bg-purple-100 text-purple-800";
-      case "function":
-        return "bg-yellow-100 text-yellow-800";
+
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -119,8 +117,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
         return <GlobeAltIcon className="w-5 h-5 text-blue-600" />;
       case "static":
         return <DocumentTextIcon className="w-5 h-5 text-purple-600" />;
-      case "function":
-        return <CodeBracketIcon className="w-5 h-5 text-yellow-600" />;
+
       default:
         return <GlobeAltIcon className="w-5 h-5 text-gray-600" />;
     }
@@ -144,7 +141,6 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
       .length,
     apiSources: dataSources.filter((ds) => ds.type === "api").length,
     staticSources: dataSources.filter((ds) => ds.type === "static").length,
-    functionSources: dataSources.filter((ds) => ds.type === "function").length,
   };
 
   return (
@@ -200,9 +196,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Others</p>
-              <p className="text-xl font-semibold">
-                {stats.staticSources + stats.functionSources}
-              </p>
+              <p className="text-xl font-semibold">{stats.staticSources}</p>
             </div>
             <DocumentTextIcon className="w-6 h-6 text-purple-500" />
           </div>
@@ -278,10 +272,8 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             {ds.type === "host-function"
                               ? "Host Function"
                               : ds.type === "api"
-                              ? "External API"
-                              : ds.type === "static"
                               ? "Static"
-                              : "Function"}
+                              : "Unknown"}
                           </span>
                           {ds.category && (
                             <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
@@ -427,10 +419,8 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                                 {ds.type === "host-function"
                                   ? "Host Function"
                                   : ds.type === "api"
-                                  ? "External API"
-                                  : ds.type === "static"
                                   ? "Static Data"
-                                  : "Custom Function"}
+                                  : "Unknown"}
                               </div>
                             </div>
 
