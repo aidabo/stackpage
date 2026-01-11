@@ -5,13 +5,6 @@ import { get } from "../utils/get";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 import { transformers as transformerRegistry } from "../utils/transformers";
 
-// // Simple transformer registry - replace with your actual one
-// const transformerRegistry: Record<string, (value: any) => any> = {
-//   number: (value) => Number(value),
-//   string: (value) => String(value),
-//   boolean: (value) => Boolean(value),
-// };
-
 export const useDataBinding = (props: any) => {
   const { source } = useStackPage();
 
