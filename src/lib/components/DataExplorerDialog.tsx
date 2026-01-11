@@ -1332,10 +1332,10 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                       <div className="col-span-1 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Ignored
                       </div>
-                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Component Property
                       </div>
-                      <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div className="col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                         JSON Path / Field
                       </div>
                       <div className="col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -1378,7 +1378,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             </div>
 
                             {/* Property Column */}
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <div
                                 className={`flex items-center gap-2 ${
                                   ignoredFields.includes(prop)
@@ -1407,10 +1407,10 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                             </div>
 
                             {/* Data Field Column (Dropdown + Input) */}
-                            <div className="col-span-2">
+                            <div className="col-span-3">
                               <div className="flex gap-1">
                                 <select
-                                  className="w-1/3 min-w-[80px] px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
+                                  className="w-1/2 min-w-[80px] px-2 py-1.5 border border-gray-300 rounded-l text-xs focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:text-gray-400"
                                   value={
                                     dataFields.includes(fieldPath)
                                       ? fieldPath
