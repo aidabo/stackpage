@@ -29,12 +29,7 @@ import {
   getFileType,
   getFileAccept,
 } from "./PropertyTypeUtils";
-import {
-  ApiCallFn,
-  CustomActionFn,
-  FileUploadFn,
-  GetSelectOptionsFn,
-} from "..";
+import { CustomActionFn, FileUploadFn } from "..";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { DataExplorerDialog } from "./DataExplorerDialog";
 import { useStackPage } from "./StackPageContext";
@@ -53,9 +48,7 @@ interface DataTabProps {
   currentProps: any;
   onPropertyChange: (data: any) => void;
   onFileUpload?: FileUploadFn;
-  onApiCall?: ApiCallFn;
   onCustomAction?: CustomActionFn;
-  onGetSelectOptions?: GetSelectOptionsFn;
   setSelectedInstance: (instance: any) => void;
   setSelectedComponent: (component: string | null) => void;
   componentSchema: any;
@@ -71,9 +64,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   //currentProps,
   onPropertyChange,
   onFileUpload,
-  // onApiCall,
   // onCustomAction,
-  onGetSelectOptions,
   setSelectedInstance,
   setSelectedComponent,
   componentSchema,
@@ -581,7 +572,6 @@ export const DataTab: React.FC<DataTabProps> = ({
     CustomSelectWidget: (props: any) => (
       <CustomSelectWidget
         {...props}
-        onGetSelectOptions={onGetSelectOptions}
         componentType={componentType}
         uiSchema={uiSchema[props.name]}
         schema={{ ...props.schema, ...uiSchema[props.name] }}

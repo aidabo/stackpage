@@ -35,9 +35,7 @@ import {
   LoadLayoutFn,
   SaveLayoutFn,
   FileUploadFn,
-  ApiCallFn,
   CustomActionFn,
-  GetSelectOptionsFn,
 } from "./stackoptions";
 
 import StackActions, { StackActionsRef } from "./stackactions";
@@ -70,9 +68,8 @@ export interface StackPageProps {
   componentMapProvider?: ComponentMapProvider;
   componentPropsProvider?: ComponentPropsProvider;
   onFileUpload?: FileUploadFn;
-  onApiCall?: ApiCallFn;
   onCustomAction?: CustomActionFn;
-  onGetSelectOptions?: GetSelectOptionsFn;
+
   options?: StackPageOptions;
   children?: ReactNode;
   // 新增：获取宿主数据源的函数
@@ -137,9 +134,7 @@ const StackPageContent = ({
   componentPropsProvider,
   gobackList,
   onFileUpload,
-  onApiCall,
   onCustomAction,
-  onGetSelectOptions,
   getHostDataSources,
   children,
 }: StackPageProps) => {
@@ -774,9 +769,7 @@ const StackPageContent = ({
                   >
                     <PropertiesTab
                       onFileUpload={onFileUpload}
-                      onApiCall={onApiCall}
                       onCustomAction={onCustomAction}
-                      onGetSelectOptions={onGetSelectOptions}
                     />
                   </div>
                   <div

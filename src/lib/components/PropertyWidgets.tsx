@@ -369,7 +369,6 @@ export const CustomSelectWidget = (props: any) => {
     /*options,*/
     value,
     onChange,
-    onGetSelectOptions,
     multiple,
     lists,
     componentType,
@@ -401,39 +400,9 @@ export const CustomSelectWidget = (props: any) => {
     }
 
     // Priority 2: Async Callback (API / Dynamic)
-    if (
-      onGetSelectOptions &&
-      schema["x-dynamic-select"] /*|| schema["x-list-reference"]*/
-    ) {
-      // Fetch dynamic options based on schema configuration
-      const fetchOptions = async () => {
-        try {
-          // Fix: Pass schema too or verify signature?
-          // stackoptions.ts says: (propertyName, componentType)
-          // But for dynamic select we usually need the schema metadata (endpoint etc).
-          // We'll pass the widget name and let the callback handle logic, or rely on custom implementation.
-          // Fallback: If onGetSelectOptions is customized to take objects, keep passing schema?
-          // To be safe with the defined type in stackoptions.ts:
-          // We will attempt to use the callback as defined, but for API sources,
-          // usually the endpoint is in the schema description or x-dynamic-select property.
-
-          // Assuming onGetSelectOptions might handle object if updated, OR we pass name.
-          // Let's rely on lists prop for lists, and this callback only for APIs.
-
-          // For legacy support or APIs:
-          const result = await onGetSelectOptions(
-            name || schema.title,
-            componentType
-          );
-          setDynamicOptions(result || []);
-        } catch (error) {
-          console.error("Failed to fetch select options:", error);
-          // setDynamicOptions(["Error loading options"]);
-        }
-      };
-      fetchOptions();
-    }
-  }, [schema, onGetSelectOptions, lists, componentType, name]);
+    // Deprecated: onGetSelectOptions is removed.
+    // If dynamic options are needed, they should be handled via bindings or list references.
+  }, [schema, lists, componentType, name]);
 
   const allOptions = [...staticOptions, ...dynamicOptions];
 

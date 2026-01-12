@@ -6,27 +6,18 @@ import { DataTab } from "./DataTab";
 
 import { JsonTab } from "./JsonTab";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
-import {
-  ApiCallFn,
-  CustomActionFn,
-  FileUploadFn,
-  GetSelectOptionsFn,
-} from "..";
+import { CustomActionFn, FileUploadFn } from "..";
 
 interface PropertiesTabProps {
   onFileUpload?: FileUploadFn;
-  onApiCall?: ApiCallFn;
   onCustomAction?: CustomActionFn;
-  onGetSelectOptions?: GetSelectOptionsFn;
 }
 
 type PropertiesSubTab = "data" | "json";
 
 export const PropertiesTab = ({
   onFileUpload,
-  onApiCall,
   onCustomAction,
-  onGetSelectOptions,
 }: PropertiesTabProps) => {
   const {
     selectedInstance,
@@ -269,9 +260,7 @@ export const PropertiesTab = ({
             currentProps={componentPropsWithoutSchema}
             onPropertyChange={handlePropertyChange}
             onFileUpload={onFileUpload}
-            onApiCall={onApiCall}
             onCustomAction={onCustomAction}
-            onGetSelectOptions={onGetSelectOptions}
             setSelectedInstance={setSelectedInstance}
             setSelectedComponent={setSelectedComponent}
             componentSchema={componentSchema as any}
