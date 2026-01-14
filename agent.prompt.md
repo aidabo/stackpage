@@ -407,7 +407,7 @@ Now how to resolve the problem, use \_\_binding info to get data as props struct
 Because useDataBinding is called to get most new value of props to pass to selected component instance, see grid-stack-widget-render
 
 How about do as following
-Check **binding info, if has an array binding, for example as above: **bindings."items", then find array's binding fields and use these info to get data from datasource, items's binding field: items[].\*\*\*
+Check binding info, if has an array binding, for example as above: \_\_bindings."items", then find array's binding fields and use these info to get data from datasource, items's binding field: items[].\*\*\*
 
 above example in \_\_bindings:
 array: items
@@ -421,10 +421,7 @@ Above maybe is good solution
 
 Please check and modify sources specially about useDataBindings, get.ts, dataFetchUtils, ArrayBindingUtils, and keep DataExplorerDialog's lodash binding solution.
 
-And for simple Array Binding only for all element of array, but \_\_ignoredmapping fields not binding fields
+And for simple Array Binding only for all element of array, ignore the "selector" for array binding.
+and remember \_\_ignoredmapping fields not binding fields
 
 Array maybe can receusive only one time: two array example of datasource,
-
-1. { posts: [{title: "my post title", content: "my content 1"}, {title: "my post title 2", content: "my content 2"}]}
-
-2: {maxsize: 6, show: true, users: [ {name: "jhon", email:"kkk@email.com"}, {name: "jhon222", email:"kkk222@email.com"}] }

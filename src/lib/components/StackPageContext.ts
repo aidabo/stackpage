@@ -39,9 +39,15 @@ export interface StackPageContextType {
   //setSource: (source: SourceData) => void; // New setter for source
   // FIXED TYPE HERE
   setSource: React.Dispatch<React.SetStateAction<SourceData>>;
-  activeTab: "components" | "properties" | "page" | "list" | "datasource";
+  activeTab:
+    | "components"
+    | "properties"
+    | "page"
+    | "list"
+    | "datasource"
+    | "search";
   setActiveTab: (
-    tab: "components" | "properties" | "page" | "list" | "datasource"
+    tab: "components" | "properties" | "page" | "list" | "datasource" | "search"
   ) => void;
   widgetProps: Map<string, object>;
   updateWidgetProps: (widgetId: string, props: object) => void;

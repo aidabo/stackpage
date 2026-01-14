@@ -15,6 +15,7 @@ import {
   DocumentTextIcon,
   ListBulletIcon,
   CircleStackIcon,
+  MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -48,6 +49,7 @@ import { ComponentsTab } from "./ComponentsTab";
 import { PageTab } from "./PageTab";
 import { ListTab } from "./ListTab";
 import { DataSourceTab } from "./DataSourceTab";
+import { SearchTab } from "./SearchTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
@@ -110,6 +112,8 @@ const getTabIcon = (tab: string) => {
       return <ListBulletIcon className={iconClass} />;
     case "datasource":
       return <CircleStackIcon className={iconClass} />;
+    case "search":
+      return <MagnifyingGlassIcon className={iconClass} />;
     default:
       return <CubeIcon className={iconClass} />;
   }
@@ -122,6 +126,7 @@ const TAB_LABELS: Record<string, string> = {
   page: "page",
   list: "list",
   datasource: "source",
+  search: "search",
 };
 
 // Main StackPage Content Component
@@ -789,6 +794,14 @@ const StackPageContent = ({
                   >
                     <DataSourceTab />
                   </div>
+                  <div
+                    style={{
+                      display: activeTab === "search" ? "block" : "none",
+                      height: "100%",
+                    }}
+                  >
+                    <SearchTab onCustomAction={onCustomAction} />
+                  </div>
                 </div>
 
                 {/* Vertical Tab Bar */}
@@ -804,6 +817,7 @@ const StackPageContent = ({
                       "page",
                       "list",
                       "datasource",
+                      "search",
                     ] as const
                   ).map((tab) => (
                     <button
