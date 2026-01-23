@@ -26,7 +26,7 @@ export default function PageInfoDialogs({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(
-      document.getElementById("pageinfo")?.innerText || ""
+      document.getElementById("pageinfo")?.innerText || "",
     );
     setCopy(true);
     setTimeout(() => {

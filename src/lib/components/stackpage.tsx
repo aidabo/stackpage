@@ -144,7 +144,7 @@ const StackPageContent = ({
   children,
 }: StackPageProps) => {
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
-    pageMode
+    pageMode,
   );
   const isMobile = useMobile();
   const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
@@ -223,7 +223,7 @@ const StackPageContent = ({
           hostDataSources = await getHostDataSources();
           console.log(
             "[StackPage] Loaded host data sources:",
-            hostDataSources.length
+            hostDataSources.length,
           );
 
           // Register host data sources with DataSourceService
@@ -250,7 +250,7 @@ const StackPageContent = ({
                         if (b?.sourceId) {
                           requiredSourceIds.add(b.sourceId);
                         }
-                      }
+                      },
                     );
                   }
                 } catch (e) {
@@ -281,17 +281,17 @@ const StackPageContent = ({
               ) {
                 try {
                   console.log(
-                    `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`
+                    `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`,
                   );
                   const result = await DataSourceService.fetchDataSourceData(
                     ds,
-                    ds.parameters || {}
+                    ds.parameters || {},
                   );
                   updates.push({ id: ds.id, result });
                 } catch (err) {
                   console.error(
                     `[StackPage] Failed to pre-fetch source ${ds.name}`,
-                    err
+                    err,
                   );
                 }
               }
@@ -303,7 +303,7 @@ const StackPageContent = ({
                 (ds) => {
                   const update = updates.find((u) => u.id === ds.id);
                   return update ? { ...ds, data: update.result.data } : ds;
-                }
+                },
               );
             }
           }
@@ -327,7 +327,7 @@ const StackPageContent = ({
       }
       return pageProps.layout;
     },
-    [onLoadLayout]
+    [onLoadLayout],
   );
 
   const handleReload = useCallback(async () => {
@@ -366,7 +366,7 @@ const StackPageContent = ({
   // Function to update layout with new props from context
   const updateLayoutWithNewProps = (
     layout: GridStackOptions | GridStackWidget[],
-    widgetProps: Map<string, object>
+    widgetProps: Map<string, object>,
   ): GridStackOptions | GridStackWidget[] => {
     if (!layout) return layout;
 
@@ -384,11 +384,11 @@ const StackPageContent = ({
         if ((updatedProps as any).__bindings) {
           console.log(
             `[StackPage] Widget ${child.id} has bindings:`,
-            (updatedProps as any).__bindings
+            (updatedProps as any).__bindings,
           );
         } else {
           console.warn(
-            `[StackPage] Widget ${child.id} MISSING bindings in updatedProps`
+            `[StackPage] Widget ${child.id} MISSING bindings in updatedProps`,
           );
         }
 
@@ -528,7 +528,7 @@ const StackPageContent = ({
       setSelectedComponent(widgetData.name);
       setActiveTab("properties");
     },
-    [setSelectedInstance, setSelectedComponent, setActiveTab]
+    [setSelectedInstance, setSelectedComponent, setActiveTab],
   );
 
   useEffect(() => {
@@ -561,7 +561,7 @@ const StackPageContent = ({
         zIndex: 101 /** just greater than grid-stack */,
       }
     : {
-        width: `500px`,
+        width: `480px`,
         minWidth: "300px",
         height: "100%",
         top: "0",
@@ -807,7 +807,7 @@ const StackPageContent = ({
                 {/* Vertical Tab Bar */}
                 <div
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
-                    isMobile ? "w-12 mx-[5px]" : "w-14 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    isMobile ? "w-12 mx-[5px]" : "w-15 mx-[5px]" // Decreased width for mobile, keep margin for desktop
                   }`}
                 >
                   {(
