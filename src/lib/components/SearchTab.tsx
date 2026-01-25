@@ -4,9 +4,10 @@ import { CustomActionFn } from "..";
 
 interface SearchTabProps {
   onCustomAction?: CustomActionFn;
+  onDragStart?: (e: React.DragEvent, componentType: string) => void;
 }
 
-export const SearchTab = ({ onCustomAction }: SearchTabProps) => {
+export const SearchTab = ({ onCustomAction, onDragStart }: SearchTabProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ReactNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +27,7 @@ export const SearchTab = ({ onCustomAction }: SearchTabProps) => {
     setError(null);
     try {
       // Assuming onCustomAction returns ReactNode directly based on current type definition
-      const result = onCustomAction("search", { query });
+      const result = onCustomAction("search", { query, onDragStart });
       setResults(result);
     } catch (err) {
       console.error("Search error:", err);
@@ -43,7 +44,13 @@ export const SearchTab = ({ onCustomAction }: SearchTabProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div
+      className="h-full flex flex-col bg-gray-50"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+    >
       <div className="p-4 bg-white border-b border-gray-200">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Search</h3>
         <div className="flex gap-2">
@@ -69,6 +76,26 @@ export const SearchTab = ({ onCustomAction }: SearchTabProps) => {
           </button>
         </div>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        <div
+          key="PostView"
+          gs-type="PostView"
+          data-gs-type="PostView"
+          className="grid-stack-item grid-stack-item-widget"
+          draggable="true"
+          onDragStart={(e) =>
+            onDragStart ? onDragStart(e, "PostView") : () => {}
+          }
+          onDragEnd={() => console.log("====drag event end....")}
+        >
+          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
+            <div className="font-medium text-gray-800 mb-2">
+              PostView Test Draggable
+            </div>
+            <div className="text-xs text-gray-500">Drag to main area</div>
+          </div>
+        </div>
       </div>
       <div className="flex-1 overflow-auto p-4">
         {results ? (

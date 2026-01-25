@@ -23,7 +23,7 @@ import {
   GridStackRender,
   GridStackRenderProvider,
 } from "..";
-import { GridStackOptions, GridStackWidget } from "gridstack";
+import { GridStackOptions, GridStackWidget, GridStack } from "gridstack";
 import {
   gridOptions,
   subGridOptions,
@@ -54,6 +54,7 @@ import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
 import { DataSourceService } from "./DataSourceService";
+import SearchResultDragContext from "./SearchResultDragContext";
 
 import "../styles/index.css";
 
@@ -534,12 +535,21 @@ const StackPageContent = ({
   useEffect(() => {
     if (dropEvent && stackActionsRef.current) {
       if (dropEvent.name !== "SubGrid") {
+        const props = {
+          ...getComponentProps(componentPropsProvider)[dropEvent.name],
+          ...dropEvent.props,
+        };
+        console.log("addWidget props: ", props);
         stackActionsRef.current.addWidget((_id) => ({
           ...dropEvent,
           sizeToContent: true,
           content: JSON.stringify({
             name: dropEvent.name,
-            props: getComponentProps(componentPropsProvider)[dropEvent.name],
+            props: props,
+            // props: {
+            //   ...getComponentProps(componentPropsProvider)[dropEvent.name],
+            //   ...dropEvent.props,
+            // },
           }),
         }));
       } else {
@@ -573,6 +583,16 @@ const StackPageContent = ({
     padding: attributes.padding,
     backgroundColor: attributes.background,
   };
+
+  useEffect(() => {
+    const allowDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = "copy";
+    };
+
+    document.addEventListener("dragover", allowDrop);
+    return () => document.removeEventListener("dragover", allowDrop);
+  }, []);
 
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
@@ -800,7 +820,23 @@ const StackPageContent = ({
                       height: "100%",
                     }}
                   >
-                    <SearchTab onCustomAction={onCustomAction} />
+                    <SearchResultDragContext.Provider
+                      value={{
+                        registerDragSource: (el) => {
+                          if (!el) return;
+                          GridStack.setupDragIn([el], {
+                            helper: "clone",
+                            appendTo: "body",
+                            scroll: false,
+                          });
+                        },
+                      }}
+                    >
+                      <SearchTab
+                        onCustomAction={onCustomAction}
+                        onDragStart={handleDragStart}
+                      />
+                    </SearchResultDragContext.Provider>{" "}
                   </div>
                 </div>
 

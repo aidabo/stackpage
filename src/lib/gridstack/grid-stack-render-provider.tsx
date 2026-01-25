@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useGridStackContext } from "./grid-stack-context";
 import {
+  DDDragOpt,
   GridItemHTMLElement,
   GridStack,
   GridStackOptions,
@@ -24,15 +25,16 @@ export interface GridStackDropEvent {
   w: number;
   h: number;
   gridId?: string; // Add gridId to identify which grid received the drop
+  props?: any;
 }
 
 export type GridStackDropEventCallback = (event: GridStackDropEvent) => void;
 
-// Override the default resizeToContent method to ensure content.firstChildElement is null error, 
+// Override the default resizeToContent method to ensure content.firstChildElement is null error,
 // because resizeToContent called by GridStack before React DOM mounted and rendered
 const originalResizeToContent = GridStack.prototype.resizeToContent;
-GridStack.prototype.resizeToContent = function(el: GridItemHTMLElement) {
-  const content = el.querySelector('.grid-stack-item-content');
+GridStack.prototype.resizeToContent = function (el: GridItemHTMLElement) {
+  const content = el.querySelector(".grid-stack-item-content");
   const first = content?.firstElementChild;
   if (!first) {
     // Silently skip
@@ -60,7 +62,7 @@ export function GridStackRenderProvider({
         widgetContainersRef.current.set(widget.id, element);
       }
     },
-    []
+    [],
   );
 
   const initGrid = useCallback(() => {
@@ -70,42 +72,47 @@ export function GridStackRenderProvider({
       const grid = GridStack.init(optionsRef.current, containerRef.current);
 
       // Enable drag-and-drop from external sources
-      GridStack.setupDragIn(".grid-stack-item-widget", {
-         appendTo: "body", 
-         helper: "clone",
-         scroll: false,
-      }
-    );
-            
-      // grid.on('added removed change', function(e:any, items: any) {
-      //   let str = '';
-      //   items.forEach(function(item:any) { str += ' (x,y)=' + item.x + ',' + item.y; });
-      //   console.log(e.type + ' ' + items.length + ' items:' + str );
+      const gridDragOptions: DDDragOpt = {
+        appendTo: "body",
+        helper: "clone",
+        scroll: false,
+      };
+
+      GridStack.setupDragIn(".grid-stack-item-widget", gridDragOptions);
+      GridStack.setupDragIn(".gs-external", gridDragOptions);
+
+      // grid.on("added removed change", function (e: any, items: any) {
+      //   let str = "";
+      //   items.forEach(function (item: any) {
+      //     str += " (x,y)=" + item.x + "," + item.y;
+      //   });
+      //   console.log(e.type + " " + items.length + " items:" + str);
       // });
 
-      // grid.on('drag', function(event: any, el) {
+      // grid.on("drag", function (event: any, el) {
       //   //const n = el.gridstackNode;
-      //   const x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-      //   const y = el.getAttribute('gs-y');
+      //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
+      //   const y = el.getAttribute("gs-y");
       //   // console.log((g || el.gridstackNode.grid.opts.id) + ' drag ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
-      //   console.log("drag...", x, y, event.target)
-      // })
+      //   console.log("drag...", x, y, event.target);
+      // });
 
-      // grid.on('dragstop', function(event: any, el) {
+      // grid.on("dragstop", function (event: any, el) {
       //   //let n = el.gridstackNode;
-      //   const x = el.getAttribute('gs-x'); // verify node (easiest) and attr are the same
-      //   const y = el.getAttribute('gs-y');
+      //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
+      //   const y = el.getAttribute("gs-y");
       //   //console.log((g || el.gridstackNode.grid.opts.id) + ' dragstop ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
       //   console.log("dragstop", x, y, event.target);
       // });
 
-      grid.on("dropped", function (_event, _previousNode, newNode) {    
+      grid.on("dropped", function (_event, _previousNode, newNode) {
         console.log("dropped....", newNode);
-        
         if (newNode) {
           // Remove the node that gridstack added
           const el: any = newNode.el;
           const type: string = el.dataset.gsType;
+          const propsStr: string = el.dataset.gsProps;
+          console.log(`Dropped component: ${type}, ${propsStr}`);
           if (type && onGridStackDropEvent) {
             const dropEvent: GridStackDropEvent = {
               name: type,
@@ -113,14 +120,15 @@ export function GridStackRenderProvider({
               x: newNode.x || 0,
               y: newNode.y || 0,
               w: type === "SubGrid" ? 12 : 4, // SubGrid takes full width
-              h: type === "SubGrid" ? 6 : 4,  // SubGrid is taller              
+              h: type === "SubGrid" ? 6 : 4, // SubGrid is taller
+              props: propsStr ? JSON.parse(propsStr) : undefined,
             };
             onGridStackDropEvent(dropEvent);
             //remove el.gridstackNode from gridstack
             //add by callback
             grid.removeWidget(el, true);
           }
-          //if drag from SubGrid, that's OK,           
+          //if drag from SubGrid, that's OK,
         }
       });
 
@@ -129,7 +137,6 @@ export function GridStackRenderProvider({
 
     return null;
   }, [renderCBFn, onGridStackDropEvent]);
-
 
   useLayoutEffect(() => {
     if (!isEqual(initialOptions, optionsRef.current) && gridStack) {
@@ -165,7 +172,7 @@ export function GridStackRenderProvider({
         }),
         // ! gridStack is required to reinitialize the grid when the options change
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [gridStack]
+        [gridStack],
       )}
     >
       <div ref={containerRef}>{gridStack ? children : null}</div>
