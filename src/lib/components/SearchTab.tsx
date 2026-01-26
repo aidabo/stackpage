@@ -45,7 +45,7 @@ export const SearchTab = ({ onCustomAction, onDragStart }: SearchTabProps) => {
 
   return (
     <div
-      className="h-full flex flex-col bg-gray-50"
+      className="h-full flex flex-col bg-zinc-200 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto"
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";
@@ -76,26 +76,6 @@ export const SearchTab = ({ onCustomAction, onDragStart }: SearchTabProps) => {
           </button>
         </div>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-      </div>
-      <div className="grid grid-cols-1 gap-3">
-        <div
-          key="PostView"
-          gs-type="PostView"
-          data-gs-type="PostView"
-          className="grid-stack-item grid-stack-item-widget"
-          draggable="true"
-          onDragStart={(e) =>
-            onDragStart ? onDragStart(e, "PostView") : () => {}
-          }
-          onDragEnd={() => console.log("====drag event end....")}
-        >
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
-            <div className="font-medium text-gray-800 mb-2">
-              PostView Test Draggable
-            </div>
-            <div className="text-xs text-gray-500">Drag to main area</div>
-          </div>
-        </div>
       </div>
       <div className="flex-1 overflow-auto p-4">
         {results ? (
