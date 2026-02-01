@@ -1,21 +1,19 @@
-
-import {
-  getComponentMap,
-  ComponentMapProvider,
-} from "./stackoptions";
+import { getComponentMap, ComponentMapProvider } from "./stackoptions";
 import { useStackPage } from "./StackPageContext";
 import DeleteDropZone from "./deletedropzone";
+import { useExternalComponentDrag } from "./ExternalDragSourceContext";
 
 // Components Tab Component
-export const ComponentsTab = ({ 
-  componentMapProvider, 
-  onDragStart 
-}: { 
+export const ComponentsTab = ({
+  componentMapProvider,
+  onDragStart,
+}: {
   componentMapProvider?: ComponentMapProvider;
   onDragStart: (e: React.DragEvent, componentType: string) => void;
 }) => {
   const { setSelectedComponent, setSelectedInstance } = useStackPage();
   const componentMap = getComponentMap(componentMapProvider);
+  const { registerDragSource } = useExternalComponentDrag();
 
   return (
     <div className="h-full p-4 space-y-4 max-h-[calc(100vh-48*0.25rem)] bg-zinc-200 overflow-y-auto">
@@ -26,9 +24,7 @@ export const ComponentsTab = ({
 
       {/* Delete Drop Zone */}
       <div className="mb-4">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">
-          Delete Zone
-        </h4>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Delete Zone</h4>
         <DeleteDropZone
           onDropDelete={() => {
             console.log("Component deleted via drop zone");
@@ -43,6 +39,7 @@ export const ComponentsTab = ({
 
       {/* SubGrid Component */}
       <div
+        ref={registerDragSource}
         key="SubGrid"
         gs-type="SubGrid"
         data-gs-type="SubGrid"
@@ -91,6 +88,7 @@ export const ComponentsTab = ({
       <div className="grid grid-cols-2 gap-3">
         {Object.entries(componentMap).map(([name /*Component*/]) => (
           <div
+            ref={registerDragSource}
             key={name}
             gs-type={name}
             data-gs-type={name}

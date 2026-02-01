@@ -1,8 +1,8 @@
 import { PropsWithChildren, useCallback } from "react";
 import { GridStack } from "gridstack";
-import SearchResultDragContext from "./SearchResultDragContext";
+import ExternalDragSourceContext from "./ExternalDragSourceContext";
 
-export function SearchResultDragProvider({ children }: PropsWithChildren) {
+export function ExternalDragSourceProvider({ children }: PropsWithChildren) {
   const seen = new WeakSet<HTMLElement>();
 
   const registerDragSource = useCallback((el: HTMLElement | null) => {
@@ -16,8 +16,8 @@ export function SearchResultDragProvider({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <SearchResultDragContext.Provider value={{ registerDragSource }}>
+    <ExternalDragSourceContext.Provider value={{ registerDragSource }}>
       {children}
-    </SearchResultDragContext.Provider>
+    </ExternalDragSourceContext.Provider>
   );
 }

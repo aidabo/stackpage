@@ -54,8 +54,7 @@ import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
 import { DataSourceService } from "./DataSourceService";
-import SearchResultDragContext from "./SearchResultDragContext";
-
+import ExternalDragSourceContext from "./ExternalDragSourceContext";
 import "../styles/index.css";
 
 export interface StackPageOptions {
@@ -234,6 +233,10 @@ const StackPageContent = ({
       grid.enableMove(false);
       grid.enableResize(false);
       grid.setStatic(true);
+    }
+    //reset grid to be dropable
+    if (editable) {
+      grid.opts.acceptWidgets = true;
     }
   };
 
@@ -608,15 +611,15 @@ const StackPageContent = ({
     backgroundColor: attributes.background,
   };
 
-  useEffect(() => {
-    const allowDrop = (e: DragEvent) => {
-      e.preventDefault();
-      e.dataTransfer!.dropEffect = "copy";
-    };
+  // useEffect(() => {
+  //   const allowDrop = (e: DragEvent) => {
+  //     e.preventDefault();
+  //     e.dataTransfer!.dropEffect = "copy";
+  //   };
 
-    document.addEventListener("dragover", allowDrop);
-    return () => document.removeEventListener("dragover", allowDrop);
-  }, []);
+  //   document.addEventListener("dragover", allowDrop);
+  //   return () => document.removeEventListener("dragover", allowDrop);
+  // }, []);
 
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
@@ -807,16 +810,41 @@ const StackPageContent = ({
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-y-auto pb-4">
-                  <div
-                    style={{
-                      display: activeTab === "components" ? "block" : "none",
+                  <ExternalDragSourceContext.Provider
+                    value={{
+                      registerDragSource: (el) => {
+                        if (!el) return;
+                        GridStack.setupDragIn([el], {
+                          helper: "clone",
+                          appendTo: "body",
+                          scroll: false,
+                        });
+                      },
                     }}
                   >
-                    <ComponentsTab
-                      componentMapProvider={componentMapProvider}
-                      onDragStart={handleDragStart}
-                    />
-                  </div>
+                    <div
+                      style={{
+                        display: activeTab === "components" ? "block" : "none",
+                      }}
+                    >
+                      <ComponentsTab
+                        componentMapProvider={componentMapProvider}
+                        onDragStart={handleDragStart}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        display: activeTab === "search" ? "block" : "none",
+                        height: "100%",
+                      }}
+                    >
+                      <SearchTab
+                        onCustomAction={onCustomAction}
+                        onDragStart={handleDragStart}
+                      />
+                    </div>
+                  </ExternalDragSourceContext.Provider>
+
                   <div
                     style={{
                       display: activeTab === "properties" ? "block" : "none",
@@ -844,36 +872,12 @@ const StackPageContent = ({
                   >
                     <DataSourceTab />
                   </div>
-                  <div
-                    style={{
-                      display: activeTab === "search" ? "block" : "none",
-                      height: "100%",
-                    }}
-                  >
-                    <SearchResultDragContext.Provider
-                      value={{
-                        registerDragSource: (el) => {
-                          if (!el) return;
-                          GridStack.setupDragIn([el], {
-                            helper: "clone",
-                            appendTo: "body",
-                            scroll: false,
-                          });
-                        },
-                      }}
-                    >
-                      <SearchTab
-                        onCustomAction={onCustomAction}
-                        onDragStart={handleDragStart}
-                      />
-                    </SearchResultDragContext.Provider>{" "}
-                  </div>
                 </div>
 
                 {/* Vertical Tab Bar */}
                 <div
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
-                    isMobile ? "w-12 mx-[5px]" : "w-15 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    isMobile ? "w-16 mx-[5px]" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
                   }`}
                 >
                   {(

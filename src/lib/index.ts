@@ -8,7 +8,7 @@ import {
 import { useGridStackContext } from "./gridstack/grid-stack-context";
 import { useGridStackWidgetContext } from "./gridstack/grid-stack-widget-context";
 import { LocaleProvider, useLocale } from "./components/LocaleContext";
-import { useSearchResultDrag } from "./components/SearchResultDragContext";
+import { useExternalComponentDrag } from "./components/ExternalDragSourceContext";
 
 export {
   GridStackProvider,
@@ -49,7 +49,7 @@ export {
   StackPage,
   useLocale,
   LocaleProvider,
-  useSearchResultDrag,
+  useExternalComponentDrag,
   type StackPageProps,
   type StackPageOptions,
   type PageProps,
