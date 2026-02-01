@@ -213,6 +213,30 @@ const StackPageContent = ({
     }
   }, [currentMode, setPageAttributes]);
 
+  /**
+   * When switch mode, change draggable and resizable settings of grid
+   */
+  useEffect(() => {
+    if (!stackActionsRef.current || !stackActionsRef.current.grid) {
+      console.log("No GridStack available!");
+    } else {
+      applyEditMode(stackActionsRef.current?.grid, currentMode === "edit");
+    }
+  }, [currentMode]);
+
+  const applyEditMode = (grid: GridStack, editable: boolean) => {
+    if (!grid) return;
+    if (editable) {
+      grid.setStatic(false);
+      grid.enableMove(true);
+      grid.enableResize(true);
+    } else {
+      grid.enableMove(false);
+      grid.enableResize(false);
+      grid.setStatic(true);
+    }
+  };
+
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
       const pageProps = await onLoadLayout(pageid);
@@ -727,10 +751,16 @@ const StackPageContent = ({
                   <StackActions ref={stackActionsRef} />
                   <GridStackRenderProvider
                     onGridStackDropEvent={handleDropEvent}
+                    onGridReady={(grid) => {
+                      //When grid init, change draggable and resizable as mode
+                      applyEditMode(grid, currentMode === "edit");
+                    }}
                   >
                     <GridStackRender
                       componentMap={getComponentMap(componentMapProvider)}
-                      showMenubar={attributes.showMenubar}
+                      showMenubar={
+                        currentMode !== "edit" ? false : attributes.showMenubar
+                      }
                       onWidgetSelect={handleWidgetSelect}
                     />
                   </GridStackRenderProvider>

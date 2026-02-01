@@ -15,12 +15,12 @@ import {
 import useLayoutStore from "@/demo/api";
 import { LocaleProvider } from "@/lib";
 
-function StackPageEdit() {
+function StackPageView() {
   const { pageid } = useParams<{ pageid: string }>();
   const [currentPageid, setCurrentPageid] = useState(pageid || "");
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<"edit" | "preview" | "view">(
-    (searchParams.get("mode") as any) || "edit",
+    (searchParams.get("mode") as any) || "view",
   );
   const { savePage, getPageById } = useLayoutStore();
   const navigate = useNavigate();
@@ -171,7 +171,7 @@ function StackPageEdit() {
     <LocaleProvider defaultLocale="ja-JP">
       <StackPage
         pageid={currentPageid as string}
-        pageMode={mode as any}
+        pageMode="view"
         onSaveLayout={saveLayout}
         onLoadLayout={loadLayout}
         componentMapProvider={componentMapProvider}
@@ -192,4 +192,4 @@ function StackPageEdit() {
   );
 }
 
-export default StackPageEdit;
+export default StackPageView;

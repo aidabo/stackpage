@@ -4,9 +4,7 @@
 @import 'tailwindcss/utilities';
 
 /* Custom components layer */
-@layer components {
-  
-}
+@layer components {}
 
 /* @import 'tailwindcss/base'; */
 .grid-stack {
@@ -99,4 +97,14 @@
 .stack-btn-icon {
   width: 16px;
   height: 16px;
+}
+
+/**
+ * Even with static mode,
+ * iOS Safari needs this:
+ */
+.grid-stack,
+.grid-stack-item,
+.grid-stack-item-content {
+  touch-action: pan-y;
 }

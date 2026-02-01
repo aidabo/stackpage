@@ -1,10 +1,4 @@
-import {
-  PropsWithChildren,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useGridStackContext } from "./grid-stack-context";
 import {
   DDDragOpt,
@@ -28,7 +22,14 @@ export interface GridStackDropEvent {
   props?: any;
 }
 
-export type GridStackDropEventCallback = (event: GridStackDropEvent) => void;
+//export type GridStackDropEventCallback = (event: GridStackDropEvent) => void;
+
+export interface GridStackRenderProviderProps {
+  children?: React.ReactNode;
+  onGridStackDropEvent: (event: GridStackDropEvent) => void;
+  /** called once, right after GridStack.init() */
+  onGridReady?: (grid: GridStack) => void;
+}
 
 // Override the default resizeToContent method to ensure content.firstChildElement is null error,
 // because resizeToContent called by GridStack before React DOM mounted and rendered
@@ -43,10 +44,9 @@ GridStack.prototype.resizeToContent = function (el: GridItemHTMLElement) {
   return originalResizeToContent.call(this, el);
 };
 
-export function GridStackRenderProvider({
-  children,
-  onGridStackDropEvent,
-}: PropsWithChildren<{ onGridStackDropEvent?: GridStackDropEventCallback }>) {
+export const GridStackRenderProvider: React.FC<
+  GridStackRenderProviderProps
+> = ({ children, onGridStackDropEvent, onGridReady }) => {
   const {
     _gridStack: { value: gridStack, set: setGridStack },
     initialOptions,
@@ -70,6 +70,11 @@ export function GridStackRenderProvider({
       GridStack.renderCB = renderCBFn;
 
       const grid = GridStack.init(optionsRef.current, containerRef.current);
+
+      //apply grid mode (edit, preview, view)
+      if (onGridReady) {
+        onGridReady(grid);
+      }
 
       // Enable drag-and-drop from external sources
       const gridDragOptions: DDDragOpt = {
@@ -178,4 +183,4 @@ export function GridStackRenderProvider({
       <div ref={containerRef}>{gridStack ? children : null}</div>
     </GridStackRenderContext.Provider>
   );
-}
+};
