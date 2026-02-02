@@ -1,7 +1,6 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useGridStackContext } from "./grid-stack-context";
 import {
-  //DDDragOpt,
   GridItemHTMLElement,
   GridStack,
   GridStackOptions,
@@ -9,7 +8,6 @@ import {
 } from "gridstack";
 import { GridStackRenderContext } from "./grid-stack-render-context";
 import isEqual from "react-fast-compare";
-//import { v4 as uuidv4 } from "uuid";
 
 export interface GridStackDropEvent {
   name: string;
@@ -18,7 +16,6 @@ export interface GridStackDropEvent {
   y: number;
   w: number;
   h: number;
-  gridId?: string; // Add gridId to identify which grid received the drop
   props?: any;
 }
 
