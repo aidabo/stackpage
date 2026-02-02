@@ -1,6 +1,6 @@
 import { getComponentMap, ComponentMapProvider } from "./stackoptions";
 import { useStackPage } from "./StackPageContext";
-import DeleteDropZone from "./deletedropzone";
+import DeleteDropZone from "./Deletedropzone";
 import { useExternalComponentDrag } from "./ExternalDragSourceContext";
 
 // Components Tab Component

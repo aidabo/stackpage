@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { useGridStackContext } from "./grid-stack-context";
 import {
-  DDDragOpt,
+  //DDDragOpt,
   GridItemHTMLElement,
   GridStack,
   GridStackOptions,
@@ -9,7 +9,7 @@ import {
 } from "gridstack";
 import { GridStackRenderContext } from "./grid-stack-render-context";
 import isEqual from "react-fast-compare";
-import { v4 as uuidv4 } from "uuid";
+//import { v4 as uuidv4 } from "uuid";
 
 export interface GridStackDropEvent {
   name: string;
@@ -26,8 +26,7 @@ export interface GridStackDropEvent {
 
 export interface GridStackRenderProviderProps {
   children?: React.ReactNode;
-  onGridStackDropEvent: (event: GridStackDropEvent) => void;
-  /** called once, right after GridStack.init() */
+  setupExternalDropForGrid: (grid: GridStack) => void,
   onGridReady?: (grid: GridStack) => void;
 }
 
@@ -46,7 +45,7 @@ GridStack.prototype.resizeToContent = function (el: GridItemHTMLElement) {
 
 export const GridStackRenderProvider: React.FC<
   GridStackRenderProviderProps
-> = ({ children, onGridStackDropEvent, onGridReady }) => {
+> = ({ children, setupExternalDropForGrid, onGridReady }) => {
   const {
     _gridStack: { value: gridStack, set: setGridStack },
     initialOptions,
@@ -65,83 +64,102 @@ export const GridStackRenderProvider: React.FC<
     [],
   );
 
+  //Make sure subgrid rebind drop event when page load
+  function rebindDropForGrid(
+    grid: GridStack,
+    setupExternalDropForGrid: (g: GridStack) => void
+  ) {
+    // bind root
+    setupExternalDropForGrid(grid);
+
+    // bind all existing sub-grids
+    grid.engine.nodes.forEach((node) => {
+      if (node.subGrid) {
+        rebindDropForGrid(node.subGrid, setupExternalDropForGrid);
+      }
+    });
+  }
+
   const initGrid = useCallback(() => {
     if (containerRef.current) {
       GridStack.renderCB = renderCBFn;
 
       const grid = GridStack.init(optionsRef.current, containerRef.current);
 
+      //make subgrid and all grid rebind to receive dropped external component
+      rebindDropForGrid(grid, setupExternalDropForGrid);
+
       //apply grid mode (edit, preview, view)
       if (onGridReady) {
         onGridReady(grid);
       }
 
-      // Enable drag-and-drop from external sources
-      const gridDragOptions: DDDragOpt = {
-        appendTo: "body",
-        helper: "clone",
-        scroll: false,
-      };
+      // // Enable drag-and-drop from external sources
+      // const gridDragOptions: DDDragOpt = {
+      //   appendTo: "body",
+      //   helper: "clone",
+      //   scroll: false,
+      // };
 
-      GridStack.setupDragIn(".grid-stack-item-widget", gridDragOptions);
-      GridStack.setupDragIn(".gs-external", gridDragOptions);
+      // GridStack.setupDragIn(".grid-stack-item-widget", gridDragOptions);
+      // GridStack.setupDragIn(".gs-external", gridDragOptions);
 
-      // grid.on("added removed change", function (e: any, items: any) {
-      //   let str = "";
-      //   items.forEach(function (item: any) {
-      //     str += " (x,y)=" + item.x + "," + item.y;
-      //   });
-      //   console.log(e.type + " " + items.length + " items:" + str);
+      // // grid.on("added removed change", function (e: any, items: any) {
+      // //   let str = "";
+      // //   items.forEach(function (item: any) {
+      // //     str += " (x,y)=" + item.x + "," + item.y;
+      // //   });
+      // //   console.log(e.type + " " + items.length + " items:" + str);
+      // // });
+
+      // // grid.on("drag", function (event: any, el) {
+      // //   //const n = el.gridstackNode;
+      // //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
+      // //   const y = el.getAttribute("gs-y");
+      // //   // console.log((g || el.gridstackNode.grid.opts.id) + ' drag ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
+      // //   console.log("drag...", x, y, event.target);
+      // // });
+
+      // // grid.on("dragstop", function (event: any, el) {
+      // //   //let n = el.gridstackNode;
+      // //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
+      // //   const y = el.getAttribute("gs-y");
+      // //   //console.log((g || el.gridstackNode.grid.opts.id) + ' dragstop ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
+      // //   console.log("dragstop", x, y, event.target);
+      // // });
+
+      // grid.on("dropped", function (_event, _previousNode, newNode) {
+      //   console.log("dropped....", newNode);
+      //   if (newNode) {
+      //     // Remove the node that gridstack added
+      //     const el: any = newNode.el;
+      //     const type: string = el.dataset.gsType;
+      //     const propsStr: string = el.dataset.gsProps;
+      //     console.log(`Dropped component: ${type}, ${propsStr}`);
+      //     if (type && onGridStackDropEvent) {
+      //       const dropEvent: GridStackDropEvent = {
+      //         name: type,
+      //         id: uuidv4(),
+      //         x: newNode.x || 0,
+      //         y: newNode.y || 0,
+      //         w: type === "SubGrid" ? 12 : 4, // SubGrid takes full width
+      //         h: type === "SubGrid" ? 6 : 4, // SubGrid is taller
+      //         props: propsStr ? JSON.parse(propsStr) : undefined,
+      //       };
+      //       onGridStackDropEvent(dropEvent);
+      //       //remove el.gridstackNode from gridstack
+      //       //add by callback
+      //       grid.removeWidget(el, true);
+      //     }
+      //     //if drag from SubGrid, that's OK,
+      //   }
       // });
-
-      // grid.on("drag", function (event: any, el) {
-      //   //const n = el.gridstackNode;
-      //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
-      //   const y = el.getAttribute("gs-y");
-      //   // console.log((g || el.gridstackNode.grid.opts.id) + ' drag ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
-      //   console.log("drag...", x, y, event.target);
-      // });
-
-      // grid.on("dragstop", function (event: any, el) {
-      //   //let n = el.gridstackNode;
-      //   const x = el.getAttribute("gs-x"); // verify node (easiest) and attr are the same
-      //   const y = el.getAttribute("gs-y");
-      //   //console.log((g || el.gridstackNode.grid.opts.id) + ' dragstop ' + (n.content || '') + ' pos: (' + n.x + ',' + n.y + ') = (' + x + ',' + y + ')');
-      //   console.log("dragstop", x, y, event.target);
-      // });
-
-      grid.on("dropped", function (_event, _previousNode, newNode) {
-        console.log("dropped....", newNode);
-        if (newNode) {
-          // Remove the node that gridstack added
-          const el: any = newNode.el;
-          const type: string = el.dataset.gsType;
-          const propsStr: string = el.dataset.gsProps;
-          console.log(`Dropped component: ${type}, ${propsStr}`);
-          if (type && onGridStackDropEvent) {
-            const dropEvent: GridStackDropEvent = {
-              name: type,
-              id: uuidv4(),
-              x: newNode.x || 0,
-              y: newNode.y || 0,
-              w: type === "SubGrid" ? 12 : 4, // SubGrid takes full width
-              h: type === "SubGrid" ? 6 : 4, // SubGrid is taller
-              props: propsStr ? JSON.parse(propsStr) : undefined,
-            };
-            onGridStackDropEvent(dropEvent);
-            //remove el.gridstackNode from gridstack
-            //add by callback
-            grid.removeWidget(el, true);
-          }
-          //if drag from SubGrid, that's OK,
-        }
-      });
 
       return grid;
     }
 
     return null;
-  }, [renderCBFn, onGridStackDropEvent]);
+  }, [renderCBFn/*, onGridStackDropEvent*/]);
 
   useLayoutEffect(() => {
     if (!isEqual(initialOptions, optionsRef.current) && gridStack) {

@@ -11,7 +11,7 @@ export const useExternalComponentDrag = () => {
   const ctx = useContext(ExternalDragSourceContext);
   if (!ctx) {
     throw new Error(
-      "useSearchResultDrag must be used inside SearchResultDragProvider",
+      "useExternalComponentDrag must be used inside ExternalDragSourceProvider",
     );
   }
   return ctx;

@@ -1,3 +1,5 @@
+// #see: https://gridstackjs.com/demo/nested_advanced.html#
+
 import { GridStackOptions, GridStackWidget } from "gridstack";
 import { ReactNode } from "react";
 import { DataSource, ListDefinition } from "./types";

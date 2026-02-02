@@ -4,17 +4,27 @@ import { createContext, useContext } from "react";
 export const GridStackContext = createContext<{
   initialOptions: GridStackOptions;
   gridStack: GridStack | null;
-  addWidget: (fn: (id: string) => Omit<GridStackWidget, "id">) => void;
+  currentGridStack: GridStack | null;
+  addWidget: (
+    fn: (id: string) => Omit<GridStackWidget, "id">,
+    targetGrid?: GridStack
+  ) => void;
   removeWidget: (id: string) => void;
   addSubGrid: (
     fn: (
       id: string,
       withWidget: (w: Omit<GridStackWidget, "id">) => GridStackWidget
-    ) => Omit<GridStackWidget, "id">
+    ) => Omit<GridStackWidget, "id">,
+    onSubGridReady?: (subGrid: GridStack) => void
   ) => void;
   saveOptions: () => GridStackOptions | GridStackWidget[] | undefined;
 
   _gridStack: {
+    value: GridStack | null;
+    set: React.Dispatch<React.SetStateAction<GridStack | null>>;
+  };
+  //for dragging component into subgrid, 
+  _currentGridStack: {
     value: GridStack | null;
     set: React.Dispatch<React.SetStateAction<GridStack | null>>;
   };

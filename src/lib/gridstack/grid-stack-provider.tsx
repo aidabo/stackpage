@@ -8,6 +8,8 @@ export function GridStackProvider({
   initialOptions,
 }: PropsWithChildren<{ initialOptions: GridStackOptions }>) {
   const [gridStack, setGridStack] = useState<GridStack | null>(null);
+  //for current grid or subgrid to add widget
+  const [currentGridStack, setCurrentGridStack] = useState<GridStack | null>(null);
   const [rawWidgetMetaMap, setRawWidgetMetaMap] = useState(() => {
     const map = new Map<string, GridStackWidget>();
     const deepFindNodeWithContent = (obj: GridStackWidget) => {
@@ -27,11 +29,14 @@ export function GridStackProvider({
   });
 
   const addWidget = useCallback(
-    (fn: (id: string) => Omit<GridStackWidget, "id">) => {
-      //const newId = `widget-${Math.random().toString(36).substring(2, 15)}`;
+    (fn: (id: string) => Omit<GridStackWidget, "id">,
+      targetGrid?: GridStack
+    ) => {
       const newId = `widget-${uuidv4()}`;
       const widget = fn(newId);
-      gridStack?.addWidget({ ...widget, id: newId });
+
+      const grid = targetGrid ?? gridStack;
+      grid?.addWidget({ ...widget, id: newId });
       setRawWidgetMetaMap((prev) => {
         const newMap = new Map<string, GridStackWidget>(prev);
         newMap.set(newId, widget);
@@ -46,20 +51,24 @@ export function GridStackProvider({
       fn: (
         id: string,
         withWidget: (w: Omit<GridStackWidget, "id">) => GridStackWidget
-      ) => Omit<GridStackWidget, "id">
+      ) => Omit<GridStackWidget, "id">,
+      onSubGridReady?: (subGrid: GridStack) => void
     ) => {
-      //const newId = `sub-grid-${Math.random().toString(36).substring(2, 15)}`;
       const newId = `subgrid-${uuidv4()}`;
       const subWidgetIdMap = new Map<string, GridStackWidget>();
 
       const widget = fn(newId, (w) => {
-        //const subWidgetId = `widget-${Math.random().toString(36).substring(2, 15)}`;
         const subWidgetId = `widget-${uuidv4()}`;
         subWidgetIdMap.set(subWidgetId, w);
         return { ...w, id: subWidgetId };
       });
 
-      gridStack?.addWidget({ ...widget, id: newId });
+      const el = gridStack?.addWidget({ ...widget, id: newId });
+      // let subgrid can be dropped a external component
+      const subGrid = el?.gridstackNode?.subGrid;
+      if (subGrid && onSubGridReady) {
+        onSubGridReady(subGrid);
+      }
 
       setRawWidgetMetaMap((prev) => {
         const newMap = new Map<string, GridStackWidget>(prev);
@@ -93,6 +102,7 @@ export function GridStackProvider({
       value={{
         initialOptions,
         gridStack,
+        currentGridStack,
 
         addWidget,
         removeWidget,
@@ -102,6 +112,10 @@ export function GridStackProvider({
         _gridStack: {
           value: gridStack,
           set: setGridStack,
+        },
+        _currentGridStack: {
+          value: currentGridStack,
+          set: setCurrentGridStack,
         },
         _rawWidgetMetaMap: {
           value: rawWidgetMetaMap,

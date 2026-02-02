@@ -41,7 +41,7 @@ import {
 
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../gridstack/grid-stack-render-provider";
-import PageInfoDialogs from "./pageinfodialog";
+import { PageInfoDialog } from "./pageinfodialog";
 import { StackPageProvider } from "./StackPageProvider";
 import { useStackPage } from "./StackPageContext";
 import { PropertiesTab } from "./PropertiesTab";
@@ -55,6 +55,7 @@ import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
 import { DataSourceService } from "./DataSourceService";
 import ExternalDragSourceContext from "./ExternalDragSourceContext";
+import { v4 as uuidv4 } from "uuid";
 import "../styles/index.css";
 
 export interface StackPageOptions {
@@ -216,11 +217,11 @@ const StackPageContent = ({
    * When switch mode, change draggable and resizable settings of grid
    */
   useEffect(() => {
-    if (!stackActionsRef.current || !stackActionsRef.current.grid) {
+    if (!stackActionsRef.current || !stackActionsRef.current._gridStack.value) {
       console.log("No GridStack available!");
-    } else {
-      applyEditMode(stackActionsRef.current?.grid, currentMode === "edit");
+      return;
     }
+    applyEditMode(stackActionsRef.current?._gridStack.value, currentMode === "edit");
   }, [currentMode]);
 
   const applyEditMode = (grid: GridStack, editable: boolean) => {
@@ -539,10 +540,6 @@ const StackPageContent = ({
     e.dataTransfer.effectAllowed = "copy";
   };
 
-  const handleDropEvent = (event: GridStackDropEvent) => {
-    setDropEvent(event);
-  };
-
   // Add handler for widget selection from gridstack
   const handleWidgetSelect = useCallback(
     (widgetData: { id: string; name: string; props: object }) => {
@@ -559,31 +556,79 @@ const StackPageContent = ({
     [setSelectedInstance, setSelectedComponent, setActiveTab],
   );
 
+  /**
+   * Make sure grid and subgrid receive drop event dragged from out of grid area.
+   * And trigger drop event handler to create widget or subgrid
+   * @param grid 
+   */
+  const setupExternalDropForGrid = (grid: GridStack) => {
+    GridStack.setupDragIn(".grid-stack-item-widget", {
+      helper: "clone",
+      appendTo: "body",
+      scroll: false,
+    });
+
+    GridStack.setupDragIn(".gs-external", {
+      helper: "clone",
+      appendTo: "body",
+      scroll: false,
+    });
+
+    grid.on("dropped", (_event, _prev, newNode) => {
+      if (!newNode) return;
+
+      const el: any = newNode.el;
+      const type = el.dataset.gsType;
+      if (!type) return;
+
+      setDropEvent({
+        name: type,
+        id: uuidv4(),
+        x: newNode.x ?? 0,
+        y: newNode.y ?? 0,
+        w: type === "SubGrid" ? 12 : 4, // SubGrid takes full width
+        h: type === "SubGrid" ? 6 : 4,  // SubGrid is taller
+        // dragged component with real props "dataset-gs-props" specified
+        props: el.dataset.gsProps
+          ? JSON.parse(el.dataset.gsProps)
+          : undefined,
+      });
+      //change current grid to drop event grid
+      stackActionsRef.current?._currentGridStack?.set(grid);
+      grid.removeWidget(el, true);
+    });
+  };
+
+
   useEffect(() => {
     if (dropEvent && stackActionsRef.current) {
       if (dropEvent.name !== "SubGrid") {
         const props = {
           ...getComponentProps(componentPropsProvider)[dropEvent.name],
+          // from real dropped component has specified props, 
+          // such as search result
           ...dropEvent.props,
         };
-        console.log("addWidget props: ", props);
         stackActionsRef.current.addWidget((_id) => ({
           ...dropEvent,
           sizeToContent: true,
           content: JSON.stringify({
             name: dropEvent.name,
             props: props,
-            // props: {
-            //   ...getComponentProps(componentPropsProvider)[dropEvent.name],
-            //   ...dropEvent.props,
-            // },
           }),
-        }));
+        }), (stackActionsRef.current?._currentGridStack?.value as any));
       } else {
-        stackActionsRef.current.addSubGrid((_id) => ({
-          ...dropEvent,
-          ...subGridOptions,
-        }));
+        stackActionsRef.current.addSubGrid(
+          (_id) => ({
+            ...dropEvent,
+            ...subGridOptions,
+          }),
+          (subGrid) => {
+            // 🔥 Register drop + drag-in for THIS sub-grid
+            setupExternalDropForGrid(subGrid);
+            applyEditMode(subGrid, currentMode === "edit");
+          }
+        );
       }
     }
   }, [dropEvent, componentPropsProvider]);
@@ -591,18 +636,18 @@ const StackPageContent = ({
   // Panel styles for different screen sizes
   const panelStyle = isMobile
     ? {
-        width: "100vw",
-        minWidth: "100vw",
-        height: "calc(100% - var(--stackpage-top-spacing, 60px))",
-        top: "var(--stackpage-top-spacing, 60px)",
-        zIndex: 101 /** just greater than grid-stack */,
-      }
+      width: "100vw",
+      minWidth: "100vw",
+      height: "calc(100% - var(--stackpage-top-spacing, 60px))",
+      top: "var(--stackpage-top-spacing, 60px)",
+      zIndex: 101 /** just greater than grid-stack */,
+    }
     : {
-        width: `480px`,
-        minWidth: "300px",
-        height: "100%",
-        top: "0",
-      };
+      width: `480px`,
+      minWidth: "300px",
+      height: "100%",
+      top: "0",
+    };
 
   // Main content style
   const mainContentStyle = {
@@ -610,16 +655,6 @@ const StackPageContent = ({
     padding: attributes.padding,
     backgroundColor: attributes.background,
   };
-
-  // useEffect(() => {
-  //   const allowDrop = (e: DragEvent) => {
-  //     e.preventDefault();
-  //     e.dataTransfer!.dropEffect = "copy";
-  //   };
-
-  //   document.addEventListener("dragover", allowDrop);
-  //   return () => document.removeEventListener("dragover", allowDrop);
-  // }, []);
 
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
@@ -738,11 +773,11 @@ const StackPageContent = ({
         <div className="flex flex-1 overflow-hidden relative">
           {/* Main Content */}
           <div
-            className={`flex-1 transition-all duration-200 ${
-              showEditor && currentMode === "edit"
+            className={`flex-1 transition-all duration-200 
+              ${showEditor && currentMode === "edit"
                 ? "overflow-auto"
                 : "overflow-hidden"
-            }`}
+              }`}
             style={mainContentStyle}
           >
             <div className="h-full">
@@ -752,10 +787,11 @@ const StackPageContent = ({
                 >
                   {/* Render existing component instances */}
                   <StackActions ref={stackActionsRef} />
+                  {/* When page load reset drop event binding for view or edit mode.  */}
                   <GridStackRenderProvider
-                    onGridStackDropEvent={handleDropEvent}
+                    setupExternalDropForGrid={setupExternalDropForGrid}
                     onGridReady={(grid) => {
-                      //When grid init, change draggable and resizable as mode
+                      setupExternalDropForGrid(grid);
                       applyEditMode(grid, currentMode === "edit");
                     }}
                   >
@@ -789,11 +825,10 @@ const StackPageContent = ({
 
               {/* Panel */}
               <div
-                className={`flex flex-row bg-white shadow-lg border-l border-gray-200 ${
-                  isMobile
-                    ? "fixed right-0 bottom-0 transform transition-transform duration-300"
-                    : "relative"
-                }`}
+                className={`flex flex-row bg-white shadow-lg border-l border-gray-200 ${isMobile
+                  ? "fixed right-0 bottom-0 transform transition-transform duration-300"
+                  : "relative"
+                  }`}
                 style={panelStyle}
               >
                 {/* Close button for mobile */}
@@ -876,9 +911,8 @@ const StackPageContent = ({
 
                 {/* Vertical Tab Bar */}
                 <div
-                  className={`flex flex-col border-l border-gray-200 bg-gray-50 ${
-                    isMobile ? "w-16 mx-[5px]" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
-                  }`}
+                  className={`flex flex-col border-l border-gray-200 bg-gray-50 ${isMobile ? "w-16 mx-[5px]" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    }`}
                 >
                   {(
                     [
@@ -892,11 +926,10 @@ const StackPageContent = ({
                   ).map((tab) => (
                     <button
                       key={tab}
-                      className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${
-                        activeTab === tab
-                          ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
-                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                      }`}
+                      className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${activeTab === tab
+                        ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
+                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                        }`}
                       onClick={() => setActiveTab(tab)}
                       title={tab.charAt(0).toUpperCase() + tab.slice(1)}
                     >
@@ -958,7 +991,7 @@ const StackPageContent = ({
         )}
 
         {/* show page info */}
-        <PageInfoDialogs
+        <PageInfoDialog
           isOpen={showGridInfo}
           pageInfo={getCurrentPageProps}
           resetOpenInfo={setShowGridInfo}
