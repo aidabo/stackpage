@@ -30,6 +30,7 @@ export function StatusButton({
       await onClick();
       setStatus({ message: successMessage, type: "success" });
     } catch (error) {
+      console.log(error);
       setStatus({ message: errorMessage, type: "error" });
     } finally {
       setIsLoading(false);
@@ -42,9 +43,8 @@ export function StatusButton({
       <button
         onClick={handleClick}
         disabled={isLoading}
-        className={`p-2 rounded-lg transition flex items-center ${className} ${
-          isLoading ? "opacity-70" : ""
-        }`}
+        className={`p-2 rounded-lg transition flex items-center ${className} ${isLoading ? "opacity-70" : ""
+          }`}
       >
         {isLoading ? (
           <ArrowPathIcon className="stack-btn-icon animate-spin" />
@@ -57,11 +57,10 @@ export function StatusButton({
       </button>
       {status && (
         <div
-          className={`absolute top-full left-0 mt-1 w-full text-center px-2 py-1 rounded-md text-xs font-medium animate-fadeIn ${
-            status.type === "success"
-              ? "bg-blue-500 text-white"
-              : "bg-red-100 text-red-800"
-          }`}
+          className={`absolute top-full left-0 mt-1 w-full text-center px-2 py-1 rounded-md text-xs font-medium animate-fadeIn ${status.type === "success"
+            ? "bg-blue-500 text-white"
+            : "bg-red-100 text-red-800"
+            }`}
         >
           {status.message}
         </div>

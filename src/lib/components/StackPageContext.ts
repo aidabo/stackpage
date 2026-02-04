@@ -40,12 +40,12 @@ export interface StackPageContextType {
   // FIXED TYPE HERE
   setSource: React.Dispatch<React.SetStateAction<SourceData>>;
   activeTab:
-    | "components"
-    | "properties"
-    | "page"
-    | "list"
-    | "datasource"
-    | "search";
+  | "components"
+  | "properties"
+  | "page"
+  | "list"
+  | "datasource"
+  | "search";
   setActiveTab: (
     tab: "components" | "properties" | "page" | "list" | "datasource" | "search"
   ) => void;

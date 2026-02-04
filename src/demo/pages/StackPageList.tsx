@@ -156,7 +156,7 @@ export default function StackPageList() {
                       <div>{page.title}</div>
                       <div>
                         <button
-                          onClick={() => handleEdit(page.id)}
+                          onClick={() => handleEdit((page as any).id)}
                           className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"
                           aria-label="Open"
                         >
@@ -167,21 +167,21 @@ export default function StackPageList() {
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleOpen(page.id)}
+                      onClick={() => handleOpen((page as any).id)}
                       className="p-2 text-blue-500 hover:bg-blue-50 rounded-full"
                       aria-label="Edit"
                     >
                       <PencilSquareIcon className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleView(page.id)}
+                      onClick={() => handleView((page as any).id)}
                       className="p-2 text-green-500 hover:bg-green-50 rounded-full"
                       aria-label="View"
                     >
                       <EyeIcon className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(page.id)}
+                      onClick={() => handleDelete((page as any).id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-full"
                       aria-label="Delete"
                     >

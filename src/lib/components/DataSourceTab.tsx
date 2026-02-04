@@ -1,5 +1,5 @@
 // DataSourceTab.tsx - 完整修复版本
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import {
   TrashIcon,
   PlusIcon,
@@ -18,10 +18,8 @@ import { DataSourceDialog } from "./DataSourceDialog";
 
 export const DataSourceTab: React.FC = (): JSX.Element => {
   const { source, setSource } = useStackPage();
+  const dataSources = source.dataSources || [];
 
-  const [dataSources, setDataSources] = useState<DataSource[]>(
-    source.dataSources || []
-  );
   const [expandedDataSourceId, setExpandedDataSourceId] = useState<
     string | null
   >(null);
@@ -31,23 +29,6 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
   const [editingDataSource, setEditingDataSource] = useState<DataSource | null>(
     null
   );
-
-  // 同步到上下文
-  useEffect(() => {
-    setDataSources(source.dataSources || []);
-  }, [source.dataSources]);
-
-  const handleSaveToContext = useCallback(() => {
-    setSource((prev: any) => ({
-      ...prev,
-      dataSources,
-    }));
-  }, [dataSources, setSource]);
-
-  // 自动保存更改
-  useEffect(() => {
-    handleSaveToContext();
-  }, [dataSources, handleSaveToContext]);
 
   const handleCreateDataSource = () => {
     setEditingDataSource(null);
@@ -59,7 +40,10 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
     if (!ds) return;
 
     if (window.confirm(`Are you sure you want to delete "${ds.name}"?`)) {
-      setDataSources(dataSources.filter((ds) => ds.id !== id));
+      setSource((prev: any) => ({
+        ...prev,
+        dataSources: (prev.dataSources || []).filter((d: DataSource) => d.id !== id),
+      }));
     }
   };
 
@@ -69,17 +53,25 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
   };
 
   const handleSaveDataSource = (dataSource: DataSource) => {
-    if (editingDataSource) {
-      // 更新现有数据源
-      setDataSources(
-        dataSources.map((ds) =>
+    setSource((prev: any) => {
+      const currentSources = prev.dataSources || [];
+      let newSources;
+
+      if (editingDataSource) {
+        // 更新现有数据源
+        newSources = currentSources.map((ds: DataSource) =>
           ds.id === editingDataSource.id ? dataSource : ds
-        )
-      );
-    } else {
-      // 创建新数据源
-      setDataSources([...dataSources, dataSource]);
-    }
+        );
+      } else {
+        // 创建新数据源
+        newSources = [...currentSources, dataSource];
+      }
+
+      return {
+        ...prev,
+        dataSources: newSources
+      };
+    });
     setIsDialogOpen(false);
     setEditingDataSource(null);
   };
@@ -272,8 +264,8 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             {ds.type === "host-function"
                               ? "Host Function"
                               : ds.type === "api"
-                              ? "Static"
-                              : "Unknown"}
+                                ? "Static"
+                                : "Unknown"}
                           </span>
                           {ds.category && (
                             <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
@@ -419,8 +411,8 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                                 {ds.type === "host-function"
                                   ? "Host Function"
                                   : ds.type === "api"
-                                  ? "Static Data"
-                                  : "Unknown"}
+                                    ? "Static Data"
+                                    : "Unknown"}
                               </div>
                             </div>
 
@@ -486,16 +478,16 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                               <div className="w-1/2">
                                 {ds.id.includes("ds_")
                                   ? // 从ID中提取时间戳（如果格式正确）
-                                    (() => {
-                                      const match = ds.id.match(/ds_(\d+)_/);
-                                      if (match && match[1]) {
-                                        const timestamp = parseInt(match[1]);
-                                        return new Date(
-                                          timestamp
-                                        ).toLocaleDateString();
-                                      }
-                                      return "Unknown";
-                                    })()
+                                  (() => {
+                                    const match = ds.id.match(/ds_(\d+)_/);
+                                    if (match && match[1]) {
+                                      const timestamp = parseInt(match[1]);
+                                      return new Date(
+                                        timestamp
+                                      ).toLocaleDateString();
+                                    }
+                                    return "Unknown";
+                                  })()
                                   : "Unknown"}
                               </div>
                             </div>

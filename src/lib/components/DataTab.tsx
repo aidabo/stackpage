@@ -348,7 +348,7 @@ export const DataTab: React.FC<DataTabProps> = ({
       }
 
       // Find the data source
-      const dataSource = source.dataSources.find(
+      const dataSource = (source.dataSources || []).find(
         (ds) => ds.id === binding.sourceId
       );
       if (!dataSource || !(dataSource as any).data) {
@@ -547,24 +547,24 @@ export const DataTab: React.FC<DataTabProps> = ({
         onFileUpload={
           onFileUpload
             ? (file: File) => {
-                const fileType = getFileType(props.name, props.value);
-                const acceptTypes = getFileAccept(props.name, props.value);
-                return onFileUpload(file, {
-                  onProgress: (progress) => {
-                    console.log(`Upload progress: ${progress}%`);
-                  },
-                  onError: (error) => {
-                    console.error("Upload error:", error);
-                    alert(`Upload failed: ${error.message}`);
-                  },
-                  options: {
-                    fileType: fileType,
-                    fieldName: props.name,
-                    acceptTypes: acceptTypes,
-                    componentType: componentType,
-                  },
-                });
-              }
+              const fileType = getFileType(props.name, props.value);
+              const acceptTypes = getFileAccept(props.name, props.value);
+              return onFileUpload(file, {
+                onProgress: (progress) => {
+                  console.log(`Upload progress: ${progress}%`);
+                },
+                onError: (error) => {
+                  console.error("Upload error:", error);
+                  alert(`Upload failed: ${error.message}`);
+                },
+                options: {
+                  fileType: fileType,
+                  fieldName: props.name,
+                  acceptTypes: acceptTypes,
+                  componentType: componentType,
+                },
+              });
+            }
             : undefined
         }
       />
@@ -586,22 +586,22 @@ export const DataTab: React.FC<DataTabProps> = ({
         onFileUpload={
           onFileUpload
             ? (file: File, fieldName?: string, fieldType?: string) => {
-                return onFileUpload(file, {
-                  onProgress: (progress) => {
-                    console.log(`Upload progress: ${progress}%`);
-                  },
-                  onError: (error) => {
-                    console.error("Upload error:", error);
-                    alert(`Upload failed: ${error.message}`);
-                  },
-                  options: {
-                    fieldName: fieldName || props.name,
-                    fieldType: fieldType || "file",
-                    componentType: componentType,
-                    isArrayItem: true,
-                  },
-                });
-              }
+              return onFileUpload(file, {
+                onProgress: (progress) => {
+                  console.log(`Upload progress: ${progress}%`);
+                },
+                onError: (error) => {
+                  console.error("Upload error:", error);
+                  alert(`Upload failed: ${error.message}`);
+                },
+                options: {
+                  fieldName: fieldName || props.name,
+                  fieldType: fieldType || "file",
+                  componentType: componentType,
+                  isArrayItem: true,
+                },
+              });
+            }
             : undefined
         }
       />
@@ -685,11 +685,10 @@ export const DataTab: React.FC<DataTabProps> = ({
               <div className="flex space-x-2">
                 <button
                   onClick={() => setShowDataExplorer(true)}
-                  className={`px-4 py-2 text-white rounded text-sm transition-colors flex items-center gap-2 ${
-                    bindings && Object.keys(bindings).length > 0
+                  className={`px-4 py-2 text-white rounded text-sm transition-colors flex items-center gap-2 ${bindings && Object.keys(bindings).length > 0
                       ? "bg-green-600 hover:bg-green-700"
                       : "bg-indigo-600 hover:bg-indigo-700"
-                  }`}
+                    }`}
                   title="Data Binding"
                 >
                   <LinkIcon className="w-4 h-4" />
@@ -763,11 +762,10 @@ export const DataTab: React.FC<DataTabProps> = ({
                   {validationWarnings.map((warning, index) => (
                     <li key={index} className="flex items-start gap-2">
                       <span
-                        className={`mt-0.5 ${
-                          warning.severity === "error"
+                        className={`mt-0.5 ${warning.severity === "error"
                             ? "text-red-500"
                             : "text-yellow-500"
-                        }`}
+                          }`}
                       >
                         {warning.severity === "error" ? "❌" : "⚠️"}
                       </span>
@@ -903,23 +901,23 @@ export const DataTab: React.FC<DataTabProps> = ({
         currentMappings={
           bindings
             ? Object.entries(bindings).reduce(
-                (acc: any, [key, binding]: any) => {
-                  acc[key] = binding.path;
-                  return acc;
-                },
-                {}
-              )
+              (acc: any, [key, binding]: any) => {
+                acc[key] = binding.path;
+                return acc;
+              },
+              {}
+            )
             : {}
         }
         currentTransformers={
           bindings
             ? Object.entries(bindings).reduce(
-                (acc: any, [key, binding]: any) => {
-                  if (binding.transformer) acc[key] = binding.transformer;
-                  return acc;
-                },
-                {}
-              )
+              (acc: any, [key, binding]: any) => {
+                if (binding.transformer) acc[key] = binding.transformer;
+                return acc;
+              },
+              {}
+            )
             : {}
         }
         currentBindings={bindings}

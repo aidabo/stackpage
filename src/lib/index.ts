@@ -7,7 +7,6 @@ import {
 } from "./gridstack/grid-stack-render";
 import { useGridStackContext } from "./gridstack/grid-stack-context";
 import { useGridStackWidgetContext } from "./gridstack/grid-stack-widget-context";
-import { LocaleProvider, useLocale } from "./components/LocaleContext";
 import { useExternalComponentDrag } from "./components/ExternalDragSourceContext";
 
 export {
@@ -41,14 +40,13 @@ import {
   DataSource,
   HostFunctionDataSource,
   GetHostDataSourcesFn,
+  StackI18n,
 } from "./components/types";
 
 import "./styles/index.css";
 
 export {
   StackPage,
-  useLocale,
-  LocaleProvider,
   useExternalComponentDrag,
   type StackPageProps,
   type StackPageOptions,
@@ -65,6 +63,7 @@ export {
   type DataSource,
   type HostFunctionDataSource,
   type GetHostDataSourcesFn,
+  type StackI18n,
   gridOptions,
   subGridOptions,
 };

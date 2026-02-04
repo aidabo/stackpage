@@ -52,11 +52,12 @@ import { DataSourceTab } from "./DataSourceTab";
 import { SearchTab } from "./SearchTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
-import { GetHostDataSourcesFn, HostFunctionDataSource } from "./types";
+import { GetHostDataSourcesFn, HostFunctionDataSource, StackI18n } from "./types";
 import { DataSourceService } from "./DataSourceService";
 import ExternalDragSourceContext from "./ExternalDragSourceContext";
 import { v4 as uuidv4 } from "uuid";
 import "../styles/index.css";
+import { useT, StackI18nProvider } from './StackI18nProvider';
 
 export interface StackPageOptions {
   options: any; // Define any specific options for the StackPage here
@@ -77,6 +78,7 @@ export interface StackPageProps {
   children?: ReactNode;
   // 新增：获取宿主数据源的函数
   getHostDataSources?: GetHostDataSourcesFn;
+  i18n?: StackI18n;
 }
 
 // Mobile detection hook
@@ -120,16 +122,6 @@ const getTabIcon = (tab: string) => {
   }
 };
 
-// Tab label mapping
-const TAB_LABELS: Record<string, string> = {
-  components: "comps",
-  properties: "props",
-  page: "page",
-  list: "list",
-  datasource: "source",
-  search: "search",
-};
-
 // Main StackPage Content Component
 const StackPageContent = ({
   pageid,
@@ -147,6 +139,19 @@ const StackPageContent = ({
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
     pageMode,
   );
+
+  const t = useT();
+
+  // Tab label mapping
+  const TAB_LABELS: Record<string, string> = {
+    components: "comps",
+    properties: "props",
+    page: "page",
+    list: "list",
+    datasource: "source",
+    search: "search",
+  };
+
   const isMobile = useMobile();
   const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -463,7 +468,7 @@ const StackPageContent = ({
    */
   const deleteDataSourceDataWhenSaveForAPI = () => {
     //for api and Host-function, delete data
-    const ds = source.dataSources.map((d) => {
+    const ds = source.dataSources?.map((d) => {
       if (d.type !== "static") {
         delete (d as any)?.data;
       }
@@ -801,6 +806,7 @@ const StackPageContent = ({
                         currentMode !== "edit" ? false : attributes.showMenubar
                       }
                       onWidgetSelect={handleWidgetSelect}
+                      currentMode={currentMode as any}
                     />
                   </GridStackRenderProvider>
 
@@ -911,7 +917,8 @@ const StackPageContent = ({
 
                 {/* Vertical Tab Bar */}
                 <div
-                  className={`flex flex-col border-l border-gray-200 bg-gray-50 ${isMobile ? "w-16 mx-[5px]" : "w-16 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                  className={`flex flex-col border-l border-gray-200 bg-gray-50 
+                    ${isMobile ? "w-16 mx-[5px]" : "w-20 mx-[5px]" // Decreased width for mobile, keep margin for desktop
                     }`}
                 >
                   {(
@@ -935,7 +942,7 @@ const StackPageContent = ({
                     >
                       {getTabIcon(tab)}
                       <span className="mt-1 capitalize">
-                        {TAB_LABELS[tab] || tab}
+                        {t(TAB_LABELS[tab] || tab)}
                       </span>
                     </button>
                   ))}
@@ -1003,10 +1010,14 @@ const StackPageContent = ({
 
 // Main exported component with StackPageProvider
 const StackPage = (props: StackPageProps) => {
+  const { i18n } = props;
+
   return (
-    <StackPageProvider>
-      <StackPageContent {...props} />
-    </StackPageProvider>
+    <StackI18nProvider i18n={i18n as any}>
+      <StackPageProvider>
+        <StackPageContent {...props} />
+      </StackPageProvider>
+    </StackI18nProvider>
   );
 };
 

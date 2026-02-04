@@ -53,7 +53,7 @@ export default function layoutStore() {
   }
 
   async function savePage(data: PageProps): Promise<PageProps | boolean> {
-    if (!(await exists(data.id))) {
+    if (!(await exists((data as any).id))) {
       return await insertPage(data);
     } else {
       return await updatePage(data);
@@ -110,6 +110,6 @@ export default function layoutStore() {
     }
   }
 
-  return { getPageList, getPageById, savePage, updatePage, insertPage, deletePage}
+  return { getPageList, getPageById, savePage, updatePage, insertPage, deletePage }
 
 }

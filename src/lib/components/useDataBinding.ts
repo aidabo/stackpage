@@ -13,7 +13,7 @@ export const useDataBinding = (props: any) => {
         props?.__bindings && Object.keys(props.__bindings).length > 0
       ),
       bindings: props?.__bindings,
-      sourceDataSourcesCount: source.dataSources.length,
+      sourceDataSourcesCount: source.dataSources?.length ?? 0,
       ignoredFields: props?.__ignoredMappings,
     });
 
@@ -40,7 +40,7 @@ export const useDataBinding = (props: any) => {
     // 4. Process regular bindings first
     Object.entries(regularBindings).forEach(
       ([propKey, binding]: [string, any]) => {
-        resolveRegularBinding(propKey, binding, source.dataSources, newProps);
+        resolveRegularBinding(propKey, binding, source.dataSources || [], newProps);
       }
     );
 
@@ -52,7 +52,7 @@ export const useDataBinding = (props: any) => {
           arrayBinding,
           elementBindings,
           props.__ignoredMappings || [],
-          source.dataSources,
+          source.dataSources || [],
           newProps
         );
       }

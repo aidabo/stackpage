@@ -130,3 +130,9 @@ export interface FieldSchema {
   placeholder?: string;
   description?: string;
 }
+
+// stackpage/i18n/types.ts
+export interface StackI18n {
+  t: (key: string, options?: any) => string;
+  locale: string;
+}

@@ -46,6 +46,7 @@ interface GridStackWidgetRendererProps {
     props: object;
   }) => void;
   componentProps?: any;
+  currentMode?: "edit" | "view" | "preview";
 }
 
 export function GridStackWidgetRenderer({
@@ -57,6 +58,7 @@ export function GridStackWidgetRenderer({
   isSelected = false,
   onWidgetSelect,
   componentProps,
+  currentMode,
 }: GridStackWidgetRendererProps) {
   const componentData = useMemo(() => parseWidgetMeta(meta), [meta]);
 
@@ -93,9 +95,9 @@ export function GridStackWidgetRenderer({
     <GridStackAutoResizer widgetId={id}>
       <div
         className="relative h-full w-full"
-        onClick={handleWidgetClick}
+        onClick={currentMode === "edit" ? handleWidgetClick : undefined}
       >
-        {isSelected && (
+        {isSelected && currentMode === "edit" && (
           <div className="pointer-events-none absolute inset-0 ring-2 ring-blue-400" />
         )}
         {showMenubar && (

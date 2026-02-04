@@ -49,12 +49,14 @@ interface GridStackRenderProps {
     name: string;
     props: object;
   }) => void;
+  currentMode?: "edit" | "view" | "preview";
 }
 
 export function GridStackRender({
   componentMap,
   showMenubar = false,
   onWidgetSelect,
+  currentMode,
 }: GridStackRenderProps) {
   const { _rawWidgetMetaMap } = useGridStackContext();
   const { getWidgetContainer } = useGridStackRenderContext();
@@ -98,6 +100,7 @@ export function GridStackRender({
             isSelected={id === (selectedInstance as any)?.id}
             onWidgetSelect={onWidgetSelect}
             componentProps={props} // Pass the resolved props
+            currentMode={currentMode}
           />
         );
       })}
