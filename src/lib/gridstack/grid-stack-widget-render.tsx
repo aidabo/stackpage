@@ -6,6 +6,7 @@ import { GridStackWidgetContext } from "./grid-stack-widget-context";
 import { GridStackItemMenu } from "./grid-stack-Item-menu";
 import { GridStackAutoResizer } from "./grid-stack-autoresizer";
 import { useDataBinding } from "../components/useDataBinding";
+import { useWidgetProps } from "../components/StackPageWidgetProps";
 
 // Parse widget metadata into usable component info
 function parseWidgetMeta(meta: GridStackWidget): {
@@ -91,6 +92,23 @@ export function GridStackWidgetRenderer({
     }
   };
 
+  // Get access to widget props updater
+  const { updateProps } = useWidgetProps(id);
+
+  // Generic handler for widget changes
+  // This allows widgets (like RichText) to update their own props directly
+  const handleWidgetChange = (value: any) => {
+    // Determine what to update based on the value or component conventions
+    // For RichText (and most simple inputs), value is the new content string
+    if (typeof value === 'string') {
+        updateProps({ content: value });
+    } 
+    // If value is an object, we assume it's a partial prop update
+    else if (typeof value === 'object' && value !== null) {
+        updateProps(value);
+    }
+  };
+
   const content = (
     <GridStackAutoResizer widgetId={id}>
       <div
@@ -107,7 +125,12 @@ export function GridStackWidgetRenderer({
           </div>
         )}
         <div className="widget-body flex-1 min-h-[40px] cursor-pointer">
-          <WidgetComponent {...props} />
+          <WidgetComponent 
+            {...props} 
+            // In edit mode, allow the widget to update its own props
+            isEditing={currentMode === "edit"}
+            onChange={currentMode === "edit" ? handleWidgetChange : undefined}
+          />
         </div>
       </div>
     </GridStackAutoResizer>

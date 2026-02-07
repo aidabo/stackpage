@@ -164,7 +164,9 @@ export const isFileTypeField = (key: string, value: any): boolean => {
     "video",
     "audio",
     "media",
-    "background",
+    "backgroundImage",
+    "background-image",
+    "background-image-url",
     "poster",
     "thumbnail",
     "photo",
@@ -653,13 +655,27 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
     // Then handle other types
     else if (typeof value === "string") {
       property.type = "string";
-      // Check for specific string formats
+      const keyLower = key.toLowerCase();
+      
+      // Standard format detection based on key name
+      if (keyLower.includes("color")) {
+        property.format = "color";
+      } else if (keyLower.includes("email")) {
+        property.format = "email";
+      } else if (keyLower.includes("date") && !keyLower.includes("datetime")) {
+        property.format = "date";
+      } else if (keyLower.includes("datetime")) {
+        property.format = "datetime";
+      } else if (keyLower.includes("url") || keyLower.includes("link")) {
+        property.format = "uri";
+      }
+
+      // Check for specific string formats (value-based checks)
       if (
         value.startsWith("http") ||
         value.startsWith("/") ||
         value.includes(".")
       ) {
-        const keyLower = key.toLowerCase();
         if (
           keyLower.includes("image") ||
           keyLower.includes("avatar") ||
@@ -676,12 +692,9 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
         } else if (keyLower.includes("file")) {
           property.format = "uri";
           property["x-media-type"] = "file";
-        } else if (value.includes("@") && keyLower.includes("email")) {
-          property.format = "email";
-        } else if (keyLower.includes("date")) {
-          property.format = "date";
         }
       }
+      
       // Enhanced textarea detection - if value length > 80, set as textarea
       if (value && value.length > 80) {
         property.format = "textarea";
