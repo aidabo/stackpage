@@ -98,15 +98,20 @@ export function GridStackWidgetRenderer({
   // Generic handler for widget changes
   // This allows widgets (like RichText) to update their own props directly
   const handleWidgetChange = (value: any) => {
+    let updates = {};
     // Determine what to update based on the value or component conventions
     // For RichText (and most simple inputs), value is the new content string
     if (typeof value === 'string') {
-        updateProps({ content: value });
+        updates = { content: value };
     } 
     // If value is an object, we assume it's a partial prop update
     else if (typeof value === 'object' && value !== null) {
-        updateProps(value);
+        updates = value;
     }
+
+    // Merge with current rawProps to ensure we preserving existing metadata 
+    // (like __bindings, __schema) that might not be in the transient store yet.
+    updateProps({ ...rawProps, ...updates });
   };
 
   const content = (

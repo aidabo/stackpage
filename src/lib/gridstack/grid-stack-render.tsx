@@ -83,7 +83,8 @@ export function GridStackRender({
         const widgetContainer = getWidgetContainer(id);
 
         // Use updated props from StackPageContext if available, otherwise use meta props
-        const props = widgetProps.get(id) || metaProps;
+        // We merge them to ensure we don't lose static metadata (like bindings) if the store only has partial updates
+        const props = { ...metaProps, ...(widgetProps.get(id) || {}) };
 
         console.log(`[GridStackRenderer] Rendering widget ${id}`, props);
 
