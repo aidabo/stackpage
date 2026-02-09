@@ -218,6 +218,7 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
   const [items, setItems] = useState<FieldSchema[]>(itemSchema);
   const [newFieldKey, setNewFieldKey] = useState("");
   const [newFieldLabel, setNewFieldLabel] = useState("");
+  const [newFieldDescription, setNewFieldDescription] = useState("");
   const [newFieldType, setNewFieldType] = useState<FieldType>("text");
 
   // 当外部itemSchema变化时更新本地状态
@@ -240,6 +241,7 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
       key: newFieldKey.trim(),
       label: fieldLabel,
       type: fieldType,
+      description: newFieldDescription.trim() || undefined,
     };
 
     const updatedItems = [...items, newField];
@@ -249,6 +251,7 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
     // 重置表单
     setNewFieldKey("");
     setNewFieldLabel("");
+    setNewFieldDescription("");
     setNewFieldType("text");
   };
 
@@ -336,7 +339,7 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
       {/* 添加新字段的表单 */}
       <div className="bg-white p-4 rounded-lg border border-gray-300 space-y-3">
         <h5 className="text-sm font-medium text-gray-700">Add New Field</h5>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Field Key *
@@ -377,6 +380,18 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <input
+              type="text"
+              value={newFieldDescription}
+              onChange={(e) => setNewFieldDescription(e.target.value)}
+              placeholder="Helper text in DataTab"
+              className="w-full p-2 border border-gray-300 rounded text-sm"
+            />
+          </div>
         </div>
         <button
           type="button"
@@ -404,7 +419,7 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
                 key={index}
                 className="flex items-center gap-3 p-3 bg-white rounded border border-gray-300"
               >
-                <div className="flex-1 grid grid-cols-3 gap-3">
+                <div className="flex-1 grid grid-cols-4 gap-3">
                   <div>
                     <input
                       type="text"
@@ -444,6 +459,17 @@ const ArrayItemEditor: React.FC<ArrayItemEditorProps> = ({
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <input
+                      type="text"
+                      value={field.description || ""}
+                      onChange={(e) =>
+                        handleFieldChange(index, "description", e.target.value)
+                      }
+                      placeholder="Helper text in DataTab"
+                      className="w-full p-2 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -478,6 +504,7 @@ interface SchemaEditorField {
   name: string;
   type: FieldType;
   label: string;
+  description?: string;
   // select类型的所有配置都保留，不会互相清除
   options?: string[];
   listRef?: string;
@@ -556,6 +583,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
             name: key,
             label: schemaDef.title || key,
             type: "text", // 默认
+            description: schemaDef.description || "",
           };
 
           // 转换类型
@@ -574,6 +602,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                     key: itemKey,
                     label: itemSchemaDef.title || itemKey,
                     type: "text",
+                    description: itemSchemaDef.description || "",
                   };
 
                   // 转换项字段类型
@@ -934,6 +963,10 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
           type: fieldTypeToJsonSchemaType(field.type),
         };
 
+        if (field.description && field.description.trim()) {
+          property.description = field.description.trim();
+        }
+
         // 添加格式信息
         const format = fieldTypeToJsonSchemaFormat(field.type);
         if (format) {
@@ -980,6 +1013,10 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                   title: itemField.label,
                   type: fieldTypeToJsonSchemaType(itemField.type),
                 };
+
+                if (itemField.description && itemField.description.trim()) {
+                  itemProp.description = itemField.description.trim();
+                }
 
                 const itemFormat = fieldTypeToJsonSchemaFormat(itemField.type);
                 if (itemFormat) {
@@ -1064,6 +1101,9 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -1159,6 +1199,23 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                           )}
                         </td>
 
+                        {/* Description */}
+                        <td className="px-4 py-3">
+                          <input
+                            type="text"
+                            value={field.description || ""}
+                            onChange={(e) =>
+                              handleFieldChange(
+                                index,
+                                "description",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Helper text shown in DataTab"
+                          />
+                        </td>
+
                         {/* Actions */}
                         <td className="px-4 py-3">
                           <button
@@ -1175,7 +1232,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                         selectedFieldIndex === index &&
                         showSelectConfig && (
                           <tr className="bg-blue-50">
-                            <td colSpan={4} className="px-4 py-4">
+                            <td colSpan={5} className="px-4 py-4">
                               <div className="bg-white p-4 rounded-lg border border-blue-200">
                                 <div className="flex justify-between items-center mb-4">
                                   <h4 className="font-medium text-gray-900">
@@ -1404,7 +1461,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                         selectedFieldIndex === index &&
                         showArrayConfig && (
                           <tr className="bg-purple-50">
-                            <td colSpan={4} className="px-4 py-4">
+                            <td colSpan={5} className="px-4 py-4">
                               <div className="bg-white p-4 rounded-lg border border-purple-200">
                                 <div className="flex justify-between items-center mb-4">
                                   <h4 className="font-medium text-gray-900">
@@ -1457,6 +1514,10 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                         type: fieldTypeToJsonSchemaType(field.type),
                       };
 
+                      if (field.description && field.description.trim()) {
+                        prop.description = field.description.trim();
+                      }
+
                       // 添加格式信息
                       const format = fieldTypeToJsonSchemaFormat(field.type);
                       if (format) {
@@ -1501,6 +1562,14 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                                     itemField.type
                                   ),
                                 };
+
+                                if (
+                                  itemField.description &&
+                                  itemField.description.trim()
+                                ) {
+                                  itemProp.description =
+                                    itemField.description.trim();
+                                }
 
                                 const itemFormat = fieldTypeToJsonSchemaFormat(
                                   itemField.type

@@ -672,20 +672,21 @@ export const DataTab: React.FC<DataTabProps> = ({
         <div className="h-full flex flex-col">
           {/* Header with Schema Actions */}
           <div className="border-b border-gray-50 bg-white p-4">
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex flex-col gap-3">
+              <div className="min-w-0">
                 <h3 className="text-lg font-medium text-gray-900">
                   Properties
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis">
                   Edit component properties and schema
                 </p>
               </div>
 
-              <div className="flex space-x-2">
+              <div>
+                <div className="flex flex-nowrap gap-2">
                 <button
                   onClick={() => setShowDataExplorer(true)}
-                  className={`px-4 py-2 text-white rounded text-sm transition-colors flex items-center gap-2 ${bindings && Object.keys(bindings).length > 0
+                  className={`flex-1 min-w-0 px-3 py-2 text-white rounded text-sm transition-colors flex items-center justify-center gap-2 text-center ${bindings && Object.keys(bindings).length > 0
                       ? "bg-green-600 hover:bg-green-700"
                       : "bg-indigo-600 hover:bg-indigo-700"
                     }`}
@@ -701,7 +702,7 @@ export const DataTab: React.FC<DataTabProps> = ({
 
                 <button
                   onClick={() => setShowSchemaEditor(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  className="flex-1 min-w-0 px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 text-center"
                   title="Edit Schema"
                 >
                   <svg
@@ -722,11 +723,12 @@ export const DataTab: React.FC<DataTabProps> = ({
 
                 <button
                   onClick={handleGenerateSchema}
-                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                  className="flex-1 min-w-0 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors text-center"
                   title="Generate Schema from Current Props"
                 >
                   Generate Schema
                 </button>
+                </div>
               </div>
             </div>
           </div>
