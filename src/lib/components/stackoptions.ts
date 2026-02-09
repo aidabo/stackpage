@@ -132,6 +132,20 @@ const defaultComponents: ComponentMap = {
  */
 export type ComponentMapProvider = () => ComponentMap;
 
+export interface BusinessComponentGroup {
+  id: string;
+  label: string;
+  description?: string;
+  components: string[];
+}
+
+export interface ComponentCatalogConfig {
+  common?: string[];
+  businesses?: BusinessComponentGroup[];
+}
+
+export type ComponentCatalogProvider = () => ComponentCatalogConfig;
+
 /**
  * ComponentPropsProvider - A function that returns a record of component properties.
  * This will allow for dynamic customization of component props.

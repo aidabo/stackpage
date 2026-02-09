@@ -1,16 +1,11 @@
 // bindingValidation.ts - Shared validation utilities for data binding
 import { applyTransformer } from "./transformers";
+import type { BindingInfo } from "./bindingEngine";
 
 export interface ValidationWarning {
   property: string;
   message: string;
   severity: "warning" | "error";
-}
-
-export interface BindingInfo {
-  sourceId: string;
-  path: string;
-  transformer?: string;
 }
 
 /**

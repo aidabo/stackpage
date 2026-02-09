@@ -264,8 +264,10 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             {ds.type === "host-function"
                               ? "Host Function"
                               : ds.type === "api"
-                                ? "Static"
-                                : "Unknown"}
+                                ? "API"
+                                : ds.type === "static"
+                                  ? "Static"
+                                  : "Unknown"}
                           </span>
                           {ds.category && (
                             <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
@@ -411,8 +413,10 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                                 {ds.type === "host-function"
                                   ? "Host Function"
                                   : ds.type === "api"
-                                    ? "Static Data"
-                                    : "Unknown"}
+                                    ? "API Data"
+                                    : ds.type === "static"
+                                      ? "Static Data"
+                                      : "Unknown"}
                               </div>
                             </div>
 

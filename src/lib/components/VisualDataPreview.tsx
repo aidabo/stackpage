@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
-  PhotoIcon,
   CalendarIcon,
   TagIcon,
   UserIcon,
@@ -20,6 +19,11 @@ interface VisualDataPreviewProps {
   searchTerm?: string;
   selectedIndices?: number[];
   filters?: { id: number; key: string; value: string }[];
+}
+
+interface PrimitiveField {
+  key: string;
+  value: string | number | boolean;
 }
 
 export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
@@ -207,6 +211,113 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
     return null;
   };
 
+  const collectPrimitiveFields = (
+    obj: any,
+    basePath = "",
+    depth = 0,
+    maxDepth = 2
+  ): PrimitiveField[] => {
+    if (!obj || typeof obj !== "object" || depth > maxDepth) return [];
+
+    const result: PrimitiveField[] = [];
+
+    Object.entries(obj).forEach(([key, value]) => {
+      const path = basePath ? `${basePath}.${key}` : key;
+
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        result.push({ key: path, value });
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        if (
+          value.length > 0 &&
+          (typeof value[0] === "string" ||
+            typeof value[0] === "number" ||
+            typeof value[0] === "boolean")
+        ) {
+          result.push({
+            key: path,
+            value: value.slice(0, 3).join(", "),
+          });
+        } else if (value.length > 0 && typeof value[0] === "object") {
+          result.push(
+            ...collectPrimitiveFields(value[0], `${path}[0]`, depth + 1, maxDepth)
+          );
+        }
+        return;
+      }
+
+      if (value && typeof value === "object") {
+        result.push(...collectPrimitiveFields(value, path, depth + 1, maxDepth));
+      }
+    });
+
+    return result;
+  };
+
+  const getFallbackTitle = (item: any): string => {
+    const primary = findField(item, [
+      "title",
+      "name",
+      "label",
+      "slug",
+      "subject",
+      "headline",
+      "id",
+    ]);
+    if (primary?.value !== undefined && primary?.value !== null) {
+      return String(primary.value);
+    }
+
+    const primitive = collectPrimitiveFields(item, "", 0, 1).find(
+      (field) =>
+        typeof field.value === "string" &&
+        field.value.trim().length > 0 &&
+        !field.key.toLowerCase().includes("url")
+    );
+    return primitive ? String(primitive.value) : "Untitled";
+  };
+
+  const getQuickSummaryFields = (
+    item: any,
+    usedKeys: string[] = [],
+    limit = 3
+  ): PrimitiveField[] => {
+    const usedSet = new Set(usedKeys.filter(Boolean).map((k) => k.toLowerCase()));
+    const noisyKeys = new Set([
+      "id",
+      "uuid",
+      "html",
+      "markdown",
+      "content",
+      "body",
+      "feature_image",
+      "profile_image",
+      "image",
+      "cover_image",
+      "url",
+      "link",
+    ]);
+
+    return collectPrimitiveFields(item, "", 0, 2)
+      .filter((field) => {
+        const keyName = field.key.split(".").pop()?.replace("[0]", "") || "";
+        const normalized = keyName.toLowerCase();
+        if (usedSet.has(field.key.toLowerCase())) return false;
+        if (noisyKeys.has(normalized)) return false;
+        if (typeof field.value === "string" && field.value.length > 120) {
+          return false;
+        }
+        return true;
+      })
+      .slice(0, limit);
+  };
+
   // If not an array, show single item
   if (!Array.isArray(data)) {
     return (
@@ -280,7 +391,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
             </>
           )}
           <button
-            onClick={() => onBind("", true)}
+            onClick={() => onBind("$[]", true)}
             className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg shadow-sm hover:shadow-md flex items-center gap-2"
           >
             <LinkIcon className="w-4 h-4" />
@@ -334,6 +445,19 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                 "custom_excerpt",
                 "meta_description",
               ]);
+              const hasImage =
+                !!imageData?.value &&
+                typeof imageData.value === "string" &&
+                imageData.value.trim().length > 0;
+              const quickSummaryFields = getQuickSummaryFields(item, [
+                titleData?.key || "",
+                imageData?.key || "",
+                tagData?.key || "",
+                authorData?.key || "",
+                dateData?.key || "",
+                statusData?.key || "",
+                excerptData?.key || "",
+              ]);
 
               const isSelected = selectedItems.includes(index);
 
@@ -375,36 +499,47 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                   </div>
 
                   {/* Image/Header */}
-                  <div
-                    className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (imageData) {
-                        // Check if the key is an array element path
-                        const isArrayElement = imageData.key.includes("[]");
-                        onBind(imageData.key, isArrayElement);
-                      }
-                    }}
-                  >
-                    {imageData?.value && typeof imageData.value === "string" ? (
+                  {hasImage && (
+                    <div
+                      className="h-40 bg-gradient-to-br from-gray-100 to-gray-200 relative overflow-hidden cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (imageData) {
+                          const isArrayElement = imageData.key.includes("[]");
+                          onBind(imageData.key, isArrayElement);
+                        }
+                      }}
+                    >
                       <img
-                        src={imageData.value}
+                        src={String(imageData?.value)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                        <PhotoIcon className="w-12 h-12 mb-2" />
-                        <span className="text-xs">No image</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                      <div className="absolute bottom-2 left-2 right-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        Click to bind image
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                    <div className="absolute bottom-2 left-2 right-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      Click to bind image
-                    </div>
 
-                    {/* Status Badge */}
-                    {statusData && (
-                      <div className="absolute top-2 right-2">
+                      {statusData && (
+                        <div className="absolute top-2 right-2">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              statusData.value === "published" ||
+                              statusData.value === "public"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {String(statusData.value)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="p-4">
+                    {!hasImage && statusData && (
+                      <div className="mb-2">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded-full ${
                             statusData.value === "published" ||
@@ -417,10 +552,6 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                         </span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4">
                     {/* Tag & Date */}
                     <div className="flex justify-between items-center mb-3">
                       <div
@@ -472,7 +603,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                       }}
                       title={titleData ? `Bind: ${titleData.key}` : ""}
                     >
-                      {String(titleData?.value || "Untitled")}
+                      {String(titleData?.value || getFallbackTitle(item))}
                     </h4>
 
                     {/* Excerpt */}
@@ -480,6 +611,24 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                       <p className="text-xs text-gray-500 line-clamp-2 mb-3">
                         {String(excerptData.value)}
                       </p>
+                    )}
+                    {quickSummaryFields.length > 0 && (
+                      <div className="mb-3 space-y-1">
+                        {quickSummaryFields.map((field) => (
+                          <div
+                            key={field.key}
+                            className="text-[11px] text-gray-600 truncate cursor-pointer hover:text-blue-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onBind(field.key, field.key.includes("[]"));
+                            }}
+                            title={`Bind: ${field.key}`}
+                          >
+                            <span className="text-gray-400">{field.key}:</span>{" "}
+                            {String(field.value)}
+                          </div>
+                        ))}
+                      </div>
                     )}
 
                     {/* Author */}
@@ -544,6 +693,11 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
               const titleData = findField(item, ["title", "name"]);
               const dateData = findField(item, ["published_at", "created_at"]);
               const statusData = findField(item, ["status"]);
+              const quickSummaryFields = getQuickSummaryFields(
+                item,
+                [titleData?.key || "", dateData?.key || "", statusData?.key || ""],
+                2
+              );
               const isSelected = selectedItems.includes(index);
 
               return (
@@ -597,7 +751,7 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                               }
                             }}
                           >
-                            {String(titleData?.value || "Untitled")}
+                            {String(titleData?.value || getFallbackTitle(item))}
                           </h4>
                           {statusData && (
                             <span
@@ -618,13 +772,26 @@ export const VisualDataPreview: React.FC<VisualDataPreviewProps> = ({
                               className="flex items-center gap-1 hover:text-blue-600 cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onBind(`${index}.${dateData.key}`, false);
+                                onBind(dateData.key, dateData.key.includes("[]"));
                               }}
                             >
                               <CalendarIcon className="w-3 h-3" />
                               {new Date(dateData.value).toLocaleDateString()}
                             </span>
                           )}
+                          {quickSummaryFields.map((field) => (
+                            <span
+                              key={field.key}
+                              className="truncate max-w-[200px] hover:text-blue-600 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onBind(field.key, field.key.includes("[]"));
+                              }}
+                              title={`Bind: ${field.key}`}
+                            >
+                              {field.key.split(".").pop()}: {String(field.value)}
+                            </span>
+                          ))}
 
                           <button
                             onClick={(e) => {

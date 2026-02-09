@@ -31,6 +31,7 @@ import {
   getComponentMap,
   getComponentProps,
   ComponentMapProvider,
+  ComponentCatalogProvider,
   ComponentPropsProvider,
   GoBackListFn,
   LoadLayoutFn,
@@ -70,6 +71,7 @@ export interface StackPageProps {
   onSaveLayout?: SaveLayoutFn;
   gobackList?: GoBackListFn;
   componentMapProvider?: ComponentMapProvider;
+  componentCatalogProvider?: ComponentCatalogProvider;
   componentPropsProvider?: ComponentPropsProvider;
   onFileUpload?: FileUploadFn;
   onCustomAction?: CustomActionFn;
@@ -129,6 +131,7 @@ const StackPageContent = ({
   onSaveLayout,
   onLoadLayout,
   componentMapProvider,
+  componentCatalogProvider,
   componentPropsProvider,
   gobackList,
   onFileUpload,
@@ -870,6 +873,7 @@ const StackPageContent = ({
                     >
                       <ComponentsTab
                         componentMapProvider={componentMapProvider}
+                        componentCatalogProvider={componentCatalogProvider}
                         onDragStart={handleDragStart}
                       />
                     </div>

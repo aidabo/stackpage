@@ -38,7 +38,7 @@ import { get } from "../utils/get";
 import { LinkIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
-import { DataFetchUtils } from "../utils/dataFetchUtils";
+import { resolveBindingValue } from "../utils/bindingEngine";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 
 interface DataTabProps {
@@ -468,15 +468,11 @@ export const DataTab: React.FC<DataTabProps> = ({
     if (_data) {
       Object.entries(newBindings).forEach(([prop, binding]: [string, any]) => {
         if (schema?.properties?.[prop]) {
-          const value = DataFetchUtils.getValueFromDataSource(
-            _data,
-            binding.path,
-            binding.selector
-          );
+          const resolvedValue = resolveBindingValue(_data, binding);
           const warnings = validateBindingAgainstSchema(
             binding,
             schema.properties[prop],
-            value
+            resolvedValue
           );
           if (warnings.length > 0) {
             validationErrors.push(`${prop}: ${warnings.join(", ")}`);

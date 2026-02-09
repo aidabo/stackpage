@@ -7,6 +7,7 @@ import { GridStackItemMenu } from "./grid-stack-Item-menu";
 import { GridStackAutoResizer } from "./grid-stack-autoresizer";
 import { useDataBinding } from "../components/useDataBinding";
 import { useWidgetProps } from "../components/StackPageWidgetProps";
+import { logBindingResolution } from "../utils/bindingDebug";
 
 // Parse widget metadata into usable component info
 function parseWidgetMeta(meta: GridStackWidget): {
@@ -71,6 +72,14 @@ export function GridStackWidgetRenderer({
   // Resolve bindings
   const props = useDataBinding(rawProps);
   //const props = rawProps;
+
+  logBindingResolution({
+    widgetId: id,
+    componentName: componentData.name,
+    bindings: (rawProps as any)?.__bindings || {},
+    rawProps: (rawProps as any) || {},
+    resolvedProps: (props as any) || {},
+  });
 
   console.log(
     `[GridStackWidgetRenderer] Rendering widget ${id} of type ${componentData.name}`,

@@ -55,6 +55,10 @@ const COMMON_HEADERS = [
     commonValues: ["Bearer ", "Basic ", "Token ", "JWT ", "OAuth "],
   },
   {
+    name: "Accept-Version",
+    commonValues: ["v5.0", "v4.0"],
+  },
+  {
     name: "User-Agent",
     commonValues: [
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -158,6 +162,22 @@ const COMMON_PARAMS = [
   "published",
   "author",
   "tag",
+  "key",
+];
+
+const QUICK_HEADER_PRESETS: Array<{ key: string; value: string }> = [
+  { key: "Accept", value: "application/json" },
+  { key: "Content-Type", value: "application/json" },
+  { key: "Cache-Control", value: "no-cache" },
+];
+
+const GHOST_PARAM_PRESETS: Array<{ key: string; value: string }> = [
+  { key: "key", value: "" },
+  { key: "limit", value: "15" },
+  { key: "include", value: "tags,authors" },
+  { key: "fields", value: "id,title,slug,excerpt,published_at" },
+  { key: "order", value: "published_at desc" },
+  { key: "filter", value: "status:published" },
 ];
 
 interface HeaderItem {
@@ -178,6 +198,15 @@ interface SuggestionItem {
   value?: string;
   type: "header" | "param" | "value";
 }
+
+const getHeaderValueOptions = (headerKey: string): string[] => {
+  const normalized = headerKey.trim().toLowerCase();
+  if (!normalized) return [];
+  const found = COMMON_HEADERS.find(
+    (header) => header.name.toLowerCase() === normalized
+  );
+  return found?.commonValues || [];
+};
 
 // 自动完成组件
 const AutoCompleteInput: React.FC<{
@@ -558,7 +587,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // 判断是否为高级参数
   const isAdvancedParam = (key: string): boolean => {
     const advancedKeywords = [
-      "filter",
       "sort",
       "order",
       "fields",
@@ -621,6 +649,20 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setHeaders(headers.filter((header) => header.id !== id));
   };
 
+  const addOrUpdateHeader = (key: string, value: string) => {
+    setHeaders((prev) => {
+      const found = prev.find(
+        (item) => item.key.trim().toLowerCase() === key.trim().toLowerCase()
+      );
+      if (found) {
+        return prev.map((item) =>
+          item.id === found.id ? { ...item, value } : item
+        );
+      }
+      return [...prev, { id: `header-${Date.now()}-${key}`, key, value }];
+    });
+  };
+
   // Parameter操作
   const handleAddParameter = () => {
     setParameters([
@@ -657,6 +699,46 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
   const handleRemoveParameter = (id: string) => {
     setParameters(parameters.filter((param) => param.id !== id));
+  };
+
+  const addOrUpdateParameter = (
+    key: string,
+    value: string,
+    isAdvanced?: boolean
+  ) => {
+    setParameters((prev) => {
+      const found = prev.find(
+        (item) => item.key.trim().toLowerCase() === key.trim().toLowerCase()
+      );
+      if (found) {
+        return prev.map((item) =>
+          item.id === found.id
+            ? { ...item, value, isAdvanced: isAdvanced ?? item.isAdvanced }
+            : item
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: `param-${Date.now()}-${key}`,
+          key,
+          value,
+          isAdvanced: isAdvanced ?? isAdvancedParam(key),
+        },
+      ];
+    });
+  };
+
+  const applyGhostPreset = () => {
+    addOrUpdateHeader("Accept", "application/json");
+    addOrUpdateHeader("Content-Type", "application/json");
+    addOrUpdateHeader("Accept-Version", "v5.0");
+    GHOST_PARAM_PRESETS.forEach((item) =>
+      addOrUpdateParameter(item.key, item.value, false)
+    );
+    if (!config.category) {
+      setConfig((prev) => ({ ...prev, category: "ghost" }));
+    }
   };
 
   // 获取Header名称的建议
@@ -1123,6 +1205,19 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                         placeholder="https://api.example.com/v1/resource"
                       />
                     </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={applyGhostPreset}
+                        className="text-xs px-2 py-1 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                      >
+                        Apply Ghost CMS preset
+                      </button>
+                      <span className="text-xs text-gray-500 self-center">
+                        Adds normal headers + common Ghost query params, with
+                        <code>filter</code> as basic parameter.
+                      </span>
+                    </div>
                   </div>
 
                   {/* Headers配置 */}
@@ -1140,41 +1235,86 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     </div>
 
                     <div className="space-y-3">
-                      {headers.map((header) => (
-                        <div
-                          key={header.id}
-                          className="flex gap-2 items-center"
-                        >
-                          <AutoCompleteInput
-                            value={header.key}
-                            onChange={(value) =>
-                              handleUpdateHeader(header.id, "key", value)
-                            }
-                            suggestions={headerNameSuggestions}
-                            placeholder="Header name"
-                            type="key"
-                          />
-                          <input
-                            type="text"
-                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            placeholder="Value"
-                            value={header.value}
-                            onChange={(e) =>
-                              handleUpdateHeader(
-                                header.id,
-                                "value",
-                                e.target.value
-                              )
-                            }
-                          />
+                      <div className="flex flex-wrap gap-2">
+                        {QUICK_HEADER_PRESETS.map((preset) => (
                           <button
-                            onClick={() => handleRemoveHeader(header.id)}
-                            className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
+                            key={`${preset.key}:${preset.value}`}
+                            type="button"
+                            onClick={() =>
+                              addOrUpdateHeader(preset.key, preset.value)
+                            }
+                            className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            {preset.key}
                           </button>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                      {headers.map((header) => {
+                        const valueOptions = getHeaderValueOptions(header.key);
+                        return (
+                          <div
+                            key={header.id}
+                            className="flex gap-2 items-center"
+                          >
+                            <AutoCompleteInput
+                              value={header.key}
+                              onChange={(value) =>
+                                handleUpdateHeader(header.id, "key", value)
+                              }
+                              suggestions={headerNameSuggestions}
+                              placeholder="Header name"
+                              type="key"
+                            />
+                            <div className="flex-1 flex gap-2">
+                              {valueOptions.length > 0 && (
+                                <select
+                                  className="w-44 p-2 border rounded text-sm bg-gray-50 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                  value={
+                                    valueOptions.includes(header.value)
+                                      ? header.value
+                                      : ""
+                                  }
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handleUpdateHeader(
+                                        header.id,
+                                        "value",
+                                        e.target.value
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <option value="">Quick select...</option>
+                                  {valueOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              <input
+                                type="text"
+                                className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                placeholder="Value"
+                                value={header.value}
+                                onChange={(e) =>
+                                  handleUpdateHeader(
+                                    header.id,
+                                    "value",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+                            <button
+                              onClick={() => handleRemoveHeader(header.id)}
+                              className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
 
                       <button
                         onClick={handleAddHeader}
@@ -1205,6 +1345,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 <div className="mb-4 p-3 bg-gray-50 rounded border">
                   <p className="text-xs text-gray-600">
                     <strong>Parameters define how data is fetched:</strong>
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    For Ghost CMS, use <code>filter</code> in Basic Parameters
+                    (example: <code>tag:hash-news+featured:true</code>).
                   </p>
                   <ul className="text-xs text-gray-600 mt-1 space-y-1">
                     <li>
@@ -1250,6 +1394,25 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Basic Parameters
                   </h4>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {[
+                      "page",
+                      "limit",
+                      "search",
+                      "filter",
+                      "order",
+                      "fields",
+                    ].map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => addOrUpdateParameter(key, "", false)}
+                        className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        + {key}
+                      </button>
+                    ))}
+                  </div>
                   <div className="space-y-3">
                     {basicParameters.map((param) => (
                       <div key={param.id} className="flex gap-2 items-center">

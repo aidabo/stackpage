@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { useStackPage } from "./StackPageContext";
-import { get, set } from "../utils/get";
-import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
-import { transformers as transformerRegistry } from "../utils/transformers";
+import {
+  BindingInfo,
+  resolveBoundValue,
+  resolveArrayWithElementBindings,
+} from "../utils/bindingEngine";
 
 export const useDataBinding = (props: any) => {
   const { source } = useStackPage();
@@ -38,11 +40,9 @@ export const useDataBinding = (props: any) => {
     });
 
     // 4. Process regular bindings first
-    Object.entries(regularBindings).forEach(
-      ([propKey, binding]: [string, any]) => {
-        resolveRegularBinding(propKey, binding, source.dataSources || [], newProps);
-      }
-    );
+    Object.entries(regularBindings).forEach(([propKey, binding]: [string, any]) => {
+      resolveRegularBinding(propKey, binding, source.dataSources || [], newProps);
+    });
 
     // 5. Process array bindings with their element bindings
     Object.entries(arrayBindings).forEach(
@@ -97,11 +97,11 @@ function groupBindings(bindings: Record<string, any>): {
  */
 function resolveRegularBinding(
   propKey: string,
-  binding: any,
+  binding: BindingInfo,
   dataSources: any[],
   resultProps: any
 ): void {
-  const { sourceId, path, transformer } = binding;
+  const { sourceId, path } = binding;
 
   if (!sourceId || !path) {
     console.warn(
@@ -128,25 +128,12 @@ function resolveRegularBinding(
     return;
   }
 
-  // Get value from source data
-  let value = get(sourceData, path);
-
-  // Apply transformer if specified
-  if (transformer && value !== undefined && transformerRegistry[transformer]) {
-    try {
-      if (Array.isArray(value)) {
-        value = value.map((item: any) =>
-          transformerRegistry[transformer](item)
-        );
-      } else {
-        value = transformerRegistry[transformer](value);
-      }
-    } catch (error) {
-      console.error(
-        `[useDataBinding] Transformer error for ${propKey}:`,
-        error
-      );
-    }
+  let value: any;
+  try {
+    value = resolveBoundValue(sourceData, binding);
+  } catch (error) {
+    console.error(`[useDataBinding] Resolve binding error for ${propKey}:`, error);
+    return;
   }
 
   // Set the value
@@ -161,8 +148,8 @@ function resolveRegularBinding(
  */
 function resolveArrayBinding(
   arrayProp: string,
-  arrayBinding: any,
-  elementBindings: Record<string, any>,
+  arrayBinding: BindingInfo,
+  elementBindings: Record<string, BindingInfo>,
   ignoredFields: string[],
   dataSources: any[],
   resultProps: any
@@ -194,119 +181,19 @@ function resolveArrayBinding(
     return;
   }
 
-  // Get all records from source array (ignore selector)
-  const sourceArray = get(sourceData, path);
-  if (!Array.isArray(sourceArray)) {
-    console.warn(
-      `[useDataBinding] Expected array for ${arrayProp} but got:`,
-      sourceArray
-    );
-    resultProps[arrayProp] = [];
-    return;
+  let resolvedArray: any[] = [];
+  try {
+    resolvedArray = resolveArrayWithElementBindings({
+      arrayProp,
+      arrayBinding,
+      elementBindings,
+      ignoredFields,
+      sourceData,
+    });
+  } catch (error) {
+    console.error(`[useDataBinding] Resolve array binding error for ${arrayProp}:`, error);
+    resolvedArray = [];
   }
-
-  // Filter element bindings for this specific array
-  const arrayElementBindings = Object.entries(elementBindings)
-    .filter(([key]) => key.startsWith(`${arrayProp}[]`))
-    .reduce((acc, [key, binding]) => {
-      acc[key] = binding;
-      return acc;
-    }, {} as Record<string, any>);
-
-  console.log(`[useDataBinding] Processing array ${arrayProp}:`, {
-    sourceRecords: sourceArray.length,
-    elementBindingsCount: Object.keys(arrayElementBindings).length,
-    ignoredFields: ignoredFields.filter((f) => f.startsWith(`${arrayProp}[]`)),
-  });
-
-  // If no element bindings, return the source array as is
-  if (Object.keys(arrayElementBindings).length === 0) {
-    resultProps[arrayProp] = sourceArray;
-    return;
-  }
-
-  // Process each record in the source array
-  const resolvedArray = sourceArray.map((sourceItem, index) => {
-    const resultItem: any = {};
-
-    // Apply each element binding
-    Object.entries(arrayElementBindings).forEach(
-      ([bindingKey, binding]: [string, any]) => {
-        // Extract field name from binding key like "items[].title" -> "title"
-        const fieldMatch = bindingKey.match(/\[\]\.(.+)/);
-        if (!fieldMatch || !fieldMatch[1]) {
-          return;
-        }
-
-        const fieldName = fieldMatch[1];
-
-        // Skip if this field is in ignored mappings
-        const fullIgnoredPath = `${arrayProp}[].${fieldName}`;
-        if (ignoredFields.includes(fullIgnoredPath)) {
-          console.log(
-            `[useDataBinding] Skipping ignored field: ${fullIgnoredPath}`
-          );
-          return;
-        }
-
-        const { sourceId: elemSourceId, path: elemPath, transformer } = binding;
-
-        // Verify the element binding uses the same data source
-        if (elemSourceId !== sourceId) {
-          console.warn(
-            `[useDataBinding] Element binding ${bindingKey} uses different data source`
-          );
-          return;
-        }
-
-        if (elemPath && elemPath.includes("[]")) {
-          // This is an array element path like "posts[].title"
-          const { arrayPath: elemArrayPath, elementField } =
-            ArrayBindingUtils.parseArrayElementPath(elemPath);
-
-          // Get the source array for this element binding
-          const elemSourceArray = get(sourceData, elemArrayPath);
-          if (Array.isArray(elemSourceArray) && elemSourceArray[index]) {
-            let value = get(elemSourceArray[index], elementField);
-
-            // Apply transformer if specified
-            if (transformer && transformerRegistry[transformer]) {
-              try {
-                value = transformerRegistry[transformer](value);
-              } catch (error) {
-                console.error(
-                  `[useDataBinding] Transformer error for ${fieldName}:`,
-                  error
-                );
-              }
-            }
-
-            set(resultItem, fieldName, value);
-          }
-        } else if (elemPath) {
-          // Regular path - get from source item
-          let value = get(sourceItem, elemPath);
-
-          // Apply transformer if specified
-          if (transformer && transformerRegistry[transformer]) {
-            try {
-              value = transformerRegistry[transformer](value);
-            } catch (error) {
-              console.error(
-                `[useDataBinding] Transformer error for ${fieldName}:`,
-                error
-              );
-            }
-          }
-
-          // Use set to handle nested properties like "user.name"
-          set(resultItem, fieldName, value);
-        }
-      }
-    );
-
-    return resultItem;
-  });
 
   resultProps[arrayProp] = resolvedArray;
   console.log(
