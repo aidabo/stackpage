@@ -136,7 +136,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
   };
 
   return (
-    <div className="h-full p-4 space-y-6 bg-zinc-200 overflow-y-auto">
+    <div className="h-full p-4 bg-zinc-200 flex flex-col overflow-y-auto max-h-screen">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium">Data Source Manager</h3>
@@ -154,7 +154,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
       </div>
 
       {/* 数据源统计 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
         <div className="bg-white rounded-lg border p-3">
           <div className="flex items-center justify-between">
             <div>
@@ -196,7 +196,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
       </div>
 
       {/* 数据源列表 */}
-      <div className="space-y-4">
+      <div className="flex-1 min-h-0 flex flex-col mt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LinkIcon className="w-5 h-5 text-gray-600" />
@@ -220,7 +220,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
           {dataSources.length === 0 ? (
             <div className="text-center py-12 text-gray-500 bg-white rounded-lg border">
               <div className="text-5xl mb-4">🔗</div>

@@ -352,7 +352,7 @@ const StackPageContent = ({
       setPageProps(pageProps);
       setTitle(pageProps.title);
       setPageTitle(pageProps.title);
-      setPageAttributes(pageProps.attributes || attributes);
+      setPageAttributes((prev: any) => pageProps.attributes || prev);
 
       if (pageProps.source) {
         setSource(pageProps.source);
@@ -364,7 +364,7 @@ const StackPageContent = ({
       }
       return pageProps.layout;
     },
-    [onLoadLayout],
+    [onLoadLayout, getHostDataSources, setPageAttributes, setSource],
   );
 
   const handleReload = useCallback(async () => {
@@ -853,7 +853,11 @@ const StackPageContent = ({
                 )}
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-y-auto pb-4">
+                <div
+                  className={`flex-1 min-h-0 pb-4 ${
+                    activeTab === "datasource" ? "overflow-hidden" : "overflow-y-auto"
+                  }`}
+                >
                   <ExternalDragSourceContext.Provider
                     value={{
                       registerDragSource: (el) => {
@@ -912,8 +916,11 @@ const StackPageContent = ({
                   </div>
                   <div
                     style={{
-                      display: activeTab === "datasource" ? "block" : "none",
+                      display: activeTab === "datasource" ? "flex" : "none",
+                      height: "100%",
+                      overflow: "hidden",
                     }}
+                    className="h-full min-h-0 flex-col"
                   >
                     <DataSourceTab />
                   </div>
@@ -922,7 +929,7 @@ const StackPageContent = ({
                 {/* Vertical Tab Bar */}
                 <div
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 
-                    ${isMobile ? "w-16 mx-[5px]" : "w-20 mx-[5px]" // Decreased width for mobile, keep margin for desktop
+                    ${isMobile ? "w-14 mx-[5px]" : "w-14 mx-[5px]"
                     }`}
                 >
                   {(

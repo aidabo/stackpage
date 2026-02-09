@@ -381,6 +381,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   const [selectedHostSourceId, setSelectedHostSourceId] = useState<string>(""); // 宿主函数ID
   const [selectedHostSource, setSelectedHostSource] =
     useState<HostFunctionDataSource | null>(null); // 宿主函数对象
+  const [hostNameTouched, setHostNameTouched] = useState(false);
 
   // 数据源类型
   const [sourceType, setSourceType] = useState<DataSource["type"]>("api");
@@ -410,6 +411,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
           const hostSource = initialData as HostFunctionDataSource;
           // Set ID immediately so UI can show it (even if options aren't loaded yet)
           setSelectedHostSourceId(hostSource.hostFunctionId || "");
+          setHostNameTouched(true);
 
           setConfig({
             name: hostSource.name,
@@ -582,6 +584,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setSelectedHostSource(null);
     setSourceType("api");
     setWrapperKey(""); // Reset wrapper key
+    setHostNameTouched(false);
   };
 
   // 判断是否为高级参数
@@ -611,16 +614,20 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
     // 如果是新建模式，使用宿主数据源的基本信息作为起点
     if (!isEditMode) {
-      setConfig({
-        name: `${source.name} - Custom`,
-        description: source.description || "",
-        category: source.category || "",
+      setConfig((prev) => ({
+        ...prev,
+        name:
+          hostNameTouched && prev.name.trim().length > 0
+            ? prev.name
+            : `${source.name} - Custom`,
+        description: source.description || prev.description || "",
+        category: source.category || prev.category || "",
         endpoint: "",
         method: "GET",
         headers: {},
-        parameters: {}, // 新建时清空参数，让用户配置
+        parameters: prev.parameters || {}, // keep user params if already entered
         refreshInterval: 0,
-      });
+      }));
       setParameters([]);
     }
   };
@@ -979,48 +986,50 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Data Source Type
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
-                      className={`p-3 border rounded-lg flex flex-col items-center justify-center transition-colors ${
+                      className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
                         sourceType === "api"
                           ? "border-blue-500 bg-blue-50 text-blue-600"
                           : "border-gray-300 hover:border-blue-300"
                       }`}
                       onClick={() => setSourceType("api")}
                     >
-                      <span className="text-lg">🌐</span>
-                      <span className="text-sm font-medium mt-1">
+                      <span className="text-base">🌐</span>
+                      <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
                         External API
                       </span>
                     </button>
 
                     <button
                       type="button"
-                      className={`p-3 border rounded-lg flex flex-col items-center justify-center transition-colors ${
+                      className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
                         sourceType === "host-function"
                           ? "border-green-500 bg-green-50 text-green-600"
                           : "border-gray-300 hover:border-green-300"
                       }`}
                       onClick={() => setSourceType("host-function")}
                     >
-                      <CpuChipIcon className="w-5 h-5" />
-                      <span className="text-sm font-medium mt-1">
+                      <CpuChipIcon className="w-4 h-4" />
+                      <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
                         Host Function
                       </span>
                     </button>
 
                     <button
                       type="button"
-                      className={`p-3 border rounded-lg flex flex-col items-center justify-center transition-colors ${
+                      className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
                         sourceType === "static"
                           ? "border-purple-500 bg-purple-50 text-purple-600"
                           : "border-gray-300 hover:border-purple-300"
                       }`}
                       onClick={() => setSourceType("static")}
                     >
-                      <span className="text-lg">📁</span>
-                      <span className="text-sm font-medium mt-1">Static</span>
+                      <span className="text-base">📁</span>
+                      <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
+                        Static
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1033,6 +1042,26 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     <CpuChipIcon className="w-4 h-4" />
                     Host Function Configuration
                   </h3>
+
+                  {/* Host datasource name (explicit for host-function flow) */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Source Name *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                      value={config.name}
+                      onChange={(e) => {
+                        setHostNameTouched(true);
+                        setConfig({ ...config, name: e.target.value });
+                      }}
+                      placeholder="e.g., Ghost Posts for Home, Ghost Posts for Hero"
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      You can create multiple datasources from the same host function by using different names and parameters.
+                    </p>
+                  </div>
 
                   {/* 宿主函数选择/显示 */}
                   <div className="mb-4">
@@ -1121,24 +1150,26 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
               {/* 数据源基本信息 */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Data Source Name *
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    value={config.name}
-                    onChange={(e) =>
-                      setConfig({ ...config, name: e.target.value })
-                    }
-                    placeholder="e.g., Featured Products, Electronics List"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your custom name for this data source instance
-                  </p>
-                </div>
-                <div>
+                {sourceType !== "host-function" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Data Source Name *
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                      value={config.name}
+                      onChange={(e) =>
+                        setConfig({ ...config, name: e.target.value })
+                      }
+                      placeholder="e.g., Featured Products, Electronics List"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Your custom name for this data source instance
+                    </p>
+                  </div>
+                )}
+                <div className={sourceType === "host-function" ? "col-span-2" : ""}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Category (Optional)
                   </label>

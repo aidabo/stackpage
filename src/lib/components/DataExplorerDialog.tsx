@@ -867,10 +867,12 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     }
   };
 
+  const fullscreenTopOffset = "var(--stackpage-top-spacing, 60px)";
+
   const dialogStyle = isFullscreen
     ? {
         width: "95vw",
-        height: "95vh",
+        height: `calc(100vh - ${fullscreenTopOffset} - 1rem)`,
         maxWidth: "none",
         maxHeight: "none",
       }
@@ -893,7 +895,15 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div
+      className="fixed inset-0 z-[1000] flex justify-center bg-black bg-opacity-50 p-4"
+      style={{
+        alignItems: isFullscreen ? "flex-start" : "center",
+        paddingTop: isFullscreen
+          ? `calc(${fullscreenTopOffset} + 0.5rem)`
+          : "1rem",
+      }}
+    >
       <div
         ref={dialogRef}
         className="bg-white rounded-lg shadow-xl flex flex-col relative"
@@ -1691,7 +1701,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
         {/* Resizing overlay */}
         {dialogSize.isResizing && (
-          <div className="fixed inset-0 z-[201] cursor-se-resize" />
+          <div className="fixed inset-0 z-[1001] cursor-se-resize" />
         )}
       </div>
     </div>
