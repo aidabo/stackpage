@@ -1,4 +1,12 @@
-import { useState, useRef, useEffect, ReactNode, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  ReactNode,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -42,15 +50,8 @@ import {
 
 import StackActions, { StackActionsRef } from "./stackactions";
 import { GridStackDropEvent } from "../gridstack/grid-stack-render-provider";
-import { PageInfoDialog } from "./pageinfodialog";
 import { StackPageProvider } from "./StackPageProvider";
 import { useStackPage } from "./StackPageContext";
-import { PropertiesTab } from "./PropertiesTab";
-import { ComponentsTab } from "./ComponentsTab";
-import { PageTab } from "./PageTab";
-import { ListTab } from "./ListTab";
-import { DataSourceTab } from "./DataSourceTab";
-import { SearchTab } from "./SearchTab";
 import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource, StackI18n } from "./types";
@@ -59,6 +60,51 @@ import ExternalDragSourceContext from "./ExternalDragSourceContext";
 import { v4 as uuidv4 } from "uuid";
 import "../styles/index.css";
 import { useT, StackI18nProvider } from './StackI18nProvider';
+
+const PageInfoDialogLazy = lazy(() =>
+  import("./pageinfodialog").then((module) => ({
+    default: module.PageInfoDialog,
+  }))
+);
+
+const ComponentsTabLazy = lazy(() =>
+  import("./ComponentsTab").then((module) => ({
+    default: module.ComponentsTab,
+  }))
+);
+const PropertiesTabLazy = lazy(() =>
+  import("./PropertiesTab").then((module) => ({
+    default: module.PropertiesTab,
+  }))
+);
+const PageTabLazy = lazy(() =>
+  import("./PageTab").then((module) => ({
+    default: module.PageTab,
+  }))
+);
+const ListTabLazy = lazy(() =>
+  import("./ListTab").then((module) => ({
+    default: module.ListTab,
+  }))
+);
+const DataSourceTabLazy = lazy(() =>
+  import("./DataSourceTab").then((module) => ({
+    default: module.DataSourceTab,
+  }))
+);
+const SearchTabLazy = lazy(() =>
+  import("./SearchTab").then((module) => ({
+    default: module.SearchTab,
+  }))
+);
+
+const DialogLoadingFallback = () => (
+  <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
+    <div className="bg-white rounded-lg shadow px-4 py-3 text-sm text-gray-700">
+      Loading dialog...
+    </div>
+  </div>
+);
 
 export interface StackPageOptions {
   options: any; // Define any specific options for the StackPage here
@@ -124,6 +170,23 @@ const getTabIcon = (tab: string) => {
   }
 };
 
+type EditorTabKey =
+  | "components"
+  | "properties"
+  | "page"
+  | "list"
+  | "datasource"
+  | "search";
+
+const EDITOR_TABS: EditorTabKey[] = [
+  "components",
+  "properties",
+  "page",
+  "list",
+  "datasource",
+  "search",
+];
+
 // Main StackPage Content Component
 const StackPageContent = ({
   pageid,
@@ -159,6 +222,9 @@ const StackPageContent = ({
   const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const initialLoadRef = useRef(true);
+  const [loadedTabs, setLoadedTabs] = useState<Set<EditorTabKey>>(
+    new Set(["components"])
+  );
 
   const {
     activeTab,
@@ -220,6 +286,17 @@ const StackPageContent = ({
       }));
     }
   }, [currentMode, setPageAttributes]);
+
+  useEffect(() => {
+    if (currentMode !== "edit") return;
+    const currentTab = activeTab as EditorTabKey;
+    setLoadedTabs((prev) => {
+      if (prev.has(currentTab)) return prev;
+      const next = new Set(prev);
+      next.add(currentTab);
+      return next;
+    });
+  }, [activeTab, currentMode]);
 
   /**
    * When switch mode, change draggable and resizable settings of grid
@@ -877,73 +954,133 @@ const StackPageContent = ({
                       },
                     }}
                   >
-                    <div
-                      style={{
-                        display: activeTab === "components" ? "block" : "none",
-                        height: "100%",
-                      }}
-                      className="h-full min-h-0 overflow-hidden"
-                    >
-                      <ComponentsTab
-                        componentMapProvider={componentMapProvider}
-                        componentCatalogProvider={componentCatalogProvider}
-                        onDragStart={handleDragStart}
-                      />
-                    </div>
-                    <div
-                      style={{
-                        display: activeTab === "search" ? "block" : "none",
-                        height: "100%",
-                      }}
-                      className="h-full min-h-0 overflow-hidden"
-                    >
-                      <SearchTab
-                        onCustomAction={onCustomAction}
-                        onDragStart={handleDragStart}
-                      />
-                    </div>
+                    {loadedTabs.has("components") && (
+                      <div
+                        style={{
+                          display: activeTab === "components" ? "block" : "none",
+                          height: "100%",
+                        }}
+                        className="h-full min-h-0 overflow-hidden"
+                      >
+                        <Suspense
+                          fallback={
+                            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                              Loading tab...
+                            </div>
+                          }
+                        >
+                          <ComponentsTabLazy
+                            componentMapProvider={componentMapProvider}
+                            componentCatalogProvider={componentCatalogProvider}
+                            onDragStart={handleDragStart}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
+                    {loadedTabs.has("search") && (
+                      <div
+                        style={{
+                          display: activeTab === "search" ? "block" : "none",
+                          height: "100%",
+                        }}
+                        className="h-full min-h-0 overflow-hidden"
+                      >
+                        <Suspense
+                          fallback={
+                            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                              Loading tab...
+                            </div>
+                          }
+                        >
+                          <SearchTabLazy
+                            onCustomAction={onCustomAction}
+                            onDragStart={handleDragStart}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
                   </ExternalDragSourceContext.Provider>
 
-                  <div
-                    style={{
-                      display: activeTab === "properties" ? "block" : "none",
-                      height: "100%",
-                    }}
-                    className="h-full min-h-0 overflow-hidden"
-                  >
-                    <PropertiesTab
-                      onFileUpload={onFileUpload}
-                      onCustomAction={onCustomAction}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      display: activeTab === "page" ? "block" : "none",
-                      height: "100%",
-                    }}
-                    className="h-full min-h-0 overflow-hidden"
-                  >
-                    <PageTab onFileUpload={onFileUpload} />
-                  </div>
-                  <div
-                    style={{
-                      display: activeTab === "list" ? "block" : "none",
-                      height: "100%",
-                    }}
-                    className="h-full min-h-0 overflow-hidden"
-                  >
-                    <ListTab />
-                  </div>
-                  <div
-                    style={{
-                      display: activeTab === "datasource" ? "flex" : "none",
-                      height: "100%",
-                      overflow: "hidden",
-                    }}
-                    className="h-full min-h-0 flex-col"
-                  >
-                    <DataSourceTab />
-                  </div>
+                  {loadedTabs.has("properties") && (
+                    <div
+                      style={{
+                        display: activeTab === "properties" ? "block" : "none",
+                        height: "100%",
+                      }}
+                      className="h-full min-h-0 overflow-hidden"
+                    >
+                      <Suspense
+                        fallback={
+                          <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                            Loading tab...
+                          </div>
+                        }
+                      >
+                        <PropertiesTabLazy
+                          onFileUpload={onFileUpload}
+                          onCustomAction={onCustomAction}
+                        />
+                      </Suspense>
+                    </div>
+                  )}
+                  {loadedTabs.has("page") && (
+                    <div
+                      style={{
+                        display: activeTab === "page" ? "block" : "none",
+                        height: "100%",
+                      }}
+                      className="h-full min-h-0 overflow-hidden"
+                    >
+                      <Suspense
+                        fallback={
+                          <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                            Loading tab...
+                          </div>
+                        }
+                      >
+                        <PageTabLazy onFileUpload={onFileUpload} />
+                      </Suspense>
+                    </div>
+                  )}
+                  {loadedTabs.has("list") && (
+                    <div
+                      style={{
+                        display: activeTab === "list" ? "block" : "none",
+                        height: "100%",
+                      }}
+                      className="h-full min-h-0 overflow-hidden"
+                    >
+                      <Suspense
+                        fallback={
+                          <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                            Loading tab...
+                          </div>
+                        }
+                      >
+                        <ListTabLazy />
+                      </Suspense>
+                    </div>
+                  )}
+                  {loadedTabs.has("datasource") && (
+                    <div
+                      style={{
+                        display: activeTab === "datasource" ? "flex" : "none",
+                        height: "100%",
+                        overflow: "hidden",
+                      }}
+                      className="h-full min-h-0 flex-col"
+                    >
+                      <Suspense
+                        fallback={
+                          <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                            Loading tab...
+                          </div>
+                        }
+                      >
+                        <DataSourceTabLazy />
+                      </Suspense>
+                    </div>
+                  )}
                 </div>
 
                 {/* Vertical Tab Bar */}
@@ -953,16 +1090,7 @@ const StackPageContent = ({
                     }`}
                   style={{ height: "100%" }}
                 >
-                  {(
-                    [
-                      "components",
-                      "properties",
-                      "page",
-                      "list",
-                      "datasource",
-                      "search",
-                    ] as const
-                  ).map((tab) => (
+                  {EDITOR_TABS.map((tab) => (
                     <button
                       key={tab}
                       className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${activeTab === tab
@@ -1030,11 +1158,15 @@ const StackPageContent = ({
         )}
 
         {/* show page info */}
-        <PageInfoDialog
-          isOpen={showGridInfo}
-          pageInfo={getCurrentPageProps}
-          resetOpenInfo={setShowGridInfo}
-        />
+        {showGridInfo && (
+          <Suspense fallback={<DialogLoadingFallback />}>
+            <PageInfoDialogLazy
+              isOpen={showGridInfo}
+              pageInfo={getCurrentPageProps}
+              resetOpenInfo={setShowGridInfo}
+            />
+          </Suspense>
+        )}
       </div>
     </GridStackProvider>
   );

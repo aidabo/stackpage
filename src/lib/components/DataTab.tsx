@@ -4,6 +4,8 @@ import React, {
   useRef,
   useState,
   useCallback,
+  lazy,
+  Suspense,
 } from "react";
 import Form from "@rjsf/core";
 import validator from "@rjsf/validator-ajv8";
@@ -30,9 +32,6 @@ import {
   getFileAccept,
 } from "./PropertyTypeUtils";
 import { CustomActionFn, FileUploadFn } from "..";
-import { SchemaEditorDialog } from "./SchemaEditorDialog";
-import { DataExplorerDialog } from "./DataExplorerDialog";
-import { InteractionEditorDialog } from "./InteractionEditorDialog";
 import { useStackPage } from "./StackPageContext";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { get } from "../utils/get";
@@ -42,6 +41,32 @@ import { useDataBinding } from "./useDataBinding";
 import { resolveBindingValue } from "../utils/bindingEngine";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 import { InteractionRule } from "../utils/componentCommunication";
+
+const SchemaEditorDialogLazy = lazy(() =>
+  import("./SchemaEditorDialog").then((module) => ({
+    default: module.SchemaEditorDialog,
+  }))
+);
+
+const DataExplorerDialogLazy = lazy(() =>
+  import("./DataExplorerDialog").then((module) => ({
+    default: module.DataExplorerDialog,
+  }))
+);
+
+const InteractionEditorDialogLazy = lazy(() =>
+  import("./InteractionEditorDialog").then((module) => ({
+    default: module.InteractionEditorDialog,
+  }))
+);
+
+const DialogLoadingFallback = () => (
+  <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
+    <div className="bg-white rounded-lg shadow px-4 py-3 text-sm text-gray-700">
+      Loading dialog...
+    </div>
+  </div>
+);
 
 interface DataTabProps {
   selectedInstance: any;
@@ -106,6 +131,11 @@ export const DataTab: React.FC<DataTabProps> = ({
   const [localComponentSchema, setLocalComponentSchema] =
     useState(componentSchema);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isGeneratingSchema, setIsGeneratingSchema] = useState(false);
+  const [schemaActionMessage, setSchemaActionMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     setLocalComponentSchema(componentSchema);
@@ -265,13 +295,23 @@ export const DataTab: React.FC<DataTabProps> = ({
       }
       setShowSchemaEditor(false);
       setFormError(null);
+      setSchemaActionMessage({
+        type: "success",
+        text: "Schema saved successfully.",
+      });
     } catch (error) {
       console.error("Error saving schema:", error);
       setFormError(`Error saving schema: ${error}`);
+      setSchemaActionMessage({
+        type: "error",
+        text: "Failed to save schema.",
+      });
     }
   };
 
   const handleGenerateSchema = () => {
+    setIsGeneratingSchema(true);
+    setSchemaActionMessage(null);
     try {
       const cleanProps = getCleanProps(componentProps);
 
@@ -282,9 +322,20 @@ export const DataTab: React.FC<DataTabProps> = ({
         onSchemaChange(generatedSchema);
       }
       setFormError(null);
+      const propertyCount = Object.keys(generatedSchema?.properties || {}).length;
+      setSchemaActionMessage({
+        type: "success",
+        text: `Schema generated (${propertyCount} properties).`,
+      });
     } catch (error) {
       console.error("Error generating schema:", error);
       setFormError(`Error generating schema: ${error}`);
+      setSchemaActionMessage({
+        type: "error",
+        text: "Failed to generate schema.",
+      });
+    } finally {
+      setIsGeneratingSchema(false);
     }
   };
 
@@ -749,12 +800,24 @@ export const DataTab: React.FC<DataTabProps> = ({
 
                 <button
                   onClick={handleGenerateSchema}
-                  className="flex-1 min-w-0 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors text-center"
+                  disabled={isGeneratingSchema}
+                  className="flex-1 min-w-0 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors text-center disabled:opacity-60 disabled:cursor-not-allowed"
                   title="Generate Schema from Current Props"
                 >
-                  Generate Schema
+                  {isGeneratingSchema ? "Generating..." : "Generate Schema"}
                 </button>
                 </div>
+                {schemaActionMessage && (
+                  <div
+                    className={`mt-2 text-xs rounded px-2 py-1 ${
+                      schemaActionMessage.type === "success"
+                        ? "bg-green-50 text-green-700 border border-green-200"
+                        : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
+                  >
+                    {schemaActionMessage.text}
+                  </div>
+                )}
                 <div className="mt-2">
                   <button
                     onClick={() => setShowInteractionEditor(true)}
@@ -915,71 +978,82 @@ export const DataTab: React.FC<DataTabProps> = ({
           </div>
         </div>
       </ErrorBoundary>
-      {/* Schema Editor Dialog */}
-      <SchemaEditorDialog
-        isOpen={showSchemaEditor}
-        onClose={() => setShowSchemaEditor(false)}
-        onSave={handleSchemaSave}
-        defaultProps={componentProps}
-        currentSchema={localComponentSchema}
-        lists={source.lists || []}
-        dataSources={source.dataSources || []}
-      />
+      {showSchemaEditor && (
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <SchemaEditorDialogLazy
+            isOpen={showSchemaEditor}
+            onClose={() => setShowSchemaEditor(false)}
+            onSave={handleSchemaSave}
+            defaultProps={componentProps}
+            currentSchema={localComponentSchema}
+            lists={source.lists || []}
+            dataSources={source.dataSources || []}
+          />
+        </Suspense>
+      )}
 
-      {/* Data Explorer Dialog */}
-      <DataExplorerDialog
-        isOpen={showDataExplorer}
-        onClose={() => setShowDataExplorer(false)}
-        dataSources={source.dataSources || []}
-        onApplyMappings={handleApplyMappings}
-        onBindRecord={handleBindRecord}
-        mappableProps={ArrayBindingUtils.extractMappableArrayFields(
-          schema
-        ).filter(
-          (k) =>
-            k !== "__schema" &&
-            k !== "__bindings" &&
-            k !== "__ignoredMappings" &&
-            k !== "__interactions"
-        )}
-        currentMappings={
-          bindings
-            ? Object.entries(bindings).reduce(
-              (acc: any, [key, binding]: any) => {
-                acc[key] = binding.path;
-                return acc;
-              },
-              {}
-            )
-            : {}
-        }
-        currentTransformers={
-          bindings
-            ? Object.entries(bindings).reduce(
-              (acc: any, [key, binding]: any) => {
-                if (binding.transformer) acc[key] = binding.transformer;
-                return acc;
-              },
-              {}
-            )
-            : {}
-        }
-        currentBindings={bindings}
-        schema={schema}
-        currentIgnoredFields={ignoredFields || []}
-        onReleaseBindings={handleReleaseBindings}
-        initialDataSourceId={
-          bindings && Object.keys(bindings).length > 0
-            ? bindings[Object.keys(bindings)[0]]?.sourceId
-            : undefined
-        }
-      />
-      <InteractionEditorDialog
-        isOpen={showInteractionEditor}
-        onClose={() => setShowInteractionEditor(false)}
-        onSave={handleSaveInteractions}
-        currentRules={interactionRules}
-      />
+      {showDataExplorer && (
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <DataExplorerDialogLazy
+            isOpen={showDataExplorer}
+            onClose={() => setShowDataExplorer(false)}
+            dataSources={source.dataSources || []}
+            onApplyMappings={handleApplyMappings}
+            onBindRecord={handleBindRecord}
+            mappableProps={ArrayBindingUtils.extractMappableArrayFields(
+              schema
+            ).filter(
+              (k) =>
+                k !== "__schema" &&
+                k !== "__bindings" &&
+                k !== "__ignoredMappings" &&
+                k !== "__interactions"
+            )}
+            currentMappings={
+              bindings
+                ? Object.entries(bindings).reduce(
+                    (acc: any, [key, binding]: any) => {
+                      acc[key] = binding.path;
+                      return acc;
+                    },
+                    {}
+                  )
+                : {}
+            }
+            currentTransformers={
+              bindings
+                ? Object.entries(bindings).reduce(
+                    (acc: any, [key, binding]: any) => {
+                      if (binding.transformer) acc[key] = binding.transformer;
+                      return acc;
+                    },
+                    {}
+                  )
+                : {}
+            }
+            currentBindings={bindings}
+            schema={schema}
+            currentIgnoredFields={ignoredFields || []}
+            onReleaseBindings={handleReleaseBindings}
+            initialDataSourceId={
+              bindings && Object.keys(bindings).length > 0
+                ? bindings[Object.keys(bindings)[0]]?.sourceId
+                : undefined
+            }
+          />
+        </Suspense>
+      )}
+
+      {showInteractionEditor && (
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <InteractionEditorDialogLazy
+            isOpen={showInteractionEditor}
+            onClose={() => setShowInteractionEditor(false)}
+            onSave={handleSaveInteractions}
+            currentRules={interactionRules}
+          />
+        </Suspense>
+      )}
     </>
   );
 };
