@@ -55,10 +55,18 @@ export const PropertiesTab = ({
   const {
     __schema,
     __bindings,
+    __schemaOptions,
     __ignoredMappings,
     __interactions,
     ...componentPropsWithoutSchema
   } = currentProps;
+  const componentPropsWithSchemaOptions = useMemo(
+    () => ({
+      ...componentPropsWithoutSchema,
+      __schemaOptions: __schemaOptions || {},
+    }),
+    [componentPropsWithoutSchema, __schemaOptions]
+  );
 
   // Initialize schema for new components
   // In the useEffect for initializing schema:
@@ -70,7 +78,7 @@ export const PropertiesTab = ({
       // If no schema exists, generate one and save it
       if (!__schema) {
         const generatedSchema = generateSchemaFromCurrentProps(
-          componentPropsWithoutSchema
+          componentPropsWithSchemaOptions
         );
 
         // Preserve existing bindings when creating schema
@@ -78,6 +86,7 @@ export const PropertiesTab = ({
           ...componentPropsWithoutSchema,
           __schema: generatedSchema,
           __bindings: __bindings || {}, // Preserve bindings
+          __schemaOptions: __schemaOptions || {}, // Preserve schema options
           __ignoredMappings: __ignoredMappings || [], // Preserve ignored mappings
           __interactions: __interactions || [],
         };
@@ -97,8 +106,10 @@ export const PropertiesTab = ({
   }, [
     selectedInstance,
     __schema,
+    __schemaOptions,
     __interactions,
     componentPropsWithoutSchema,
+    componentPropsWithSchemaOptions,
     setSelectedInstance,
     updateProps,
   ]);
@@ -109,8 +120,8 @@ export const PropertiesTab = ({
       return __schema;
     }
     // Generate default schema if none exists (fallback)
-    return generateSchemaFromCurrentProps(componentPropsWithoutSchema);
-  }, [__schema, componentPropsWithoutSchema]);
+    return generateSchemaFromCurrentProps(componentPropsWithSchemaOptions);
+  }, [__schema, componentPropsWithSchemaOptions]);
 
   // Handle prop changes for Data tab
   const handlePropertyChange = useCallback(
@@ -121,6 +132,8 @@ export const PropertiesTab = ({
           ...data.formData,
           __schema: componentSchema, // Preserve the schema
           __bindings: data.formData.__bindings || __bindings, // Prioritize updated bindings
+          __schemaOptions:
+            data.formData.__schemaOptions || __schemaOptions || {},
           __ignoredMappings:
             data.formData.__ignoredMappings || __ignoredMappings,
           __interactions:
@@ -150,6 +163,7 @@ export const PropertiesTab = ({
       selectedInstance,
       componentSchema,
       __bindings,
+      __schemaOptions,
       __ignoredMappings,
       __interactions,
       setSelectedInstance,
@@ -166,6 +180,7 @@ export const PropertiesTab = ({
           ...componentPropsWithoutSchema,
           __schema: newSchema,
           __bindings: __bindings,
+          __schemaOptions: __schemaOptions || {},
           __ignoredMappings: __ignoredMappings,
           __interactions: __interactions || [],
         };
@@ -181,6 +196,7 @@ export const PropertiesTab = ({
       selectedInstance,
       componentPropsWithoutSchema,
       __bindings,
+      __schemaOptions,
       __ignoredMappings,
       __interactions,
       setSelectedInstance,
@@ -273,8 +289,8 @@ export const PropertiesTab = ({
             key={selectedInstance?.id || selectedComponent}
             selectedInstance={selectedInstance}
             componentType={componentType as any}
-            componentProps={componentPropsWithoutSchema}
-            currentProps={componentPropsWithoutSchema}
+            componentProps={componentPropsWithSchemaOptions}
+            currentProps={componentPropsWithSchemaOptions}
             onPropertyChange={handlePropertyChange}
             onFileUpload={onFileUpload}
             onCustomAction={onCustomAction}

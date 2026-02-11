@@ -9,6 +9,108 @@ import {
   inferPropertySchema,
 } from "./PropertyTypeUtils";
 
+const COLOR_PRESETS = [
+  "#FFFFFF",
+  "#C0C0C0",
+  "#808080",
+  "#000000",
+  "#FF0000",
+  "#800000",
+  "#FFFF00",
+  "#808000",
+  "#00FF00",
+  "#008000",
+  "#00FFFF",
+  "#00FFFF",
+  "#008080",
+  "#0000FF",
+  "#000080",
+  "#FF00FF",
+  "#FF00FF",
+  "#800080",
+  "#FFA500",
+  "#A52A2A",
+  "#FFC0CB",
+  "#FFD700",
+  "#4B0082",
+  "#EE82EE",
+];
+
+const toNumber = (value: any, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const getNumberFieldConfig = (
+  name: string,
+  schema?: any,
+  value?: any
+): {
+  shouldUseSlider: boolean;
+  min: number;
+  max: number;
+  step: number;
+  numericValue: number;
+} => {
+  const keyLower = (name || "").toLowerCase();
+  const isOpacity = keyLower.includes("opacity");
+  const isMargin = keyLower.includes("margin");
+  const isSpatial =
+    keyLower.includes("padding") ||
+    keyLower.includes("width") ||
+    keyLower.includes("height") ||
+    keyLower.includes("top") ||
+    keyLower.includes("right") ||
+    keyLower.includes("bottom") ||
+    keyLower.includes("left") ||
+    keyLower.includes("gap") ||
+    keyLower.includes("radius") ||
+    keyLower.includes("size");
+  const isRotation = keyLower.includes("rotate") || keyLower.includes("rotation");
+
+  const min =
+    typeof schema?.minimum === "number"
+      ? schema.minimum
+      : isOpacity
+      ? 0
+      : isMargin
+      ? -200
+      : isRotation
+      ? -360
+      : 0;
+  const max =
+    typeof schema?.maximum === "number"
+      ? schema.maximum
+      : isOpacity
+      ? 1
+      : isMargin
+      ? 200
+      : isRotation
+      ? 360
+      : isSpatial
+      ? 200
+      : 100;
+  const step =
+    typeof schema?.multipleOf === "number"
+      ? schema.multipleOf
+      : isOpacity
+      ? 0.01
+      : 1;
+
+  return {
+    shouldUseSlider:
+      schema?.["x-slider"] === true ||
+      isOpacity ||
+      isMargin ||
+      isSpatial ||
+      isRotation,
+    min,
+    max,
+    step,
+    numericValue: toNumber(value, min),
+  };
+};
+
 // Custom field template for better layout
 export const CustomFieldTemplate = (props: any) => {
   const {
@@ -527,6 +629,9 @@ export const ArrayOfObjectsWidget = (props: any) => {
   const [localChanges, setLocalChanges] = React.useState<any[]>(
     props.value || []
   );
+  const [openColorField, setOpenColorField] = React.useState<string | null>(
+    null
+  );
 
   React.useEffect(() => {
     const initialItems = props.value || [];
@@ -951,19 +1056,87 @@ export const ArrayOfObjectsWidget = (props: any) => {
 
     switch (widgetType) {
       case "color":
+        const colorValue = value || "#000000";
+        const colorFieldOpen = openColorField === key;
         return (
-          <div className="flex space-x-2 items-center">
+          <div className="space-y-2 relative">
+            <div className="flex space-x-2 items-center">
+              <button
+                type="button"
+                onClick={() => setOpenColorField(colorFieldOpen ? null : key)}
+                className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
+                style={{ backgroundColor: colorValue }}
+                title={colorValue}
+              />
+              <input
+                type="text"
+                value={value || ""}
+                onChange={(e) => onChange(e.target.value)}
+                className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                placeholder={placeholder}
+              />
+            </div>
+            {colorFieldOpen && (
+              <div className="absolute z-20 bg-white border border-gray-300 shadow-xl p-3 rounded-lg top-full left-0 w-72">
+                <input
+                  type="text"
+                  value={colorValue}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="w-full mb-2 p-2 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="#0032FD"
+                />
+                <div className="grid grid-cols-6 gap-2 mb-3">
+                  {COLOR_PRESETS.map((color) => (
+                    <button
+                      type="button"
+                      key={color}
+                      style={{ backgroundColor: color }}
+                      className="w-8 h-8 rounded border border-gray-200"
+                      onClick={() => {
+                        onChange(color);
+                        setOpenColorField(null);
+                      }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+                <label className="relative block w-full py-2 rounded border border-gray-300 bg-gradient-to-r from-red-500 via-green-500 to-blue-500 text-white text-xs font-bold text-center cursor-pointer overflow-hidden">
+                  Custom Color
+                  <input
+                    type="color"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    value={colorValue}
+                    onChange={(e) => onChange(e.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        );
+
+      case "number":
+        const numberConfig = getNumberFieldConfig(key, schema, value);
+        return (
+          <div className="space-y-2">
+            {numberConfig.shouldUseSlider && (
+              <input
+                type="range"
+                min={numberConfig.min}
+                max={numberConfig.max}
+                step={numberConfig.step}
+                value={numberConfig.numericValue}
+                onChange={(e) => onChange(toNumber(e.target.value, numberConfig.min))}
+                className="w-full"
+              />
+            )}
             <input
-              type="color"
-              value={value || "#000000"}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-8 h-8 border border-gray-300 rounded cursor-pointer"
-            />
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              type="number"
+              value={value ?? ""}
+              min={numberConfig.min}
+              max={numberConfig.max}
+              step={numberConfig.step}
+              onChange={(e) => onChange(toNumber(e.target.value, numberConfig.min))}
+              className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
               placeholder={placeholder}
             />
           </div>
@@ -1025,7 +1198,6 @@ export const ArrayOfObjectsWidget = (props: any) => {
             onChange={(e) => onChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             placeholder={placeholder}
-            step={widgetType === "number" ? "any" : undefined}
           />
         );
     }
@@ -1385,14 +1557,34 @@ export const CustomTextareaWidget = (props: any) => {
 };
 
 export const CustomNumberWidget = (props: any) => {
+  const numberConfig = getNumberFieldConfig(
+    props.name || props.id || "",
+    props.schema,
+    props.value
+  );
   return (
-    <input
-      type="number"
-      value={props.value || ""}
-      onChange={(e) => props.onChange(Number(e.target.value))}
-      className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      step={props.step || "any"}
-    />
+    <div className="space-y-2">
+      {numberConfig.shouldUseSlider && (
+        <input
+          type="range"
+          min={numberConfig.min}
+          max={numberConfig.max}
+          step={numberConfig.step}
+          value={numberConfig.numericValue}
+          onChange={(e) => props.onChange(toNumber(e.target.value, numberConfig.min))}
+          className="w-full"
+        />
+      )}
+      <input
+        type="number"
+        value={props.value ?? ""}
+        onChange={(e) => props.onChange(toNumber(e.target.value, numberConfig.min))}
+        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        step={props.step || numberConfig.step || "any"}
+        min={numberConfig.min}
+        max={numberConfig.max}
+      />
+    </div>
   );
 };
 
@@ -1546,21 +1738,61 @@ export const CustomURLWidget = (props: any) => {
 };
 
 export const CustomColorWidget = (props: any) => {
+  const [openPanel, setOpenPanel] = React.useState(false);
+  const colorValue = props.value || "#000000";
   return (
-    <div className="flex space-x-3 items-center">
-      <input
-        type="color"
-        value={props.value || "#000000"}
-        onChange={(e) => props.onChange(e.target.value)}
-        className="w-16 h-16 border border-gray-300 rounded-lg cursor-pointer"
-      />
-      <input
-        type="text"
-        value={props.value || ""}
-        onChange={(e) => props.onChange(e.target.value)}
-        className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        placeholder="#000000"
-      />
+    <div className="space-y-2 relative">
+      <div className="flex space-x-3 items-center">
+        <button
+          type="button"
+          onClick={() => setOpenPanel((prev) => !prev)}
+          className="w-16 h-16 border border-gray-300 rounded-lg cursor-pointer"
+          style={{ backgroundColor: colorValue }}
+          title={colorValue}
+        />
+        <input
+          type="text"
+          value={props.value || ""}
+          onChange={(e) => props.onChange(e.target.value)}
+          className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          placeholder="#000000"
+        />
+      </div>
+      {openPanel && (
+        <div className="absolute z-20 bg-white border border-gray-300 shadow-xl p-4 rounded-lg top-full left-0 w-80">
+          <input
+            type="text"
+            value={colorValue}
+            onChange={(e) => props.onChange(e.target.value)}
+            className="w-full mb-2 p-2 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="#0032FD"
+          />
+          <div className="grid grid-cols-6 gap-2 mb-3">
+            {COLOR_PRESETS.map((color) => (
+              <button
+                type="button"
+                key={color}
+                style={{ backgroundColor: color }}
+                className="w-10 h-10 rounded border border-gray-200"
+                onClick={() => {
+                  props.onChange(color);
+                  setOpenPanel(false);
+                }}
+                title={color}
+              />
+            ))}
+          </div>
+          <label className="relative block w-full py-2 rounded border border-gray-300 bg-gradient-to-r from-red-500 via-green-500 to-blue-500 text-white text-xs font-bold text-center cursor-pointer overflow-hidden">
+            Custom Color
+            <input
+              type="color"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              value={colorValue}
+              onChange={(e) => props.onChange(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 };

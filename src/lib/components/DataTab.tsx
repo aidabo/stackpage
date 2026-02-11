@@ -685,7 +685,8 @@ export const DataTab: React.FC<DataTabProps> = ({
   };
 
   const handleReset = () => {
-    const resetProps = Object.keys(componentProps).reduce((acc, key) => {
+    const resettableProps = getCleanProps(componentProps);
+    const resetProps = Object.keys(resettableProps).reduce((acc, key) => {
       const value = componentProps[key];
       if (typeof value === "number") acc[key] = 0;
       else if (typeof value === "boolean") acc[key] = false;
@@ -695,7 +696,16 @@ export const DataTab: React.FC<DataTabProps> = ({
       return acc;
     }, {} as Record<string, any>);
 
-    onPropertyChange({ formData: resetProps });
+    onPropertyChange({
+      formData: {
+        ...resetProps,
+        __bindings: bindings || {},
+        __schemaOptions: componentProps.__schemaOptions || {},
+        __ignoredMappings: ignoredFields || [],
+        __interactions: interactionRules,
+        __schema: schema,
+      },
+    });
   };
 
   const interactionRules = useMemo(

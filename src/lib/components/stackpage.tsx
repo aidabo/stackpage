@@ -491,44 +491,61 @@ const StackPageContent = ({
 
     if (!children) return layout;
 
-    const updatedChildren = children.map((child: GridStackWidget) => {
-      // If this widget has updated props in context, update its content
-      if (child.id && widgetProps.has(child.id)) {
-        const updatedProps = widgetProps.get(child.id);
-        if ((updatedProps as any).__bindings) {
-          console.log(
-            `[StackPage] Widget ${child.id} has bindings:`,
-            (updatedProps as any).__bindings,
-          );
-        } else {
-          console.warn(
-            `[StackPage] Widget ${child.id} MISSING bindings in updatedProps`,
-          );
-        }
+    const getUpdatedPropsForWidget = (widgetId: any) => {
+      if (widgetId == null) return undefined;
 
+      // Fast path: exact key lookup.
+      const direct = widgetProps.get(widgetId as any);
+      if (direct) return direct;
+
+      // Fallback: handle string/number id mismatch.
+      const normalizedId = String(widgetId);
+      for (const [key, value] of widgetProps.entries()) {
+        if (String(key) === normalizedId) return value;
+      }
+      return undefined;
+    };
+
+    const updateWidgetNode = (node: GridStackWidget): GridStackWidget => {
+      let updatedNode = node;
+      const updatedProps = getUpdatedPropsForWidget(node.id);
+
+      // Update content props for this node when new widget props exist.
+      if (updatedProps) {
         try {
-          // Parse the existing content to preserve the component name
-          let contentObj = { name: "", props: {} };
-          if (child.content) {
-            contentObj = JSON.parse(child.content);
+          let contentObj = { name: "", props: {} as Record<string, any> };
+          if (node.content) {
+            contentObj = JSON.parse(node.content);
           }
-
-          // Merge the updated props
           contentObj.props = { ...contentObj.props, ...updatedProps };
-
-          // Update the content with new props
-          return {
-            ...child,
+          updatedNode = {
+            ...updatedNode,
             content: JSON.stringify(contentObj),
           };
         } catch (error) {
-          console.error(`Error updating props for widget ${child.id}:`, error);
-          return child;
+          console.error(`Error updating props for widget ${node.id}:`, error);
         }
       }
 
-      return child;
-    });
+      // Recursively update subgrid children as well.
+      if (updatedNode.subGridOpts?.children?.length) {
+        updatedNode = {
+          ...updatedNode,
+          subGridOpts: {
+            ...updatedNode.subGridOpts,
+            children: updatedNode.subGridOpts.children.map((childNode) =>
+              updateWidgetNode(childNode as GridStackWidget)
+            ),
+          },
+        };
+      }
+
+      return updatedNode;
+    };
+
+    const updatedChildren = children.map((child: GridStackWidget) =>
+      updateWidgetNode(child)
+    );
 
     // Return the updated layout with the same structure
     if (Array.isArray(layout)) {

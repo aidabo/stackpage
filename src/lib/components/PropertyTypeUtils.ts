@@ -529,6 +529,53 @@ export const inferPropertySchema = (key: string, value: any): any => {
 export const generateSchemaFromCurrentProps = (props: any): any => {
   const properties: any = {};
   const required: string[] = [];
+  const schemaOptions = props?.__schemaOptions || {};
+
+  const applySchemaOverrides = (property: any, override: any) => {
+    if (!override || typeof override !== "object") return property;
+
+    // Select by static options
+    if (Array.isArray(override.options) && override.options.length > 0) {
+      property.type = "string";
+      property.enum = override.options;
+    }
+
+    // Select by page-scope list reference (ListTab list id or name)
+    if (override.listRef) {
+      property.type = "string";
+      property["x-list-reference"] = override.listRef;
+    }
+
+    // Dynamic select source (API or datasource)
+    if (override.dynamicSelect) {
+      property.type = "string";
+      property["x-dynamic-select"] = true;
+    }
+
+    // Common override passthrough
+    const passthroughKeys = [
+      "type",
+      "format",
+      "title",
+      "description",
+      "default",
+      "minimum",
+      "maximum",
+      "multipleOf",
+      "x-list-reference",
+      "x-dynamic-select",
+      "x-active-select-source",
+      "x-media-type",
+      "x-array-binding",
+    ];
+    passthroughKeys.forEach((k) => {
+      if (override[k] !== undefined) {
+        property[k] = override[k];
+      }
+    });
+
+    return property;
+  };
 
   Object.entries(props).forEach(([key, value]) => {
     // Skip internal properties
@@ -711,7 +758,8 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       property.type = "string";
     }
 
-    properties[key] = property;
+    const override = schemaOptions[key];
+    properties[key] = applySchemaOverrides(property, override);
   });
 
   return {

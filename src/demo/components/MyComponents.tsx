@@ -5,6 +5,7 @@ import type {
   StackPageEventAction,
   StackPageEventSubscription,
 } from "@/lib";
+import { size } from "lodash";
 
 const getByPath = (obj: any, path?: string) => {
   if (!path || path === "$") return obj;
@@ -710,6 +711,9 @@ export const componentPropsProvider = () => {
       color: "blue",
       size: "md",
       onClick: () => alert("Button clicked!"),
+      __schemaOptions:{
+        size: {options: ['sm', 'md', 'lg']},
+      }
     },
     Card: {
       title: "Card Title",
