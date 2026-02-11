@@ -8,6 +8,7 @@ import {
 import { useStackPage } from "./StackPageContext";
 import DeleteDropZone from "./Deletedropzone";
 import { useExternalComponentDrag } from "./ExternalDragSourceContext";
+import { useT } from "./StackI18nProvider";
 
 interface ComponentsTabProps {
   componentMapProvider?: ComponentMapProvider;
@@ -20,6 +21,7 @@ export const ComponentsTab = ({
   componentCatalogProvider,
   onDragStart,
 }: ComponentsTabProps) => {
+  const t = useT();
   const { setSelectedComponent, setSelectedInstance } = useStackPage();
   const componentMap = getComponentMap(componentMapProvider);
   const { registerDragSource } = useExternalComponentDrag();
@@ -119,17 +121,27 @@ export const ComponentsTab = ({
       <div className="shrink-0 p-4 pb-3 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium mb-1">Components</h3>
+            <h3 className="text-lg font-medium mb-1">
+              {t("Components")}
+            </h3>
             <p className="text-sm text-gray-600 mb-2">
-              Drag components to the main area or click to select them
+              {t("Drag components to the main area or click to select them")}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShowTopControls((prev) => !prev)}
             className="p-1.5 rounded border bg-white text-gray-700 hover:bg-gray-100"
-            title={showTopControls ? "Collapse top controls" : "Expand top controls"}
-            aria-label={showTopControls ? "Collapse top controls" : "Expand top controls"}
+            title={
+              showTopControls
+                ? t("Collapse top controls")
+                : t("Expand top controls")
+            }
+            aria-label={
+              showTopControls
+                ? t("Collapse top controls")
+                : t("Expand top controls")
+            }
           >
             {showTopControls ? (
               <ChevronUpIcon className="w-4 h-4" />
@@ -151,7 +163,8 @@ export const ComponentsTab = ({
                     : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
                 }`}
               >
-                Common ({commonComponents.length + 1})
+                {t("Common")} (
+                {commonComponents.length + 1})
               </button>
               <button
                 type="button"
@@ -163,7 +176,7 @@ export const ComponentsTab = ({
                     : "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200"
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                Business (
+                {t("Business")} (
                 {businessGroups.reduce((count, group) => count + group.components.length, 0)}
                 )
               </button>
@@ -171,7 +184,7 @@ export const ComponentsTab = ({
 
             <div className="mb-2">
               <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Delete Zone (Drag components here to delete)
+                {t("Delete Zone (Drag components here to delete)")}
               </h4>
               <DeleteDropZone
                 onDropDelete={() => {
@@ -183,7 +196,9 @@ export const ComponentsTab = ({
 
             {sectionTab === "business" && businessGroups.length > 0 && (
               <div className="space-y-3">
-                <div className="text-sm font-medium text-gray-700">Business Libraries</div>
+                <div className="text-sm font-medium text-gray-700">
+                  {t("Business Libraries")}
+                </div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {businessGroups.map((group) => {
                     const isActive = group.id === activeBusinessId;
@@ -253,7 +268,7 @@ export const ComponentsTab = ({
                     SubGrid
                   </div>
                   <div className="text-xs text-blue-600 font-medium">
-                    Nested Grid Container
+                    {t("Nested Grid Container")}
                   </div>
                 </div>
               </div>
@@ -265,7 +280,7 @@ export const ComponentsTab = ({
       <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         {visibleComponents.length === 0 ? (
           <div className="p-6 rounded-lg border border-dashed border-gray-300 bg-white text-sm text-gray-500 text-center">
-            No components configured in this section.
+            {t("No components configured in this section.")}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

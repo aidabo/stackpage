@@ -41,6 +41,7 @@ import { useDataBinding } from "./useDataBinding";
 import { resolveBindingValue } from "../utils/bindingEngine";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 import { InteractionRule } from "../utils/componentCommunication";
+import { useT } from "./StackI18nProvider";
 
 const SchemaEditorDialogLazy = lazy(() =>
   import("./SchemaEditorDialog").then((module) => ({
@@ -101,6 +102,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   ignoredFields,
   interactions,
 }) => {
+  const t = useT();
   const { source } = useStackPage();
 
   // Resolve bindings for display
@@ -297,14 +299,14 @@ export const DataTab: React.FC<DataTabProps> = ({
       setFormError(null);
       setSchemaActionMessage({
         type: "success",
-        text: "Schema saved successfully.",
+        text: t("Schema saved successfully."),
       });
     } catch (error) {
       console.error("Error saving schema:", error);
       setFormError(`Error saving schema: ${error}`);
       setSchemaActionMessage({
         type: "error",
-        text: "Failed to save schema.",
+        text: t("Failed to save schema."),
       });
     }
   };
@@ -325,14 +327,14 @@ export const DataTab: React.FC<DataTabProps> = ({
       const propertyCount = Object.keys(generatedSchema?.properties || {}).length;
       setSchemaActionMessage({
         type: "success",
-        text: `Schema generated (${propertyCount} properties).`,
+        text: t(`Schema generated (${propertyCount} properties).`),
       });
     } catch (error) {
       console.error("Error generating schema:", error);
       setFormError(`Error generating schema: ${error}`);
       setSchemaActionMessage({
         type: "error",
-        text: "Failed to generate schema.",
+        text: t("Failed to generate schema."),
       });
     } finally {
       setIsGeneratingSchema(false);
@@ -752,10 +754,10 @@ export const DataTab: React.FC<DataTabProps> = ({
             <div className="flex flex-col gap-3">
               <div className="min-w-0">
                 <h3 className="text-lg font-medium text-gray-900">
-                  Properties
+                  {t("Properties")}
                 </h3>
                 <p className="text-sm text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis">
-                  Edit component properties and schema
+                  {t("Edit component properties and schema")}
                 </p>
               </div>
 
@@ -771,9 +773,12 @@ export const DataTab: React.FC<DataTabProps> = ({
                 >
                   <LinkIcon className="w-4 h-4" />
                   {bindings && Object.keys(bindings).length > 0 ? (
-                    <span>Data Binding ({Object.keys(bindings).length})</span>
+                    <span>
+                      {t("Data Binding")} (
+                      {Object.keys(bindings).length})
+                    </span>
                   ) : (
-                    <span>Data Binding</span>
+                    <span>{t("Data Binding")}</span>
                   )}
                 </button>
 
@@ -795,7 +800,7 @@ export const DataTab: React.FC<DataTabProps> = ({
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
-                  Edit Schema
+                  {t("Edit Schema")}
                 </button>
 
                 <button
@@ -804,7 +809,9 @@ export const DataTab: React.FC<DataTabProps> = ({
                   className="flex-1 min-w-0 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors text-center disabled:opacity-60 disabled:cursor-not-allowed"
                   title="Generate Schema from Current Props"
                 >
-                  {isGeneratingSchema ? "Generating..." : "Generate Schema"}
+                  {isGeneratingSchema
+                    ? t("Generating...")
+                    : t("Generate Schema")}
                 </button>
                 </div>
                 {schemaActionMessage && (
@@ -824,11 +831,13 @@ export const DataTab: React.FC<DataTabProps> = ({
                     className="w-full px-3 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 transition-colors text-center"
                     title="Edit Component Communication Rules"
                   >
-                    Interactions ({interactionRules.length})
+                    {t("Interactions")} (
+                    {interactionRules.length})
                   </button>
                   <p className="mt-1 text-xs text-gray-600">
-                    Interactions are evaluated at page runtime and can affect
-                    this widget, other widgets, and shared page state.
+                    {t(
+                      "Interactions are evaluated at page runtime and can affect this widget, other widgets, and shared page state."
+                    )}
                   </p>
                 </div>
               </div>

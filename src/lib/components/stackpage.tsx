@@ -210,12 +210,12 @@ const StackPageContent = ({
 
   // Tab label mapping
   const TAB_LABELS: Record<string, string> = {
-    components: "comps",
-    properties: "props",
-    page: "page",
-    list: "list",
-    datasource: "source",
-    search: "search",
+    components: "Components",
+    properties: "Properties",
+    page: "Page",
+    list: "List",
+    datasource: "Data Source",
+    search: "Search",
   };
 
   const isMobile = useMobile();
@@ -797,7 +797,7 @@ const StackPageContent = ({
                 <TooltipButton
                   onClick={handleGoBack}
                   icon={<ArrowLeftIcon className="stack-btn-icon" />}
-                  tooltip="Back to list"
+                  tooltip={t("Back to list")}
                   className="bg-gray-200 hover:bg-gray-300"
                 />
 
@@ -805,7 +805,7 @@ const StackPageContent = ({
                 <TooltipButton
                   onClick={() => setCurrentMode("preview")}
                   icon={<EyeIcon className="stack-btn-icon" />}
-                  tooltip="Preview"
+                  tooltip={t("Preview")}
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 />
 
@@ -813,27 +813,27 @@ const StackPageContent = ({
                 <StatusButton
                   onClick={handleSave}
                   icon={<CloudArrowDownIcon className="stack-btn-icon" />}
-                  label="Save"
+                  label={t("Save")}
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  successMessage="Saved successfully!"
-                  errorMessage="Save failed"
+                  successMessage={t("Saved successfully!")}
+                  errorMessage={t("Save failed")}
                 />
 
                 {/* Reload */}
                 <StatusButton
                   onClick={handleReload}
                   icon={<ArrowPathIcon className="stack-btn-icon" />}
-                  label="Reload"
+                  label={t("Reload")}
                   className="bg-green-600 hover:bg-green-700 text-white"
-                  successMessage="Reloaded successfully"
-                  errorMessage="Failed to reload"
+                  successMessage={t("Reloaded successfully")}
+                  errorMessage={t("Failed to reload")}
                 />
 
                 {/* Clear */}
                 <TooltipButton
                   onClick={handleClear}
                   icon={<TrashIcon className="stack-btn-icon" />}
-                  tooltip="Clear all data"
+                  tooltip={t("Clear all data")}
                   className="bg-red-600 hover:bg-red-700 text-white"
                 />
 
@@ -841,7 +841,7 @@ const StackPageContent = ({
                 <TooltipButton
                   onClick={() => setShowGridInfo(true)}
                   icon={<InformationCircleIcon className="stack-btn-icon" />}
-                  tooltip="Page Info & Settings"
+                  tooltip={t("Page Info & Settings")}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 />
 
@@ -856,7 +856,11 @@ const StackPageContent = ({
                         <ChevronLeftIcon className="stack-btn-icon" />
                       )
                     }
-                    tooltip={showEditor ? "Hide Editor" : "Show Editor"}
+                    tooltip={
+                      showEditor
+                        ? t("Hide Editor")
+                        : t("Show Editor")
+                    }
                     className="bg-gray-200 hover:bg-gray-300"
                   />
                 )}
@@ -965,7 +969,7 @@ const StackPageContent = ({
                         <Suspense
                           fallback={
                             <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                              Loading tab...
+                              {t("Loading tab...")}
                             </div>
                           }
                         >
@@ -988,7 +992,7 @@ const StackPageContent = ({
                         <Suspense
                           fallback={
                             <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                              Loading tab...
+                              {t("Loading tab...")}
                             </div>
                           }
                         >
@@ -1012,7 +1016,7 @@ const StackPageContent = ({
                       <Suspense
                         fallback={
                           <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                            Loading tab...
+                            {t("Loading tab...")}
                           </div>
                         }
                       >
@@ -1034,7 +1038,7 @@ const StackPageContent = ({
                       <Suspense
                         fallback={
                           <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                            Loading tab...
+                            {t("Loading tab...")}
                           </div>
                         }
                       >
@@ -1053,7 +1057,7 @@ const StackPageContent = ({
                       <Suspense
                         fallback={
                           <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                            Loading tab...
+                            {t("Loading tab...")}
                           </div>
                         }
                       >
@@ -1073,7 +1077,7 @@ const StackPageContent = ({
                       <Suspense
                         fallback={
                           <div className="h-full flex items-center justify-center text-sm text-gray-500">
-                            Loading tab...
+                            {t("Loading tab...")}
                           </div>
                         }
                       >
@@ -1132,10 +1136,12 @@ const StackPageContent = ({
               <button
                 onClick={() => setCurrentMode("edit")}
                 className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                title="Return to Edit Mode"
+                title={t("Return to Edit Mode")}
               >
                 <ArrowLeftCircleIcon className="stack-btn-icon group-hover:animate-bounce" />
-                <span className="text-sm font-medium">Edit Mode</span>
+                <span className="text-sm font-medium">
+                  {t("Edit Mode")}
+                </span>
               </button>
             </div>
           </div>
@@ -1148,10 +1154,12 @@ const StackPageContent = ({
               <button
                 onClick={gobackList}
                 className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 group"
-                title="Back to List"
+                title={t("Back to List")}
               >
                 <ArrowLeftCircleIcon className="stack-btn-icon group-hover:animate-bounce" />
-                <span className="text-sm font-medium">Back to List</span>
+                <span className="text-sm font-medium">
+                  {t("Back to List")}
+                </span>
               </button>
             </div>
           </div>
