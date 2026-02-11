@@ -45,7 +45,7 @@ export const SearchTab = ({ onCustomAction, onDragStart }: SearchTabProps) => {
 
   return (
     <div
-      className="h-full flex flex-col bg-zinc-200 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto"
+      className="h-full min-h-0 flex flex-col bg-zinc-200 overflow-y-auto"
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = "copy";

@@ -45,6 +45,16 @@ import {
   GetHostDataSourcesFn,
   StackI18n,
 } from "./components/types";
+import {
+  InteractionRule,
+  InteractionActionType,
+  StackPageRuntimeApi,
+  StackPageComponentProps,
+  StackPageEventAction,
+  StackPageEventSubscription,
+  StackPageEventMode,
+  StackPageSubscriptionReplyMode,
+} from "./utils/componentCommunication";
 
 import "./styles/index.css";
 
@@ -70,6 +80,14 @@ export {
   type HostFunctionDataSource,
   type GetHostDataSourcesFn,
   type StackI18n,
+  type InteractionRule,
+  type InteractionActionType,
+  type StackPageRuntimeApi,
+  type StackPageComponentProps,
+  type StackPageEventAction,
+  type StackPageEventSubscription,
+  type StackPageEventMode,
+  type StackPageSubscriptionReplyMode,
   gridOptions,
   subGridOptions,
 };

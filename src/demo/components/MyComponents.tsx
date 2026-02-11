@@ -1,4 +1,19 @@
 // MyComponents.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import type {
+  StackPageComponentProps,
+  StackPageEventAction,
+  StackPageEventSubscription,
+} from "@/lib";
+
+const getByPath = (obj: any, path?: string) => {
+  if (!path || path === "$") return obj;
+  const normalized = path.startsWith("$.") ? path.slice(2) : path;
+  return normalized
+    .split(".")
+    .reduce((acc: any, key: string) => (acc == null ? undefined : acc[key]), obj);
+};
+
 export const componentMapProvider = () => ({
   Button: ({
     text = "Click me",
@@ -463,6 +478,228 @@ export const componentMapProvider = () => ({
       </div>
     );
   },
+
+  ContactFormBridge: ({
+    title = "Contact Form",
+    actions = [],
+    successText = "Sent (no response required).",
+    waitingText = "Waiting for receiver response...",
+    ruleEcho = "",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    actions?: StackPageEventAction[];
+    successText?: string;
+    waitingText?: string;
+    ruleEcho?: string;
+  }>) => {
+    const [name, setName] = useState("Alice");
+    const [email, setEmail] = useState("alice@example.com");
+    const [message, setMessage] = useState("Hello from StackPage demo.");
+    const [status, setStatus] = useState("Ready");
+    const [receiverResponse, setReceiverResponse] = useState("");
+
+    const payload = useMemo(
+      () => ({
+        name,
+        email,
+        message,
+        sentAt: new Date().toISOString(),
+      }),
+      [name, email, message]
+    );
+
+    const handleAction = async (action: StackPageEventAction) => {
+      if (!action?.enabled || !__stackpage) return;
+      const actionPayload = getByPath(payload, action.payloadPath) ?? payload;
+
+      if (action.mode === "emit") {
+        __stackpage.emit(action.event, actionPayload);
+        setStatus(`${successText} (${action.label})`);
+        return;
+      }
+
+      if (action.mode === "request" && __stackpage.emitWithAck) {
+        setStatus(`${waitingText} (${action.label})`);
+        try {
+          const result = await __stackpage.emitWithAck(action.event, actionPayload, {
+            responseEvent: action.responseEvent || `${action.event}:completed`,
+            timeoutMs: 8000,
+          });
+          setReceiverResponse(
+            typeof result === "string" ? result : JSON.stringify(result)
+          );
+          setStatus(`Completed with receiver response. (${action.label})`);
+        } catch (error: any) {
+          setStatus(`Failed (${action.label}): ${error?.message || "unknown error"}`);
+        }
+      }
+    };
+
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <div className="grid grid-cols-1 gap-2">
+          <input
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+          />
+          <textarea
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm min-h-[88px]"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Message"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {(actions || [])
+            .filter((a) => a?.enabled !== false)
+            .map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => handleAction(action)}
+                className={`px-3 py-2 rounded text-white text-sm ${
+                  action.mode === "request"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {action.label}
+              </button>
+            ))}
+        </div>
+
+        <div className="text-xs text-gray-600">
+          <div>Status: {status}</div>
+          <div>Rule Echo (set-prop): {ruleEcho || "-"}</div>
+          <div>
+            Shared Last Email (set-shared-state):{" "}
+            {__stackpage?.getState?.("demo.bridge.lastEmail", "-") as string}
+          </div>
+          {receiverResponse && (
+            <div className="mt-1 break-all">Response: {receiverResponse}</div>
+          )}
+        </div>
+      </div>
+    );
+  },
+
+  ContactFormResultText: ({
+    title = "Form Result Viewer",
+    subscriptions = [],
+    actions = [],
+    ackMessagePrefix = "Receiver completed",
+    emptyText = "No form data received yet.",
+    ruleLog = "",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    subscriptions?: StackPageEventSubscription[];
+    actions?: StackPageEventAction[];
+    ackMessagePrefix?: string;
+    emptyText?: string;
+    ruleLog?: string;
+  }>) => {
+    const [lastData, setLastData] = useState<any>(null);
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+      if (!__stackpage?.subscribe) return;
+
+      const offs = (subscriptions || [])
+        .filter((sub) => sub?.enabled !== false && sub.event)
+        .map((sub) =>
+          __stackpage.subscribe(sub.event, (payload: any) => {
+            setLastData(payload);
+            setCount((prev: number) => prev + 1);
+
+            if (sub.replyMode === "ack") {
+              const responseEvent = sub.responseEvent || `${sub.event}:completed`;
+              __stackpage.emit(responseEvent, {
+                __requestId: payload?.__requestId,
+                result:
+                  sub.resultTemplate ||
+                  `${ackMessagePrefix}: ${payload?.name || "unknown"} / ${
+                    payload?.email || "no-email"
+                  }`,
+                handledAt: new Date().toISOString(),
+              });
+            }
+          })
+        );
+
+      return () => {
+        offs.forEach((off) => __stackpage.unsubscribe(off));
+      };
+    }, [__stackpage, subscriptions, ackMessagePrefix]);
+
+    const payloadForAction = {
+      nextTitle: `Result Viewer (${count + 1})`,
+      count: count + 1,
+      at: new Date().toISOString(),
+      lastData,
+    };
+
+    const handleAction = async (action: StackPageEventAction) => {
+      if (!action?.enabled || !__stackpage) return;
+      const actionPayload = getByPath(payloadForAction, action.payloadPath) ?? payloadForAction;
+      if (action.mode === "emit") {
+        __stackpage.emit(action.event, actionPayload);
+        return;
+      }
+      if (action.mode === "request" && __stackpage.emitWithAck) {
+        const result = await __stackpage.emitWithAck(action.event, actionPayload, {
+          responseEvent: action.responseEvent || `${action.event}:completed`,
+          timeoutMs: 8000,
+        });
+        if (result !== undefined) {
+          setLastData(result);
+          setCount((prev: number) => prev + 1);
+        }
+      }
+    };
+
+    return (
+      <div className="rounded-lg border border-gray-200 bg-slate-50 p-4">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <p className="text-xs text-gray-500 mt-1 mb-3">
+          Received Count: {count}
+        </p>
+        <p className="text-xs text-gray-600 mb-2">Rule Log (set-prop): {ruleLog || "-"}</p>
+        <p className="text-xs text-gray-600 mb-3">
+          Shared Result Last (set-shared-state):{" "}
+          {(JSON.stringify(__stackpage?.getState?.("demo.result.last", {})) || "-").slice(0, 140)}
+        </p>
+        <div className="mb-3 flex flex-wrap gap-2">
+          {(actions || [])
+            .filter((a) => a?.enabled !== false)
+            .map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => handleAction(action)}
+                className="px-3 py-2 rounded bg-purple-600 text-white text-xs hover:bg-purple-700"
+              >
+                {action.label}
+              </button>
+            ))}
+        </div>
+        <pre className="text-xs text-gray-700 whitespace-pre-wrap break-all bg-white border border-gray-200 rounded p-3 min-h-[120px]">
+          {lastData ? JSON.stringify(lastData, null, 2) : emptyText}
+        </pre>
+      </div>
+    );
+  },
 });
 
 // Component props provider - returns default props for each component type
@@ -593,6 +830,145 @@ export const componentPropsProvider = () => {
       value: "12,402",
       change: 12.5,
       description: "From last month",
+    },
+    ContactFormBridge: {
+      title: "Contact Form Sender",
+      ruleEcho: "",
+      successText: "Sent (no response required).",
+      waitingText: "Waiting for receiver response...",
+      actions: [
+        {
+          id: "bridge-action-1",
+          label: "Send (No Wait)",
+          mode: "emit",
+          event: "contact:submit",
+          enabled: true,
+        },
+        {
+          id: "bridge-action-2",
+          label: "Send (Wait Response)",
+          mode: "request",
+          event: "contact:submit:request",
+          responseEvent: "contact:submit:request:completed",
+          enabled: true,
+        },
+        {
+          id: "bridge-action-3",
+          label: "Run Rule Demo",
+          mode: "emit",
+          event: "demo:bridge.rules",
+          enabled: true,
+        },
+      ],
+      __interactions: [
+        {
+          id: "bridge-rule-1",
+          event: "demo:bridge.rules",
+          action: "set-shared-state",
+          targetPath: "demo.bridge.lastEmail",
+          valueFrom: "$.email",
+          enabled: true,
+        },
+        {
+          id: "bridge-rule-2",
+          event: "demo:bridge.rules",
+          action: "emit-event",
+          targetPath: "demo:bridge.rules:after",
+          valueFrom: "$",
+          enabled: true,
+        },
+        {
+          id: "bridge-rule-3",
+          event: "demo:bridge.rules:after",
+          action: "set-prop",
+          targetWidgetId: "$self",
+          targetPath: "title",
+          valueFrom: "$.name",
+          enabled: true,
+        },
+        {
+          id: "bridge-rule-4",
+          event: "demo:bridge.rules",
+          action: "set-prop",
+          targetWidgetId: "$self",
+          targetPath: "ruleEcho",
+          valueFrom: "$.message",
+          enabled: true,
+        },
+      ],
+    },
+    ContactFormResultText: {
+      title: "Contact Form Receiver",
+      ruleLog: "",
+      ackMessagePrefix: "Receiver completed",
+      emptyText: "No form data received yet.",
+      subscriptions: [
+        {
+          id: "result-sub-1",
+          event: "contact:submit",
+          enabled: true,
+          replyMode: "none",
+        },
+        {
+          id: "result-sub-2",
+          event: "contact:submit:request",
+          enabled: true,
+          replyMode: "ack",
+          responseEvent: "contact:submit:request:completed",
+          resultTemplate: "Receiver completed via subscription",
+        },
+        {
+          id: "result-sub-3",
+          event: "demo:bridge.rules:after",
+          enabled: true,
+          replyMode: "none",
+        },
+      ],
+      actions: [
+        {
+          id: "result-action-1",
+          label: "Run Rule Demo",
+          mode: "emit",
+          event: "demo:result.rules",
+          enabled: true,
+        },
+      ],
+      __interactions: [
+        {
+          id: "result-rule-1",
+          event: "demo:result.rules",
+          action: "set-prop",
+          targetWidgetId: "$self",
+          targetPath: "title",
+          valueFrom: "$.nextTitle",
+          enabled: true,
+        },
+        {
+          id: "result-rule-2",
+          event: "demo:result.rules",
+          action: "set-prop",
+          targetWidgetId: "$self",
+          targetPath: "ruleLog",
+          valueFrom: "$.at",
+          enabled: true,
+        },
+        {
+          id: "result-rule-3",
+          event: "demo:result.rules",
+          action: "set-shared-state",
+          targetPath: "demo.result.last",
+          valueFrom: "$",
+          enabled: true,
+        },
+        {
+          id: "result-rule-4",
+          event: "demo:result.rules",
+          action: "emit-event",
+          targetPath: "demo:result.rules:after",
+          valueFrom: "$",
+          enabled: true,
+        },
+      ],
     },
   };
 

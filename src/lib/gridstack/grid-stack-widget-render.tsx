@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GridStackWidget } from "gridstack";
 import { ComponentType } from "react";
@@ -8,6 +8,12 @@ import { GridStackAutoResizer } from "./grid-stack-autoresizer";
 import { useDataBinding } from "../components/useDataBinding";
 import { useWidgetProps } from "../components/StackPageWidgetProps";
 import { logBindingResolution } from "../utils/bindingDebug";
+import { useStackPage } from "../components/StackPageContext";
+import { debugLog } from "../utils/debug";
+import {
+  normalizeInteractionRules,
+  type StackPageRuntimeApi,
+} from "../utils/componentCommunication";
 
 // Parse widget metadata into usable component info
 function parseWidgetMeta(meta: GridStackWidget): {
@@ -68,6 +74,44 @@ export function GridStackWidgetRenderer({
   const rawProps = useMemo(() => {
     return componentProps || componentData.props;
   }, [componentProps, componentData.props]);
+  const {
+    registerWidgetSnapshot,
+    emitComponentEvent,
+    setSharedState,
+    getSharedState,
+    subscribeComponentEvent,
+  } = useStackPage();
+  const subscriptionDisposersRef = useRef<Set<() => void>>(new Set());
+
+  const interactionRules = useMemo(
+    () => normalizeInteractionRules((rawProps as any)?.__interactions),
+    [rawProps]
+  );
+
+  const withSentAt = (payload: any) => {
+    const sentAt = new Date().toISOString();
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      return payload.sentAt ? payload : { ...payload, sentAt };
+    }
+    return { value: payload, sentAt };
+  };
+
+  useEffect(() => {
+    registerWidgetSnapshot(id, (rawProps as any) || {});
+  }, [id, rawProps, registerWidgetSnapshot]);
+
+  useEffect(() => {
+    return () => {
+      subscriptionDisposersRef.current.forEach((dispose) => {
+        try {
+          dispose();
+        } catch {
+          // no-op
+        }
+      });
+      subscriptionDisposersRef.current.clear();
+    };
+  }, []);
 
   // Resolve bindings
   const props = useDataBinding(rawProps);
@@ -81,7 +125,7 @@ export function GridStackWidgetRenderer({
     resolvedProps: (props as any) || {},
   });
 
-  console.log(
+  debugLog(
     `[GridStackWidgetRenderer] Rendering widget ${id} of type ${componentData.name}`,
     {
       props,
@@ -121,6 +165,13 @@ export function GridStackWidgetRenderer({
     // Merge with current rawProps to ensure we preserving existing metadata 
     // (like __bindings, __schema) that might not be in the transient store yet.
     updateProps({ ...rawProps, ...updates });
+
+    emitComponentEvent({
+      sourceWidgetId: id,
+      eventName: "change",
+      payload: withSentAt(value),
+      rules: interactionRules,
+    });
   };
 
   const content = (
@@ -141,6 +192,113 @@ export function GridStackWidgetRenderer({
         <div className="widget-body flex-1 min-h-[40px] cursor-pointer">
           <WidgetComponent 
             {...props} 
+            __stackpage={{
+              widgetId: id,
+              emit: (eventName: string, payload?: any) =>
+                emitComponentEvent({
+                  sourceWidgetId: id,
+                  eventName,
+                  payload: withSentAt(payload),
+                  rules: interactionRules,
+                }),
+              emitWithAck: (
+                eventName: string,
+                payload?: any,
+                options?: { responseEvent?: string; timeoutMs?: number }
+              ) => {
+                const responseEvent =
+                  options?.responseEvent || `${eventName}:completed`;
+                const timeoutMs = options?.timeoutMs ?? 5000;
+                const requestId = `${id}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+
+                return new Promise((resolve, reject) => {
+                  let settled = false;
+                  const unsubscribe = subscribeComponentEvent(
+                    responseEvent,
+                    (responsePayload: any) => {
+                      if (settled) return;
+                      if (
+                        responsePayload?.__requestId &&
+                        responsePayload.__requestId !== requestId
+                      ) {
+                        return;
+                      }
+                      settled = true;
+                      window.clearTimeout(timer);
+                      unsubscribe();
+                      subscriptionDisposersRef.current.delete(unsubscribe);
+                      const responseWithHandledAt =
+                        responsePayload &&
+                        typeof responsePayload === "object" &&
+                        !Array.isArray(responsePayload)
+                          ? {
+                              ...responsePayload,
+                              handledAt:
+                                responsePayload.handledAt ||
+                                new Date().toISOString(),
+                            }
+                          : {
+                              result: responsePayload,
+                              handledAt: new Date().toISOString(),
+                            };
+                      resolve(
+                        responseWithHandledAt?.result ?? responseWithHandledAt
+                      );
+                    }
+                  );
+                  subscriptionDisposersRef.current.add(unsubscribe);
+
+                  const timer = window.setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    unsubscribe();
+                    subscriptionDisposersRef.current.delete(unsubscribe);
+                    reject(
+                      new Error(
+                        `Timeout waiting for ${responseEvent} after ${timeoutMs}ms`
+                      )
+                    );
+                  }, timeoutMs);
+
+                  const wrappedPayload =
+                    payload && typeof payload === "object"
+                      ? {
+                          ...payload,
+                          __requestId: requestId,
+                          sentAt: (payload as any).sentAt || new Date().toISOString(),
+                        }
+                      : {
+                          value: payload,
+                          __requestId: requestId,
+                          sentAt: new Date().toISOString(),
+                        };
+
+                  emitComponentEvent({
+                    sourceWidgetId: id,
+                    eventName,
+                    payload: wrappedPayload,
+                    rules: interactionRules,
+                  });
+                });
+              },
+              subscribe: (
+                eventName: string,
+                handler: (payload: any, meta: { sourceWidgetId: string; eventName: string }) => void
+              ) => {
+                const unsubscribe = subscribeComponentEvent(eventName, handler);
+                subscriptionDisposersRef.current.add(unsubscribe);
+                return unsubscribe;
+              },
+              unsubscribe: (unsubscribeFn?: (() => void) | null) => {
+                if (typeof unsubscribeFn === "function") {
+                  unsubscribeFn();
+                  subscriptionDisposersRef.current.delete(unsubscribeFn);
+                }
+              },
+              setState: (path: string, value: any) => setSharedState(path, value),
+              getState: (path: string, defaultValue?: any) =>
+                getSharedState(path, defaultValue),
+            } as StackPageRuntimeApi}
             // In edit mode, allow the widget to update its own props
             isEditing={currentMode === "edit"}
             onChange={currentMode === "edit" ? handleWidgetChange : undefined}

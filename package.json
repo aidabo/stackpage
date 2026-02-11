@@ -30,6 +30,8 @@
         "build:lib": "tsc -p tsconfig.lib.json && NODE_OPTIONS='--no-warnings' vite build --config vite.config.lib.ts",
         "build:demo": "NODE_OPTIONS='--no-warnings' vite build",
         "test:binding": "vite-node tests/binding-engine.runtime.test.ts",
+        "test:communication": "vite-node tests/component-communication.runtime.test.ts",
+        "test:runtime": "yarn test:binding && yarn test:communication",
         "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
     },
     "devDependencies": {

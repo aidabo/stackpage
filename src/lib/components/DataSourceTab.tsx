@@ -136,7 +136,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
   };
 
   return (
-    <div className="h-full p-4 bg-zinc-200 flex flex-col overflow-y-auto max-h-screen">
+    <div className="h-full min-h-0 p-4 bg-zinc-200 flex flex-col overflow-y-auto">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium">Data Source Manager</h3>

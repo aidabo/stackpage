@@ -32,6 +32,7 @@ import {
 import { CustomActionFn, FileUploadFn } from "..";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { DataExplorerDialog } from "./DataExplorerDialog";
+import { InteractionEditorDialog } from "./InteractionEditorDialog";
 import { useStackPage } from "./StackPageContext";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { get } from "../utils/get";
@@ -40,6 +41,7 @@ import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
 import { resolveBindingValue } from "../utils/bindingEngine";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
+import { InteractionRule } from "../utils/componentCommunication";
 
 interface DataTabProps {
   selectedInstance: any;
@@ -55,6 +57,7 @@ interface DataTabProps {
   onSchemaChange?: (schema: any) => void;
   bindings?: Record<string, any>;
   ignoredFields?: string[];
+  interactions?: InteractionRule[];
 }
 
 export const DataTab: React.FC<DataTabProps> = ({
@@ -71,6 +74,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   onSchemaChange,
   bindings,
   ignoredFields,
+  interactions,
 }) => {
   const { source } = useStackPage();
 
@@ -98,6 +102,7 @@ export const DataTab: React.FC<DataTabProps> = ({
   const previousSchemaRef = useRef<any>(null);
   const [showSchemaEditor, setShowSchemaEditor] = useState(false);
   const [showDataExplorer, setShowDataExplorer] = useState(false);
+  const [showInteractionEditor, setShowInteractionEditor] = useState(false);
   const [localComponentSchema, setLocalComponentSchema] =
     useState(componentSchema);
   const [formError, setFormError] = useState<string | null>(null);
@@ -112,6 +117,7 @@ export const DataTab: React.FC<DataTabProps> = ({
     delete cleanProps.__bindings;
     delete cleanProps.__schema;
     delete cleanProps.__ignoredMappings;
+    delete cleanProps.__interactions;
     return cleanProps;
   };
 
@@ -415,6 +421,8 @@ export const DataTab: React.FC<DataTabProps> = ({
         ...cleanProps,
         __bindings: {},
         __ignoredMappings: [],
+        __interactions: interactionRules,
+        __schema: schema,
       };
       onPropertyChange({ formData: propsWithClearedBindings });
       setValidationWarnings([]);
@@ -499,6 +507,8 @@ export const DataTab: React.FC<DataTabProps> = ({
         ...newBindings, // Add/overwrite with new bindings
       },
       __ignoredMappings: ignoredFields || [],
+      __interactions: interactionRules,
+      __schema: schema,
     };
 
     // Clean up bindings for ignored fields
@@ -519,7 +529,11 @@ export const DataTab: React.FC<DataTabProps> = ({
     mappings: Record<string, string>,
     _dataSourceId: string
   ) => {
-    const newProps = { ...componentProps };
+    const newProps = {
+      ...componentProps,
+      __interactions: interactionRules,
+      __schema: schema,
+    };
 
     Object.entries(mappings).forEach(([prop, path]) => {
       if (path) {
@@ -631,6 +645,22 @@ export const DataTab: React.FC<DataTabProps> = ({
     onPropertyChange({ formData: resetProps });
   };
 
+  const interactionRules = useMemo(
+    () => (interactions || []) as InteractionRule[],
+    [interactions]
+  );
+
+  const handleSaveInteractions = (rules: InteractionRule[]) => {
+    const updatedProps = {
+      ...componentProps,
+      __bindings: bindings || {},
+      __ignoredMappings: ignoredFields || [],
+      __interactions: rules,
+      __schema: schema,
+    };
+    onPropertyChange({ formData: updatedProps });
+  };
+
   if (formError) {
     return (
       <div className="p-6 text-center text-red-500">
@@ -724,6 +754,19 @@ export const DataTab: React.FC<DataTabProps> = ({
                 >
                   Generate Schema
                 </button>
+                </div>
+                <div className="mt-2">
+                  <button
+                    onClick={() => setShowInteractionEditor(true)}
+                    className="w-full px-3 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 transition-colors text-center"
+                    title="Edit Component Communication Rules"
+                  >
+                    Interactions ({interactionRules.length})
+                  </button>
+                  <p className="mt-1 text-xs text-gray-600">
+                    Interactions are evaluated at page runtime and can affect
+                    this widget, other widgets, and shared page state.
+                  </p>
                 </div>
               </div>
             </div>
@@ -894,7 +937,10 @@ export const DataTab: React.FC<DataTabProps> = ({
           schema
         ).filter(
           (k) =>
-            k !== "__schema" && k !== "__bindings" && k !== "__ignoredMappings"
+            k !== "__schema" &&
+            k !== "__bindings" &&
+            k !== "__ignoredMappings" &&
+            k !== "__interactions"
         )}
         currentMappings={
           bindings
@@ -927,6 +973,12 @@ export const DataTab: React.FC<DataTabProps> = ({
             ? bindings[Object.keys(bindings)[0]]?.sourceId
             : undefined
         }
+      />
+      <InteractionEditorDialog
+        isOpen={showInteractionEditor}
+        onClose={() => setShowInteractionEditor(false)}
+        onSave={handleSaveInteractions}
+        currentRules={interactionRules}
       />
     </>
   );

@@ -75,7 +75,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
     ) || 0;
 
   return (
-    <div className="h-full p-4 space-y-4 max-h-[calc(100vh-48*0.25rem)] bg-zinc-200 overflow-y-auto">
+    <div className="h-full min-h-0 p-4 space-y-4 bg-zinc-200 overflow-y-auto">
       <h3 className="text-lg font-medium mb-3">Page Settings</h3>
       <p className="text-sm text-gray-600 mb-4">
         Configure the overall page layout and appearance

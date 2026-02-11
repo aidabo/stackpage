@@ -1,6 +1,9 @@
 // StackPageContext.ts
 import { createContext, useContext } from "react";
 import { DataSource, ListDefinition } from "./types";
+import {
+  EmitComponentEventPayload,
+} from "../utils/componentCommunication";
 
 // Types for components in the layout
 export interface ComponentInstance {
@@ -51,6 +54,17 @@ export interface StackPageContextType {
   ) => void;
   widgetProps: Map<string, object>;
   updateWidgetProps: (widgetId: string, props: object) => void;
+  registerWidgetSnapshot: (widgetId: string, props: Record<string, any>) => void;
+  getWidgetSnapshot: (widgetId: string) => Record<string, any> | undefined;
+  sharedState: Record<string, any>;
+  setSharedState: (path: string, value: any) => void;
+  getSharedState: <T = any>(path: string, defaultValue?: T) => T | undefined;
+  emitComponentEvent: (payload: EmitComponentEventPayload) => void;
+  subscribeComponentEvent: (
+    eventName: string,
+    handler: (payload: any, meta: { sourceWidgetId: string; eventName: string }) => void
+  ) => () => void;
+  unsubscribeComponentEvent: (eventName: string, subscriptionId: string) => void;
 }
 
 // Create context

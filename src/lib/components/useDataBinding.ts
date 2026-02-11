@@ -5,12 +5,13 @@ import {
   resolveBoundValue,
   resolveArrayWithElementBindings,
 } from "../utils/bindingEngine";
+import { debugLog, debugWarn } from "../utils/debug";
 
 export const useDataBinding = (props: any) => {
   const { source } = useStackPage();
 
   const boundProps = useMemo(() => {
-    console.log("[useDataBinding] Resolving props with bindings:", {
+    debugLog("[useDataBinding] Resolving props with bindings:", {
       hasBindings: !!(
         props?.__bindings && Object.keys(props.__bindings).length > 0
       ),
@@ -32,7 +33,7 @@ export const useDataBinding = (props: any) => {
       props.__bindings
     );
 
-    console.log("[useDataBinding] Grouped bindings:", {
+    debugLog("[useDataBinding] Grouped bindings:", {
       arrayBindings: Object.keys(arrayBindings),
       elementBindings: Object.keys(elementBindings),
       regularBindings: Object.keys(regularBindings),
@@ -104,7 +105,7 @@ function resolveRegularBinding(
   const { sourceId, path } = binding;
 
   if (!sourceId || !path) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] Missing sourceId or path for ${propKey}:`,
       binding
     );
@@ -114,7 +115,7 @@ function resolveRegularBinding(
   // Find data source
   const dataSource = dataSources.find((ds) => ds.id === sourceId);
   if (!dataSource) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] Data source ${sourceId} not found for ${propKey}`
     );
     return;
@@ -122,7 +123,7 @@ function resolveRegularBinding(
 
   const sourceData = (dataSource as any).data;
   if (sourceData === undefined) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] No data available from source ${sourceId} for ${propKey}`
     );
     return;
@@ -139,7 +140,7 @@ function resolveRegularBinding(
   // Set the value
   if (value !== undefined) {
     resultProps[propKey] = value;
-    console.log(`[useDataBinding] Set ${propKey} =`, value);
+    debugLog(`[useDataBinding] Set ${propKey} =`, value);
   }
 }
 
@@ -157,7 +158,7 @@ function resolveArrayBinding(
   const { sourceId, path } = arrayBinding;
 
   if (!sourceId || !path) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] Missing sourceId or path for array ${arrayProp}:`,
       arrayBinding
     );
@@ -167,7 +168,7 @@ function resolveArrayBinding(
   // Find data source
   const dataSource = dataSources.find((ds) => ds.id === sourceId);
   if (!dataSource) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] Data source ${sourceId} not found for array ${arrayProp}`
     );
     return;
@@ -175,7 +176,7 @@ function resolveArrayBinding(
 
   const sourceData = (dataSource as any).data;
   if (sourceData === undefined) {
-    console.warn(
+    debugWarn(
       `[useDataBinding] No data available from source ${sourceId} for array ${arrayProp}`
     );
     return;
@@ -196,7 +197,7 @@ function resolveArrayBinding(
   }
 
   resultProps[arrayProp] = resolvedArray;
-  console.log(
+  debugLog(
     `[useDataBinding] Resolved array ${arrayProp} with ${resolvedArray.length} items:`,
     resolvedArray
   );

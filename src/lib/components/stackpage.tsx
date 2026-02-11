@@ -664,9 +664,20 @@ const StackPageContent = ({
     backgroundColor: attributes.background,
   };
 
+  const containerStyle =
+    currentMode === "edit"
+      ? {
+          height: "calc(100vh - var(--stackpage-top-spacing, 0px))",
+          overflow: "hidden" as const,
+        }
+      : undefined;
+
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
-      <div className="bg-white text-black flex flex-col stack-page-container">
+      <div
+        className="bg-white text-black flex flex-col stack-page-container h-full min-h-0"
+        style={containerStyle}
+      >
         {/* Toolbar - Only show in edit mode */}
         {currentMode === "edit" && (
           <header className="mx-2 p-4 bg-white shadow relative">
@@ -853,11 +864,7 @@ const StackPageContent = ({
                 )}
 
                 {/* Tab Content */}
-                <div
-                  className={`flex-1 min-h-0 pb-4 ${
-                    activeTab === "datasource" ? "overflow-hidden" : "overflow-y-auto"
-                  }`}
-                >
+                <div className="flex-1 h-full min-h-0 overflow-hidden">
                   <ExternalDragSourceContext.Provider
                     value={{
                       registerDragSource: (el) => {
@@ -873,7 +880,9 @@ const StackPageContent = ({
                     <div
                       style={{
                         display: activeTab === "components" ? "block" : "none",
+                        height: "100%",
                       }}
+                      className="h-full min-h-0 overflow-hidden"
                     >
                       <ComponentsTab
                         componentMapProvider={componentMapProvider}
@@ -886,6 +895,7 @@ const StackPageContent = ({
                         display: activeTab === "search" ? "block" : "none",
                         height: "100%",
                       }}
+                      className="h-full min-h-0 overflow-hidden"
                     >
                       <SearchTab
                         onCustomAction={onCustomAction}
@@ -897,7 +907,9 @@ const StackPageContent = ({
                   <div
                     style={{
                       display: activeTab === "properties" ? "block" : "none",
+                      height: "100%",
                     }}
+                    className="h-full min-h-0 overflow-hidden"
                   >
                     <PropertiesTab
                       onFileUpload={onFileUpload}
@@ -905,12 +917,20 @@ const StackPageContent = ({
                     />
                   </div>
                   <div
-                    style={{ display: activeTab === "page" ? "block" : "none" }}
+                    style={{
+                      display: activeTab === "page" ? "block" : "none",
+                      height: "100%",
+                    }}
+                    className="h-full min-h-0 overflow-hidden"
                   >
                     <PageTab onFileUpload={onFileUpload} />
                   </div>
                   <div
-                    style={{ display: activeTab === "list" ? "block" : "none" }}
+                    style={{
+                      display: activeTab === "list" ? "block" : "none",
+                      height: "100%",
+                    }}
+                    className="h-full min-h-0 overflow-hidden"
                   >
                     <ListTab />
                   </div>
@@ -931,6 +951,7 @@ const StackPageContent = ({
                   className={`flex flex-col border-l border-gray-200 bg-gray-50 
                     ${isMobile ? "w-14 mx-[5px]" : "w-14 mx-[5px]"
                     }`}
+                  style={{ height: "100%" }}
                 >
                   {(
                     [

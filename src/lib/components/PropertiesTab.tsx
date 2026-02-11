@@ -56,6 +56,7 @@ export const PropertiesTab = ({
     __schema,
     __bindings,
     __ignoredMappings,
+    __interactions,
     ...componentPropsWithoutSchema
   } = currentProps;
 
@@ -78,6 +79,7 @@ export const PropertiesTab = ({
           __schema: generatedSchema,
           __bindings: __bindings || {}, // Preserve bindings
           __ignoredMappings: __ignoredMappings || [], // Preserve ignored mappings
+          __interactions: __interactions || [],
         };
 
         const updatedInstance = {
@@ -95,6 +97,7 @@ export const PropertiesTab = ({
   }, [
     selectedInstance,
     __schema,
+    __interactions,
     componentPropsWithoutSchema,
     setSelectedInstance,
     updateProps,
@@ -120,6 +123,8 @@ export const PropertiesTab = ({
           __bindings: data.formData.__bindings || __bindings, // Prioritize updated bindings
           __ignoredMappings:
             data.formData.__ignoredMappings || __ignoredMappings,
+          __interactions:
+            data.formData.__interactions || __interactions || [],
         };
         const updatedInstance = {
           ...selectedInstance,
@@ -141,7 +146,15 @@ export const PropertiesTab = ({
         updateProps(updatedProps);
       }
     },
-    [selectedInstance, componentSchema, setSelectedInstance, updateProps]
+    [
+      selectedInstance,
+      componentSchema,
+      __bindings,
+      __ignoredMappings,
+      __interactions,
+      setSelectedInstance,
+      updateProps,
+    ]
   );
 
   // Handle schema changes from DataTab
@@ -154,6 +167,7 @@ export const PropertiesTab = ({
           __schema: newSchema,
           __bindings: __bindings,
           __ignoredMappings: __ignoredMappings,
+          __interactions: __interactions || [],
         };
         const updatedInstance = {
           ...selectedInstance,
@@ -166,6 +180,9 @@ export const PropertiesTab = ({
     [
       selectedInstance,
       componentPropsWithoutSchema,
+      __bindings,
+      __ignoredMappings,
+      __interactions,
       setSelectedInstance,
       updateProps,
     ]
@@ -209,7 +226,7 @@ export const PropertiesTab = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-zinc-200 max-h-[calc(100vh-48*0.25rem)] overflow-y-auto">
+    <div className="h-full min-h-0 flex flex-col bg-zinc-200 overflow-y-auto">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between">
@@ -267,6 +284,7 @@ export const PropertiesTab = ({
             onSchemaChange={handleSchemaChange} // 新增：传递schema变更处理函数
             bindings={__bindings}
             ignoredFields={__ignoredMappings}
+            interactions={__interactions || []}
           />
         )}
 

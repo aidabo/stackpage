@@ -7,6 +7,7 @@ import {
   useStackPageWidgetProps,
   useStackPage,
 } from "@/lib/components/StackPageContext"; // Add this import
+import { debugLog } from "../utils/debug";
 
 // Type for component registration
 export type ComponentMap = Record<string, ComponentType<any>>;
@@ -82,11 +83,15 @@ export function GridStackRender({
         const WidgetComponent = componentMap[name];
         const widgetContainer = getWidgetContainer(id);
 
+        if (widgetContainer) {
+          widgetContainer.setAttribute("data-component-name", name || "Unknown");
+        }
+
         // Use updated props from StackPageContext if available, otherwise use meta props
         // We merge them to ensure we don't lose static metadata (like bindings) if the store only has partial updates
         const props = { ...metaProps, ...(widgetProps.get(id) || {}) };
 
-        console.log(`[GridStackRenderer] Rendering widget ${id}`, props);
+        debugLog(`[GridStackRenderer] Rendering widget ${id}`, props);
 
         if (!WidgetComponent || !widgetContainer) return null;
 
