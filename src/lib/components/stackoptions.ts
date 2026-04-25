@@ -24,7 +24,7 @@ export const gridOptions: GridStackOptions = {
   acceptWidgets: true,
   removable: "#trash",
   sizeToContent: true,
-  resizable: { handles: "se" },
+  resizable: { handles: "all" },
   minRow: 10,
   columnOpts: {
     breakpointForWindow: true,
@@ -172,7 +172,7 @@ export const getComponentMap = (fn?: ComponentMapProvider): ComponentMap => {
  * @returns
  */
 export const getComponentProps = (
-  fn?: ComponentPropsProvider
+  fn?: ComponentPropsProvider,
 ): ComponentProps => {
   if (fn) {
     const customObject = fn();
@@ -212,7 +212,7 @@ export interface FileUploadOptions {
  */
 export type FileUploadFn = (
   file: File,
-  props?: FileUploadOptions
+  props?: FileUploadOptions,
 ) => Promise<string>;
 
 /**

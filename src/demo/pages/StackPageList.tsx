@@ -61,16 +61,49 @@ export default function StackPageList() {
     navigate(`/view/${pageid}`);
   };
 
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () =>
+        reject(new Error(`Failed to read file for local preview: ${file.name}`));
+      reader.readAsDataURL(file);
+    });
+
+  const resolveUploadedUrl = (value: any): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    const direct = String(value?.remoteUrl || value?.url || "").trim();
+    if (direct) return direct;
+    const nested = String(value?.data?.remoteUrl || value?.data?.url || "").trim();
+    return nested;
+  };
+
   const handleImageUpload = async (file: File) => {
     try {
       if (uploadImage) {
-        const imageUrl = await uploadImage(file);
-        return imageUrl;
+        const uploadResult = await uploadImage(file);
+        console.log("[StackPageList] uploadResult", uploadResult);
+        const imageUrl = resolveUploadedUrl(uploadResult);
+        console.log("[StackPageList] resolved remoteUrl", {
+          fileName: file.name,
+          remoteUrl: imageUrl,
+        });
+        if (imageUrl) return imageUrl;
+        throw new Error("Upload returned empty URL");
       }
+      console.warn("[StackPageList] uploadImage handler is not configured, fallback to local data URL");
+      const localDataUrl = await fileToDataUrl(file);
+      console.log("[StackPageList] local preview URL generated", {
+        fileName: file.name,
+        size: file.size,
+      });
+      return localDataUrl;
     } catch (error) {
       console.error("Image upload failed:", error);
       //throw error;
     }
+    return "";
   };
 
   // Change the handleDialogSubmit function
@@ -202,7 +235,7 @@ export default function StackPageList() {
           onClose={() => setIsDialogOpen(false)}
           onSubmit={handleDialogSubmit}
           initialData={(currentPage || undefined) as any}
-          onImageUpload={uploadImage ? handleImageUpload : undefined}
+          onImageUpload={handleImageUpload}
         />
       )}
     </>
