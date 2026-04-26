@@ -998,7 +998,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     >
                       <span className="text-base">🌐</span>
                       <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
-                        External API
+                        API Source
                       </span>
                     </button>
 
@@ -1013,7 +1013,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     >
                       <CpuChipIcon className="w-4 h-4" />
                       <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
-                        Host Function
+                        Host Source
                       </span>
                     </button>
 
@@ -1035,12 +1035,12 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 </div>
               )}
 
-              {/* Host Function配置区域 */}
+              {/* Host source configuration */}
               {sourceType === "host-function" && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <h3 className="text-sm font-semibold text-green-800 mb-3 flex items-center gap-2">
                     <CpuChipIcon className="w-4 h-4" />
-                    Host Function Configuration
+                    Host Source Configuration
                   </h3>
 
                   {/* Host datasource name (explicit for host-function flow) */}
@@ -1066,7 +1066,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   {/* 宿主函数选择/显示 */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Host Function *
+                      Host Source *
                     </label>
                     <div className="flex gap-2">
                       <select
@@ -1127,12 +1127,11 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       <InformationCircleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm text-blue-800 font-medium mb-1">
-                          How Host Functions Work
+                          How Host Sources Work
                         </p>
                         <p className="text-xs text-blue-700">
-                          • <strong>Host Function</strong> is like an API
-                          endpoint provided by the host application (e.g.,
-                          Next.js API route)
+                          • <strong>Host Source</strong> is a reusable source
+                          provided by the host application
                         </p>
                         <p className="text-xs text-blue-700 mt-1">
                           • <strong>Data Source Name</strong> is your custom
@@ -1208,7 +1207,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Endpoint URL *
+                      Request URL *
                     </label>
                     <div className="flex gap-2">
                       <select
@@ -1763,7 +1762,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="font-bold">
                       {sourceType === "api" && config.method}
-                      {sourceType === "host-function" && "Host Function"}
+                      {sourceType === "host-function" && "Host Source"}
                       {sourceType === "static" && "Static Data"}
                     </span>
                     {sourceType === "host-function" && selectedHostSource && (

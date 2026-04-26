@@ -25,7 +25,11 @@ type RuleTemplateKey =
   | "cross_prop"
   | "shared_state"
   | "event_chain"
-  | "request_ack";
+  | "request_ack"
+  | "select_detail"
+  | "search_filter"
+  | "submit_confirm"
+  | "request_bridge";
 
 const DEFAULT_RULE: InteractionRule = {
   id: "rule-1",
@@ -82,7 +86,35 @@ const TEMPLATE_OPTIONS: Array<{
     label: "Request + Ack",
     description: "Emit request and wait response, then trigger success/error events.",
   },
+  {
+    key: "select_detail",
+    label: "Select Detail",
+    description: "Click a card to update selected id and open a detail panel.",
+  },
+  {
+    key: "search_filter",
+    label: "Search Filter",
+    description: "Typing in a search bar updates shared keyword and result list.",
+  },
+  {
+    key: "submit_confirm",
+    label: "Submit Confirm",
+    description: "Submit a form, store the payload, and notify the receiver.",
+  },
+  {
+    key: "request_bridge",
+    label: "Request Bridge",
+    description: "Send a button click request and wait for the receiver reply.",
+  },
 ];
+
+const SIMPLE_TEMPLATE_OPTIONS = TEMPLATE_OPTIONS.filter(
+  (option) => option.key !== "request_ack"
+);
+
+const ADVANCED_TEMPLATE_OPTIONS = TEMPLATE_OPTIONS.filter(
+  (option) => option.key === "request_ack"
+);
 
 export const InteractionEditorDialog: React.FC<InteractionEditorDialogProps> = ({
   isOpen,
@@ -288,6 +320,83 @@ export const InteractionEditorDialog: React.FC<InteractionEditorDialogProps> = (
             enabled: true,
           },
         ];
+      case "select_detail":
+        return [
+          {
+            id: `rule-${baseId}`,
+            description: "Select a post card and store the chosen id.",
+            event: "select",
+            action: "set-shared-state",
+            targetPath: "demo.post.selectedId",
+            valueFrom: "$.id",
+            enabled: true,
+          },
+          {
+            id: `rule-${baseId + 1}`,
+            description: "Notify the detail panel that the selection changed.",
+            event: "select",
+            action: "emit-event",
+            targetPath: "demo:post:selected",
+            valueFrom: "$",
+            enabled: true,
+          },
+        ];
+      case "search_filter":
+        return [
+          {
+            id: `rule-${baseId}`,
+            description: "Store the current search keyword.",
+            event: "search",
+            action: "set-shared-state",
+            targetPath: "demo.search.keyword",
+            valueFrom: "$.keyword",
+            enabled: true,
+          },
+          {
+            id: `rule-${baseId + 1}`,
+            description: "Notify result widgets that the search keyword changed.",
+            event: "search",
+            action: "emit-event",
+            targetPath: "demo:search:changed",
+            valueFrom: "$",
+            enabled: true,
+          },
+        ];
+      case "submit_confirm":
+        return [
+          {
+            id: `rule-${baseId}`,
+            description: "Store the submitted form payload.",
+            event: "submit",
+            action: "set-shared-state",
+            targetPath: "demo.registration.last",
+            valueFrom: "$",
+            enabled: true,
+          },
+          {
+            id: `rule-${baseId + 1}`,
+            description: "Notify the receiver that a form was submitted.",
+            event: "submit",
+            action: "emit-event",
+            targetPath: "demo:registration:submit",
+            valueFrom: "$",
+            enabled: true,
+          },
+        ];
+      case "request_bridge":
+        return [
+          {
+            id: `rule-${baseId}`,
+            description: "Send a request to the receiver and wait for the response.",
+            event: "click",
+            action: "emit-request",
+            targetPath: "demo:button:request",
+            responseEvent: "demo:button:request:completed",
+            timeoutMs: 5000,
+            valueFrom: "$",
+            enabled: true,
+          },
+        ];
       default:
         return [];
     }
@@ -442,7 +551,7 @@ export const InteractionEditorDialog: React.FC<InteractionEditorDialogProps> = (
             <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
               <div className="border rounded-lg p-3 bg-blue-50 border-blue-200">
                 <div className="text-sm font-medium text-blue-900 mb-2">
-                  Rule Templates
+                  Simple Rule Templates
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
@@ -452,7 +561,7 @@ export const InteractionEditorDialog: React.FC<InteractionEditorDialogProps> = (
                       setSelectedTemplate(e.target.value as RuleTemplateKey)
                     }
                   >
-                    {TEMPLATE_OPTIONS.map((opt) => (
+                    {SIMPLE_TEMPLATE_OPTIONS.map((opt) => (
                       <option key={opt.key} value={opt.key}>
                         {opt.label}
                       </option>
@@ -472,6 +581,33 @@ export const InteractionEditorDialog: React.FC<InteractionEditorDialogProps> = (
                   <PlusIcon className="w-4 h-4" />
                   Insert Template
                 </button>
+                <details className="mt-3 rounded border border-blue-200 bg-white p-2">
+                  <summary className="cursor-pointer text-xs font-medium text-blue-900">
+                    Advanced request/response template
+                  </summary>
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      value={selectedTemplate}
+                      onChange={(e) =>
+                        setSelectedTemplate(e.target.value as RuleTemplateKey)
+                      }
+                    >
+                      {ADVANCED_TEMPLATE_OPTIONS.map((opt) => (
+                        <option key={opt.key} value={opt.key}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="md:col-span-2 text-xs text-blue-800">
+                      {
+                        ADVANCED_TEMPLATE_OPTIONS.find(
+                          (opt) => opt.key === selectedTemplate
+                        )?.description
+                      }
+                    </div>
+                  </div>
+                </details>
               </div>
 
               {rules.map((rule, index) => (

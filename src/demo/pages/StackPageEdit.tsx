@@ -179,10 +179,14 @@ function StackPageEdit() {
     >
       {/* Additional custom content can go here */}
       {(mode as any) === "edit" && (
-        <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="font-semibold text-yellow-800 mb-2 text-center">
+        <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg space-y-2">
+          <h3 className="font-semibold text-yellow-800 text-center">
             Created by 60-think.com
           </h3>
+          <p className="text-sm text-yellow-800 text-center">
+            Save writes page schema, pageState, bindings, and datasource config
+            only. Runtime data is fetched again when the page reloads.
+          </p>
         </div>
       )}
     </StackPage>

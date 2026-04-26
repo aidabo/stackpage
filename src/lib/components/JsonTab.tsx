@@ -1,5 +1,6 @@
 // JsonTab.tsx
 import React, { useState } from "react";
+import { InteractionRule } from "../utils/componentCommunication";
 
 interface JsonTabProps {
   componentProps: any;
@@ -14,6 +15,9 @@ export const JsonTab: React.FC<JsonTabProps> = ({
     JSON.stringify(componentProps, null, 2)
   );
   const [isValid, setIsValid] = useState(true);
+  const interactionRules = Array.isArray(componentProps?.__interactions)
+    ? (componentProps.__interactions as InteractionRule[])
+    : [];
 
   const handleJsonChange = (value: string) => {
     setEditedJson(value);
@@ -39,6 +43,29 @@ export const JsonTab: React.FC<JsonTabProps> = ({
 
   return (
     <div className="p-6 space-y-4 h-full overflow-auto">
+      {interactionRules.length > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-emerald-800 mb-2">
+            Defined Events
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {interactionRules.map((rule) => (
+              <span
+                key={rule.id || `${rule.event}-${rule.action}`}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs text-emerald-800"
+              >
+                <span className="font-medium">{rule.event}</span>
+                <span className="text-emerald-600">→</span>
+                <span>{rule.action}</span>
+                {rule.targetPath && (
+                  <span className="text-emerald-700">({rule.targetPath})</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <h3 className="text-lg font-medium mb-4">Raw JSON Editor</h3>
 

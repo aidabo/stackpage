@@ -55,6 +55,13 @@ import {
   StackPageEventMode,
   StackPageSubscriptionReplyMode,
 } from "./utils/componentCommunication";
+import {
+  DEFAULT_PAGE_STATE,
+  DEFAULT_PAGE_STATE_KEYS,
+  PageState,
+  normalizePageState,
+  createPageStatePath,
+} from "./utils/pageState";
 
 import "./styles/index.css";
 
@@ -88,6 +95,11 @@ export {
   type StackPageEventSubscription,
   type StackPageEventMode,
   type StackPageSubscriptionReplyMode,
+  DEFAULT_PAGE_STATE,
+  DEFAULT_PAGE_STATE_KEYS,
+  type PageState,
+  normalizePageState,
+  createPageStatePath,
   gridOptions,
   subGridOptions,
 };

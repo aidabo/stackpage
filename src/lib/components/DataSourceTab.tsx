@@ -139,9 +139,10 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
     <div className="h-full min-h-0 p-4 bg-zinc-200 flex flex-col overflow-y-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-medium">Data Source Manager</h3>
+          <h3 className="text-lg font-medium">Page Data Sources</h3>
           <p className="text-sm text-gray-600 mt-1">
-            Create and manage data sources for components
+            Define page-level source settings. Saved pages keep the
+            configuration; loaded data is refreshed at runtime.
           </p>
         </div>
         <button
@@ -149,7 +150,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
         >
           <PlusIcon className="w-4 h-4" />
-          Create New
+          Add Data Source
         </button>
       </div>
 
@@ -169,7 +170,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
         <div className="bg-white rounded-lg border p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Host Functions</p>
+              <p className="text-sm text-gray-500">Host Sources</p>
               <p className="text-xl font-semibold">{stats.hostFunctions}</p>
             </div>
             <CpuChipIcon className="w-6 h-6 text-green-500" />
@@ -178,7 +179,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
         <div className="bg-white rounded-lg border p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">External APIs</p>
+              <p className="text-sm text-gray-500">API Sources</p>
               <p className="text-xl font-semibold">{stats.apiSources}</p>
             </div>
             <GlobeAltIcon className="w-6 h-6 text-blue-500" />
@@ -187,7 +188,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
         <div className="bg-white rounded-lg border p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Others</p>
+              <p className="text-sm text-gray-500">Static Sources</p>
               <p className="text-xl font-semibold">{stats.staticSources}</p>
             </div>
             <DocumentTextIcon className="w-6 h-6 text-purple-500" />
@@ -208,13 +209,13 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
             {stats.hostFunctions > 0 && (
               <span className="inline-flex items-center gap-1 mr-3">
                 <CpuChipIcon className="w-4 h-4 text-green-500" />
-                {stats.hostFunctions} Host Functions
+                {stats.hostFunctions} Host Sources
               </span>
             )}
             {stats.apiSources > 0 && (
               <span className="inline-flex items-center gap-1">
                 <GlobeAltIcon className="w-4 h-4 text-blue-500" />
-                {stats.apiSources} External APIs
+                {stats.apiSources} API Sources
               </span>
             )}
           </div>
@@ -262,9 +263,9 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             )}`}
                           >
                             {ds.type === "host-function"
-                              ? "Host Function"
+                              ? "Host-driven"
                               : ds.type === "api"
-                                ? "API"
+                                ? "API source"
                                 : ds.type === "static"
                                   ? "Static"
                                   : "Unknown"}
@@ -340,7 +341,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
 
                       {ds.type === "host-function" && hostFunctionInfo && (
                         <span className="bg-green-50 text-green-700 px-2 py-1 rounded">
-                          Host Function ID: {hostFunctionInfo.hostFunctionId}
+                          Host Source ID: {hostFunctionInfo.hostFunctionId}
                         </span>
                       )}
 
@@ -353,10 +354,10 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
 
                       {(ds as any).data !== undefined && (
                         <span className="bg-green-50 text-green-700 px-2 py-1 rounded">
-                          Data:{" "}
+                          Runtime preview:{" "}
                           {Array.isArray((ds as any).data)
                             ? `${(ds as any).data.length} items`
-                            : "Loaded"}
+                            : "Loaded at runtime"}
                         </span>
                       )}
                     </div>
@@ -372,7 +373,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             <div>
                               <h6 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
                                 <InformationCircleIcon className="w-3 h-3" />
-                                Query Parameters
+                                Parameters
                               </h6>
                               <div className="bg-white rounded border p-3">
                                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
@@ -404,14 +405,14 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                         <div>
                           <h6 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
                             <InformationCircleIcon className="w-3 h-3" />
-                            Data Source Details
+                            Source Details
                           </h6>
                           <div className="bg-white rounded border p-3 space-y-2">
                             <div className="flex text-xs">
                               <div className="w-1/2 text-gray-500">Type:</div>
                               <div className="w-1/2 font-medium">
                                 {ds.type === "host-function"
-                                  ? "Host Function"
+                                  ? "Host Source"
                                   : ds.type === "api"
                                     ? "API Data"
                                     : ds.type === "static"
@@ -422,9 +423,9 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
 
                             {ds.type === "api" && ds.endpoint && (
                               <div className="flex text-xs">
-                                <div className="w-1/2 text-gray-500">
-                                  Endpoint:
-                                </div>
+                              <div className="w-1/2 text-gray-500">
+                                URL:
+                              </div>
                                 <div className="w-1/2 font-mono truncate text-blue-600">
                                   {ds.endpoint}
                                 </div>
@@ -435,15 +436,15 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                               hostFunctionInfo && (
                                 <>
                                   <div className="flex text-xs">
-                                    <div className="w-1/2 text-gray-500">
-                                      Host Function:
-                                    </div>
+                                <div className="w-1/2 text-gray-500">
+                                  Host function:
+                                </div>
                                     <div className="w-1/2 font-medium text-green-700">
                                       {hostFunctionInfo.hostFunctionName}
                                     </div>
                                   </div>
                                   <div className="flex text-xs">
-                                    <div className="w-1/2 text-gray-500">
+                                  <div className="w-1/2 text-gray-500">
                                       Function ID:
                                     </div>
                                     <div className="w-1/2 font-mono text-xs">
@@ -456,7 +457,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             {ds.type === "api" && ds.method && (
                               <div className="flex text-xs">
                                 <div className="w-1/2 text-gray-500">
-                                  Method:
+                                  Request method:
                                 </div>
                                 <div className="w-1/2 font-medium">
                                   {ds.method}
@@ -467,7 +468,7 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
                             {ds.type === "api" && ds.lastFetched && (
                               <div className="flex text-xs">
                                 <div className="w-1/2 text-gray-500">
-                                  Last Fetched:
+                                  Last loaded:
                                 </div>
                                 <div className="w-1/2">
                                   {new Date(ds.lastFetched).toLocaleString()}
@@ -501,13 +502,13 @@ export const DataSourceTab: React.FC = (): JSX.Element => {
 
                       {/* 使用说明 */}
                       <div className="mt-4 pt-3 border-t border-gray-200">
-                        <div className="text-xs text-gray-600">
-                          <strong>Usage:</strong> This data source can be bound
-                          to component properties in the Properties tab.
+                            <div className="text-xs text-gray-600">
+                          <strong>Usage:</strong> Bind this source to component
+                          properties in the Properties tab.
                           {ds.type === "host-function" &&
-                            " The host function will be called with the specified parameters."}
+                            " The host function is called with the selected parameters."}
                           {ds.type === "api" &&
-                            " The external API will be fetched with the specified headers and parameters."}
+                            " The API is fetched with the configured headers and parameters."}
                         </div>
                       </div>
                     </div>

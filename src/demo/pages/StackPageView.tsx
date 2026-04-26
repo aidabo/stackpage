@@ -178,13 +178,15 @@ function StackPageView() {
       onCustomAction={handleCustomAction as any}
     >
       {/* Additional custom content can go here */}
-      {(mode as any) === "edit" && (
-        <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="font-semibold text-yellow-800 mb-2 text-center">
-            Created by 60-think.com
-          </h3>
-        </div>
-      )}
+      <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg">
+        <h3 className="font-semibold text-green-800 mb-2 text-center">
+          Demo view uses the saved schema from jsonserver
+        </h3>
+        <p className="text-sm text-green-700 text-center">
+          Page state, bindings, and datasource config are restored on load.
+          Loaded data is runtime-only and refetches when the page opens.
+        </p>
+      </div>
     </StackPage>
   );
 }

@@ -8,6 +8,7 @@ import {
   normalizeInteractionRules,
 } from "../utils/componentCommunication";
 import { debugLog } from "../utils/debug";
+import { DEFAULT_PAGE_STATE, normalizePageState } from "../utils/pageState";
 
 interface StackPageProviderProps {
   children: ReactNode;
@@ -28,6 +29,7 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
   );
   const widgetPropsRef = useRef<Map<string, object>>(new Map());
   const widgetSnapshotsRef = useRef<Map<string, Record<string, any>>>(new Map());
+  const initialPageState = normalizePageState(DEFAULT_PAGE_STATE);
 
   const [attributes, setPageAttributes] = useState({
     type: "page",
@@ -46,8 +48,8 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     lists: [],
     dataSources: [],
   });
-  const [sharedState, setSharedStateStore] = useState<Record<string, any>>({});
-  const sharedStateRef = useRef<Record<string, any>>({});
+  const [sharedState, setSharedStateStore] = useState<Record<string, any>>(initialPageState);
+  const sharedStateRef = useRef<Record<string, any>>(initialPageState);
   const eventBusRef = useRef(createComponentEventBus());
 
   useEffect(() => {
@@ -86,6 +88,12 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
       sharedStateRef.current = next;
       return next;
     });
+  }, []);
+
+  const replacePageState = useCallback((state: Record<string, any>) => {
+    const next = normalizePageState(state);
+    sharedStateRef.current = next;
+    setSharedStateStore(next);
   }, []);
 
   const getSharedState = useCallback((path: string, defaultValue?: any) => {
@@ -238,6 +246,10 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     setPageAttributes,
     source,
     setSource,
+    pageState: sharedState,
+    setPageState: setSharedState,
+    getPageState: getSharedState,
+    replacePageState,
     activeTab,
     setActiveTab,
     widgetProps,

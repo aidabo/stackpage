@@ -2,7 +2,7 @@
 
 import { GridStackOptions, GridStackWidget } from "gridstack";
 import { ReactNode } from "react";
-import { DataSource, ListDefinition } from "./types";
+import { DataSource, ListDefinition, PageStateDefaults } from "./types";
 import { ComponentMap } from "..";
 import Text from "./Text";
 
@@ -91,6 +91,7 @@ export interface PageProps {
   published_at?: Date | null;
   status?: "draft" | "published";
   attributes?: any;
+  pageState?: PageStateDefaults;
   layout: GridStackOptions | GridStackWidget[] | undefined;
   source?: {
     // Top-level source

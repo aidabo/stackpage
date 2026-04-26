@@ -4,6 +4,7 @@ import { DataSource, ListDefinition } from "./types";
 import {
   EmitComponentEventPayload,
 } from "../utils/componentCommunication";
+import { PageStateDefaults } from "./types";
 
 // Types for components in the layout
 export interface ComponentInstance {
@@ -42,6 +43,10 @@ export interface StackPageContextType {
   //setSource: (source: SourceData) => void; // New setter for source
   // FIXED TYPE HERE
   setSource: React.Dispatch<React.SetStateAction<SourceData>>;
+  pageState: PageStateDefaults;
+  setPageState: (path: string, value: any) => void;
+  getPageState: <T = any>(path: string, defaultValue?: T) => T | undefined;
+  replacePageState: (state: PageStateDefaults) => void;
   activeTab:
   | "components"
   | "properties"

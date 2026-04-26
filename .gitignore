@@ -66,6 +66,11 @@ coverage/
 .jest-cache/
 .jest-test-results.json
 
+# Keep StackPage runtime tests in source control.
+!tests/
+!tests/*.runtime.test.ts
+!tests/*.runtime.test.js
+
 # Storybook
 storybook-static/
 

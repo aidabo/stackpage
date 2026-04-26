@@ -113,6 +113,14 @@ export interface DataSourceResult<T = any> {
   sourceId: string;
 }
 
+export interface PageStateDefaults {
+  selectedId?: string | number | null;
+  keyword?: string;
+  activeTab?: string;
+  dialogOpen?: boolean;
+  [key: string]: any;
+}
+
 // 宿主数据源提供者回调
 export type GetHostDataSourcesFn = () => Promise<HostFunctionDataSource[]>;
 

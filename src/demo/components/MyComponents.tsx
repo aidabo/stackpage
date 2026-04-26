@@ -1,11 +1,10 @@
 // MyComponents.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
   StackPageComponentProps,
   StackPageEventAction,
   StackPageEventSubscription,
 } from "@/lib";
-import { size } from "lodash";
 
 const getByPath = (obj: any, path?: string) => {
   if (!path || path === "$") return obj;
@@ -13,6 +12,188 @@ const getByPath = (obj: any, path?: string) => {
   return normalized
     .split(".")
     .reduce((acc: any, key: string) => (acc == null ? undefined : acc[key]), obj);
+};
+
+const DEMO_POST_ITEMS = [
+  {
+    id: "post-1",
+    title: "Building a calm page builder",
+    excerpt: "Keep events local and shared state small.",
+    body: "Widgets emit simple events. Page state carries only what multiple widgets need to share.",
+    category: "Architecture",
+  },
+  {
+    id: "post-2",
+    title: "Designing searchable content",
+    excerpt: "Search bars should update a shared keyword, not mutate results directly.",
+    body: "The search UI updates page state and the result panel derives the list from the same source.",
+    category: "Search",
+  },
+  {
+    id: "post-3",
+    title: "Form submission with confirmation",
+    excerpt: "Ask first, send second, then show the receiver response.",
+    body: "The form uses request/response so the sender can show a result after the receiver processes the payload.",
+    category: "Form",
+  },
+];
+
+const DEMO_REGISTRATION_ITEMS = [
+  {
+    id: "reg-1",
+    title: "Alice",
+    email: "alice@example.com",
+    team: "Product",
+  },
+  {
+    id: "reg-2",
+    title: "Lin",
+    email: "lin@example.com",
+    team: "Design",
+  },
+];
+
+type EventPatternKind =
+  | "select_detail"
+  | "search_filter"
+  | "submit_confirm"
+  | "request_bridge";
+
+const EVENT_PATTERN_META: Record<
+  EventPatternKind,
+  { label: string; description: string; color: string }
+> = {
+  select_detail: {
+    label: "Select → Detail",
+    description: "Click a card to update selection and show details.",
+    color: "amber",
+  },
+  search_filter: {
+    label: "Search → Results",
+    description: "Typing updates the shared keyword and filters the list.",
+    color: "blue",
+  },
+  submit_confirm: {
+    label: "Submit → Confirm",
+    description: "Confirm first, then send the registration payload.",
+    color: "emerald",
+  },
+  request_bridge: {
+    label: "Request → Reply",
+    description: "A button sends a request and a receiver returns the result.",
+    color: "indigo",
+  },
+};
+
+const EventPatternBadge = ({
+  kind,
+}: {
+  kind: EventPatternKind;
+}): React.JSX.Element => {
+  const meta = EVENT_PATTERN_META[kind];
+  const classNames: Record<EventPatternKind, string> = {
+    select_detail: "bg-amber-50 text-amber-700 border-amber-200",
+    search_filter: "bg-blue-50 text-blue-700 border-blue-200",
+    submit_confirm: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    request_bridge: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-1 text-[11px] font-medium ${classNames[kind]}`}
+    >
+      {meta.label}
+    </span>
+  );
+};
+
+const EventPatternGuide = ({
+  title = "Event patterns",
+  description = "These are the four demo patterns we use to keep event design simple and repeatable.",
+}: {
+  title?: string;
+  description?: string;
+}) => {
+  const kinds: EventPatternKind[] = [
+    "select_detail",
+    "search_filter",
+    "submit_confirm",
+    "request_bridge",
+  ];
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+          <p className="text-sm text-slate-600 mt-1">{description}</p>
+        </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+          Demo-ready
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {kinds.map((kind) => (
+          <div key={kind} className="rounded border border-slate-200 bg-slate-50 p-3">
+            <div className="flex items-center gap-2">
+              <EventPatternBadge kind={kind} />
+            </div>
+            <p className="mt-2 text-xs text-slate-600">
+              {EVENT_PATTERN_META[kind].description}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div className="text-xs font-semibold text-slate-700 mb-1">
+          Walkthrough
+        </div>
+        <ol className="list-decimal pl-4 text-xs text-slate-600 space-y-1">
+          <li>Select a card or input and watch shared page state change.</li>
+          <li>Check the detail/result widget that reacts to the shared value.</li>
+          <li>Open the event editor from the Properties tab to inspect rules.</li>
+          <li>Use request/response only for asynchronous or confirmed flows.</li>
+        </ol>
+      </div>
+    </div>
+  );
+};
+
+const DemoFlowSection = ({
+  index = "1",
+  title = "Section",
+  description = "",
+  accent = "slate",
+}: {
+  index?: string;
+  title?: string;
+  description?: string;
+  accent?: "slate" | "amber" | "blue" | "emerald" | "indigo" | "purple";
+}) => {
+  const palette: Record<
+    NonNullable<typeof accent>,
+    { border: string; bg: string; text: string }
+  > = {
+    slate: { border: "border-slate-200", bg: "bg-slate-50", text: "text-slate-700" },
+    amber: { border: "border-amber-200", bg: "bg-amber-50", text: "text-amber-700" },
+    blue: { border: "border-blue-200", bg: "bg-blue-50", text: "text-blue-700" },
+    emerald: { border: "border-emerald-200", bg: "bg-emerald-50", text: "text-emerald-700" },
+    indigo: { border: "border-indigo-200", bg: "bg-indigo-50", text: "text-indigo-700" },
+    purple: { border: "border-purple-200", bg: "bg-purple-50", text: "text-purple-700" },
+  };
+  const p = palette[accent];
+  return (
+    <div className={`rounded-lg border ${p.border} ${p.bg} px-4 py-3`}>
+      <div className="flex items-center gap-3">
+        <div className={`h-8 w-8 rounded-full bg-white border ${p.border} flex items-center justify-center text-sm font-semibold ${p.text}`}>
+          {index}
+        </div>
+        <div>
+          <div className={`text-sm font-semibold ${p.text}`}>{title}</div>
+          {description && <div className="text-xs text-slate-600">{description}</div>}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const componentMapProvider = () => ({
@@ -480,6 +661,351 @@ export const componentMapProvider = () => ({
     );
   },
 
+  PageStateBridge: ({
+    title = "Page State Bridge",
+    description = "Inspect and update shared page state without direct component coupling.",
+    stateKey = "keyword",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    description?: string;
+    stateKey?: string;
+  }>) => {
+    const [draftValue, setDraftValue] = useState(
+      String(__stackpage?.getPageState?.(stateKey, "") || ""),
+    );
+    const [syncedDraftValue, setSyncedDraftValue] = useState(draftValue);
+    const [selectedId, setSelectedId] = useState(
+      String(__stackpage?.getPageState?.("selectedId", "") || ""),
+    );
+    const [syncedSelectedId, setSyncedSelectedId] = useState(selectedId);
+    const [dialogOpen, setDialogOpen] = useState(
+      Boolean(__stackpage?.getPageState?.("dialogOpen", false)),
+    );
+    const [syncedDialogOpen, setSyncedDialogOpen] = useState(dialogOpen);
+    const syncTimerRef = useRef<Record<string, number>>({});
+
+    useEffect(() => {
+      return () => {
+        Object.values(syncTimerRef.current).forEach((timer) => {
+          window.clearTimeout(timer);
+        });
+      };
+    }, []);
+
+    useEffect(() => {
+      const path = stateKey;
+      const existingTimer = syncTimerRef.current[path];
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+      syncTimerRef.current[path] = window.setTimeout(() => {
+        __stackpage?.setPageState?.(path, draftValue);
+        setSyncedDraftValue(draftValue);
+      }, 180);
+    }, [draftValue, stateKey, __stackpage]);
+
+    useEffect(() => {
+      const path = "selectedId";
+      const existingTimer = syncTimerRef.current[path];
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+      syncTimerRef.current[path] = window.setTimeout(() => {
+        __stackpage?.setPageState?.(path, selectedId);
+        setSyncedSelectedId(selectedId);
+      }, 180);
+    }, [selectedId, __stackpage]);
+
+    useEffect(() => {
+      const path = "dialogOpen";
+      const existingTimer = syncTimerRef.current[path];
+      if (existingTimer) {
+        window.clearTimeout(existingTimer);
+      }
+      syncTimerRef.current[path] = window.setTimeout(() => {
+        __stackpage?.setPageState?.(path, dialogOpen);
+        setSyncedDialogOpen(dialogOpen);
+      }, 180);
+    }, [dialogOpen, __stackpage]);
+
+    return (
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+        <div>
+          <h3 className="text-base font-semibold text-blue-900">{title}</h3>
+          <p className="text-xs text-blue-700 mt-1">{description}</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 text-sm">
+          <label className="space-y-1">
+            <span className="text-blue-900 font-medium">keyword</span>
+            <input
+              className="w-full border border-blue-200 rounded px-3 py-2"
+              value={draftValue}
+              onChange={(e) => {
+                setDraftValue(e.target.value);
+              }}
+              placeholder="shared keyword"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-blue-900 font-medium">selectedId</span>
+            <input
+              className="w-full border border-blue-200 rounded px-3 py-2"
+              value={selectedId}
+              onChange={(e) => {
+                setSelectedId(e.target.value);
+              }}
+              placeholder="selected id"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-blue-900 font-medium">
+            <input
+              type="checkbox"
+              checked={dialogOpen}
+              onChange={(e) => {
+                setDialogOpen(e.target.checked);
+              }}
+            />
+            dialogOpen
+          </label>
+        </div>
+
+        <div className="text-xs text-blue-800 bg-white border border-blue-100 rounded p-3 space-y-1">
+          <div>keyword: {syncedDraftValue || "-"}</div>
+          <div>selectedId: {syncedSelectedId || "-"}</div>
+          <div>dialogOpen: {String(syncedDialogOpen)}</div>
+          <div className="text-blue-600">
+            Synced state updates after a short debounce so typing stays smooth.
+          </div>
+        </div>
+      </div>
+    );
+  },
+
+  FormControlSampler: ({
+    title = "Form control sampler",
+    description = "A demo widget with common form controls so you can test typing and interactions safely.",
+    submitLabel = "Save draft",
+  }: StackPageComponentProps<{
+    title?: string;
+    description?: string;
+    submitLabel?: string;
+  }>) => {
+    const [text, setText] = useState("Hello");
+    const [email, setEmail] = useState("hello@example.com");
+    const [password, setPassword] = useState("secret123");
+    const [notes, setNotes] = useState("This widget keeps focus while typing.");
+    const [category, setCategory] = useState("design");
+    const [priority, setPriority] = useState("medium");
+    const [agree, setAgree] = useState(true);
+    const [status, setStatus] = useState("draft");
+    const [rating, setRating] = useState(3);
+    const [themeColor, setThemeColor] = useState("#2563eb");
+    const [dueDate, setDueDate] = useState("2026-04-26");
+    const [avatarName, setAvatarName] = useState("No file chosen");
+
+    return (
+      <form
+        className="rounded-lg border border-slate-200 bg-white p-4 space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          alert(
+            JSON.stringify(
+              {
+                text,
+                email,
+                password,
+                notes,
+                category,
+                priority,
+                agree,
+                status,
+                rating,
+                themeColor,
+                dueDate,
+                avatarName,
+              },
+              null,
+              2,
+            ),
+          );
+        }}
+      >
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+            <span className="text-[11px] rounded-full bg-slate-100 px-2 py-1 text-slate-600">
+              All form controls
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-600">{description}</p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Text</span>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Text input"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Email</span>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Password</span>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Date</span>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </label>
+
+          <label className="space-y-1 md:col-span-2">
+            <span className="text-sm font-medium text-slate-700">Notes</span>
+            <textarea
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Long text area"
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Category</span>
+            <select
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="design">Design</option>
+              <option value="product">Product</option>
+              <option value="engineering">Engineering</option>
+            </select>
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Priority</span>
+            <div className="flex gap-3 pt-1">
+              {["low", "medium", "high"].map((value) => (
+                <label key={value} className="flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="radio"
+                    name="priority"
+                    value={value}
+                    checked={priority === value}
+                    onChange={() => setPriority(value)}
+                  />
+                  {value}
+                </label>
+              ))}
+            </div>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
+            Agree to terms
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Status</span>
+            <select
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="draft">Draft</option>
+              <option value="review">Review</option>
+              <option value="published">Published</option>
+            </select>
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Rating</span>
+            <input
+              className="w-full"
+              type="range"
+              min={1}
+              max={5}
+              value={rating}
+              onChange={(e) => setRating(Number(e.target.value))}
+            />
+            <div className="text-xs text-slate-500">Selected: {rating}</div>
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">Color</span>
+            <input
+              className="h-10 w-full rounded border border-slate-300 bg-white px-1 py-1"
+              type="color"
+              value={themeColor}
+              onChange={(e) => setThemeColor(e.target.value)}
+            />
+          </label>
+
+          <label className="space-y-1">
+            <span className="text-sm font-medium text-slate-700">File</span>
+            <input
+              className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              type="file"
+              onChange={(e) =>
+                setAvatarName(e.target.files?.[0]?.name || "No file chosen")
+              }
+            />
+            <div className="text-xs text-slate-500">{avatarName}</div>
+          </label>
+        </div>
+
+        <div className="rounded border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 space-y-1">
+          <div>Text: {text}</div>
+          <div>Email: {email}</div>
+          <div>Status: {status}</div>
+          <div>Priority: {priority}</div>
+          <div>Rating: {rating}</div>
+          <div>Color: {themeColor}</div>
+        </div>
+
+        <button
+          type="submit"
+          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          {submitLabel}
+        </button>
+      </form>
+    );
+  },
+
   ContactFormBridge: ({
     title = "Contact Form",
     actions = [],
@@ -602,6 +1128,7 @@ export const componentMapProvider = () => ({
     ackMessagePrefix = "Receiver completed",
     emptyText = "No form data received yet.",
     ruleLog = "",
+    pageStateKey = "selectedId",
     __stackpage,
   }: StackPageComponentProps<{
     title?: string;
@@ -610,9 +1137,13 @@ export const componentMapProvider = () => ({
     ackMessagePrefix?: string;
     emptyText?: string;
     ruleLog?: string;
+    pageStateKey?: string;
   }>) => {
     const [lastData, setLastData] = useState<any>(null);
     const [count, setCount] = useState(0);
+    const [sharedPageState, setSharedPageState] = useState(
+      String(__stackpage?.getPageState?.(pageStateKey, "-") || "-"),
+    );
 
     useEffect(() => {
       if (!__stackpage?.subscribe) return;
@@ -636,13 +1167,17 @@ export const componentMapProvider = () => ({
                 handledAt: new Date().toISOString(),
               });
             }
-          })
-        );
+        })
+      );
 
       return () => {
         offs.forEach((off) => __stackpage.unsubscribe(off));
       };
     }, [__stackpage, subscriptions, ackMessagePrefix]);
+
+    useEffect(() => {
+      setSharedPageState(String(__stackpage?.getPageState?.(pageStateKey, "-") || "-"));
+    }, [__stackpage, pageStateKey, count, lastData]);
 
     const payloadForAction = {
       nextTitle: `Result Viewer (${count + 1})`,
@@ -681,6 +1216,9 @@ export const componentMapProvider = () => ({
           Shared Result Last (set-shared-state):{" "}
           {(JSON.stringify(__stackpage?.getState?.("demo.result.last", {})) || "-").slice(0, 140)}
         </p>
+        <p className="text-xs text-gray-600 mb-3">
+          Shared Page State ({pageStateKey}): {sharedPageState}
+        </p>
         <div className="mb-3 flex flex-wrap gap-2">
           {(actions || [])
             .filter((a) => a?.enabled !== false)
@@ -701,6 +1239,461 @@ export const componentMapProvider = () => ({
       </div>
     );
   },
+
+  DemoPostList: ({
+    title = "Post cards",
+    items = DEMO_POST_ITEMS,
+    selectedIdKey = "demo.post.selectedId",
+    selectEvent = "demo:post:selected",
+    emptyText = "No posts available.",
+    description = "Click a post card to set the selected post id and notify the detail panel.",
+    eventKind = "select_detail",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    items?: Array<any>;
+    selectedIdKey?: string;
+    selectEvent?: string;
+    emptyText?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const selectedId = String(
+      __stackpage?.getPageState?.(selectedIdKey, "") || ""
+    );
+
+    return (
+      <div className="rounded-lg border border-amber-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-base font-semibold text-amber-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-amber-700 mb-3">
+          {description}
+        </p>
+        <div className="space-y-2">
+          {(items || []).length === 0 ? (
+            <div className="text-sm text-gray-500">{emptyText}</div>
+          ) : (
+            (items || []).map((item: any) => {
+              const isActive = String(item.id) === selectedId;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() =>
+                    __stackpage?.emit?.("select", {
+                      ...item,
+                      selectedIdKey,
+                      selectEvent,
+                    })
+                  }
+                  className={`w-full text-left rounded border px-3 py-2 transition ${
+                    isActive
+                      ? "border-amber-500 bg-amber-50"
+                      : "border-gray-200 bg-white hover:bg-amber-50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-medium text-gray-900">{item.title}</div>
+                      <div className="text-xs text-gray-500">{item.category}</div>
+                    </div>
+                    <span className="text-xs text-gray-400">{item.id}</span>
+                  </div>
+                  <p className="mt-1 text-sm text-gray-600">{item.excerpt}</p>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  },
+
+  DemoPostDetail: ({
+    title = "Post detail",
+    items = DEMO_POST_ITEMS,
+    selectedIdKey = "demo.post.selectedId",
+    emptyText = "Select a post card to show details.",
+    description = "This panel listens to the shared selected id and updates automatically.",
+    eventKind = "select_detail",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    items?: Array<any>;
+    selectedIdKey?: string;
+    emptyText?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const selectedId = String(
+      __stackpage?.getPageState?.(selectedIdKey, "") || ""
+    );
+    const selectedItem = (items || []).find(
+      (item: any) => String(item.id) === selectedId
+    );
+
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="text-base font-semibold text-amber-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-amber-700 mb-3">{description}</p>
+        {selectedItem ? (
+          <div className="space-y-2">
+            <div className="text-xs text-amber-700">Selected: {selectedItem.id}</div>
+            <div className="text-lg font-semibold text-gray-900">{selectedItem.title}</div>
+            <p className="text-sm text-gray-700">{selectedItem.body}</p>
+            <div className="text-xs text-gray-500">Category: {selectedItem.category}</div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-600">{emptyText}</div>
+        )}
+      </div>
+    );
+  },
+
+  DemoSearchBar: ({
+    title = "Search bar",
+    keywordKey = "demo.search.keyword",
+    searchEvent = "demo:search:changed",
+    placeholder = "Type to search",
+    description = "Typing updates shared keyword state so the result list can filter itself.",
+    eventKind = "search_filter",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    keywordKey?: string;
+    searchEvent?: string;
+    placeholder?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const [keyword, setKeyword] = useState(
+      String(__stackpage?.getPageState?.(keywordKey, "") || "")
+    );
+
+    useEffect(() => {
+      setKeyword(String(__stackpage?.getPageState?.(keywordKey, "") || ""));
+    }, [__stackpage, keywordKey]);
+
+    const handleChange = (value: string) => {
+      setKeyword(value);
+      __stackpage?.emit?.("search", {
+        q: value,
+        keyword: value,
+        keywordKey,
+        searchEvent,
+      });
+    };
+
+    return (
+      <div className="rounded-lg border border-blue-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="text-base font-semibold text-blue-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-blue-700 mb-3">{description}</p>
+        <input
+          className="w-full border border-blue-200 rounded px-3 py-2 text-sm"
+          value={keyword}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder={placeholder}
+        />
+        <div className="mt-2 text-xs text-blue-700">
+          Shared keyword: {String(__stackpage?.getPageState?.(keywordKey, "") || "-")}
+        </div>
+      </div>
+    );
+  },
+
+  DemoSearchResults: ({
+    title = "Search results",
+    items = DEMO_POST_ITEMS,
+    keywordKey = "demo.search.keyword",
+    emptyText = "No results yet.",
+    description = "This widget reads the shared keyword and filters the list on its own.",
+    eventKind = "search_filter",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    items?: Array<any>;
+    keywordKey?: string;
+    emptyText?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const keyword = String(__stackpage?.getPageState?.(keywordKey, "") || "")
+      .trim()
+      .toLowerCase();
+    const filtered = (items || []).filter((item: any) => {
+      if (!keyword) return true;
+      return [item.title, item.excerpt, item.body, item.category]
+        .filter(Boolean)
+        .some((text) => String(text).toLowerCase().includes(keyword));
+    });
+
+    return (
+      <div className="rounded-lg border border-blue-200 bg-slate-50 p-4">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-base font-semibold text-blue-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-blue-700 mb-3">{description}</p>
+        <div className="text-xs text-gray-500 mb-2">
+          Matching "{keyword || "-"}" — {filtered.length} item(s)
+        </div>
+        <div className="space-y-2">
+          {filtered.length === 0 ? (
+            <div className="text-sm text-gray-500">{emptyText}</div>
+          ) : (
+            filtered.map((item: any) => (
+              <div key={item.id} className="rounded border border-gray-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium text-gray-900">{item.title}</div>
+                  <span className="text-xs text-gray-400">{item.category}</span>
+                </div>
+                <p className="mt-1 text-sm text-gray-600">{item.excerpt}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  },
+
+  DemoRegistrationForm: ({
+    title = "Registration form",
+    confirmText = "Send this registration?",
+    submitEvent = "demo:registration:submit",
+    responseEvent = "demo:registration:submit:completed",
+    buttonLabel = "Review and submit",
+    description = "Confirm before submit, then send the payload to the receiver.",
+    eventKind = "submit_confirm",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    confirmText?: string;
+    submitEvent?: string;
+    responseEvent?: string;
+    buttonLabel?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const [name, setName] = useState("Alice");
+    const [email, setEmail] = useState("alice@example.com");
+    const [team, setTeam] = useState("Product");
+    const [status, setStatus] = useState("Ready");
+    const [result, setResult] = useState("");
+
+    const handleSubmit = async () => {
+      const payload = {
+        name,
+        email,
+        team,
+        submittedAt: new Date().toISOString(),
+      };
+
+      if (!window.confirm(confirmText)) {
+        setStatus("Cancelled");
+        return;
+      }
+
+      if (!__stackpage?.emitWithAck) {
+        setStatus("No runtime API available");
+        return;
+      }
+
+      setStatus("Waiting for receiver...");
+      try {
+        const response = await __stackpage.emitWithAck(submitEvent, payload, {
+          responseEvent,
+        });
+        setResult(typeof response === "string" ? response : JSON.stringify(response));
+        setStatus("Submitted");
+      } catch (error: any) {
+        setStatus(`Failed: ${error?.message || "unknown error"}`);
+      }
+    };
+
+    return (
+      <div className="rounded-lg border border-emerald-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h3 className="text-base font-semibold text-emerald-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-emerald-700 mb-3">{description}</p>
+        <div className="grid gap-2">
+          <input
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+          />
+          <input
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+          />
+          <input
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            value={team}
+            onChange={(e) => setTeam(e.target.value)}
+            placeholder="Team"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          className="mt-3 px-3 py-2 rounded bg-emerald-600 text-white text-sm hover:bg-emerald-700"
+        >
+          {buttonLabel}
+        </button>
+        <div className="mt-3 text-xs text-gray-600 space-y-1">
+          <div>Status: {status}</div>
+          {result && <div>Receiver: {result}</div>}
+        </div>
+      </div>
+    );
+  },
+
+  DemoRequestReceiver: ({
+    title = "Receiver",
+    listenEvent = "demo:button:request",
+    responseEvent = "demo:button:request:completed",
+    replyPrefix = "Handled by receiver",
+    emptyText = "Waiting for a request...",
+    description = "This widget listens for a request and sends a reply back to the sender.",
+    eventKind = "request_bridge",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    listenEvent?: string;
+    responseEvent?: string;
+    replyPrefix?: string;
+    emptyText?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const [lastRequest, setLastRequest] = useState<any>(null);
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+      if (!__stackpage?.subscribe) return;
+      const unsubscribe = __stackpage.subscribe(listenEvent, (payload: any) => {
+        setLastRequest(payload);
+        setCount((prev) => prev + 1);
+        __stackpage.emit(responseEvent, {
+          __requestId: payload?.__requestId,
+          result: `${replyPrefix}: ${payload?.message || payload?.name || "ok"}`,
+          handledAt: new Date().toISOString(),
+        });
+      });
+
+      return () => __stackpage.unsubscribe(unsubscribe);
+    }, [__stackpage, listenEvent, responseEvent, replyPrefix]);
+
+    return (
+      <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-base font-semibold text-purple-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-purple-700 mb-2">{description}</p>
+        <div className="text-xs text-purple-700 mb-2">Requests handled: {count}</div>
+        <pre className="text-xs bg-white border border-purple-200 rounded p-3 min-h-[120px] whitespace-pre-wrap break-all">
+          {lastRequest ? JSON.stringify(lastRequest, null, 2) : emptyText}
+        </pre>
+      </div>
+    );
+  },
+
+  DemoRequestButton: ({
+    title = "Request button",
+    buttonLabel = "Send request",
+    requestEvent = "demo:button:request",
+    responseEvent = "demo:button:request:completed",
+    message = "Button clicked",
+    description = "Press to send a request and wait for the receiver to answer.",
+    eventKind = "request_bridge",
+    __stackpage,
+  }: StackPageComponentProps<{
+    title?: string;
+    buttonLabel?: string;
+    requestEvent?: string;
+    responseEvent?: string;
+    message?: string;
+    description?: string;
+    eventKind?: EventPatternKind;
+  }>) => {
+    const [status, setStatus] = useState("Ready");
+    const [result, setResult] = useState("");
+
+    const handleClick = async () => {
+      if (!__stackpage?.emitWithAck) return;
+      setStatus("Waiting for response...");
+      try {
+        const response = await __stackpage.emitWithAck(
+          requestEvent,
+          {
+            message,
+            sentAt: new Date().toISOString(),
+          },
+          { responseEvent }
+        );
+        setResult(typeof response === "string" ? response : JSON.stringify(response));
+        setStatus("Completed");
+      } catch (error: any) {
+        setStatus(`Failed: ${error?.message || "unknown error"}`);
+      }
+    };
+
+    return (
+      <div className="rounded-lg border border-indigo-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className="text-base font-semibold text-indigo-900">{title}</h3>
+          <EventPatternBadge kind={eventKind} />
+        </div>
+        <p className="text-xs text-indigo-700 mb-3">{description}</p>
+        <button
+          type="button"
+          onClick={handleClick}
+          className="px-3 py-2 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+        >
+          {buttonLabel}
+        </button>
+        <div className="mt-3 text-xs text-gray-600 space-y-1">
+          <div>Status: {status}</div>
+          {result && <div>Receiver: {result}</div>}
+        </div>
+      </div>
+    );
+  },
+
+  DemoEventPatternGuide: ({
+    title = "Event patterns",
+    description = "This demo uses four core event patterns for simple page building.",
+  }: {
+    title?: string;
+    description?: string;
+  }) => (
+    <EventPatternGuide title={title} description={description} />
+  ),
+
+  DemoFlowSection: ({
+    index = "1",
+    title = "Section",
+    description = "",
+    accent = "slate",
+  }: {
+    index?: string;
+    title?: string;
+    description?: string;
+    accent?: "slate" | "amber" | "blue" | "emerald" | "indigo" | "purple";
+  }) => <DemoFlowSection index={index} title={title} description={description} accent={accent} />,
 });
 
 // Component props provider - returns default props for each component type
@@ -834,6 +1827,18 @@ export const componentPropsProvider = () => {
       value: "12,402",
       change: 12.5,
       description: "From last month",
+    },
+    PageStateBridge: {
+      title: "Page State Bridge",
+      description:
+        "Inspect and update shared page state without direct component coupling.",
+      stateKey: "keyword",
+    },
+    FormControlSampler: {
+      title: "Form control sampler",
+      description:
+        "Use this widget to test typing, selection, toggles, colors, file input, and submission without page-state sync.",
+      submitLabel: "Save draft",
     },
     ContactFormBridge: {
       title: "Contact Form Sender",
@@ -973,6 +1978,119 @@ export const componentPropsProvider = () => {
           enabled: true,
         },
       ],
+    },
+    DemoPostList: {
+      title: "Post cards",
+      items: DEMO_POST_ITEMS,
+      selectedIdKey: "demo.post.selectedId",
+      selectEvent: "demo:post:selected",
+      description: "Click a card to set the selected id and show the detail panel.",
+      eventKind: "select_detail",
+      __interactions: [
+        {
+          id: "post-list-select-state",
+          event: "select",
+          action: "set-shared-state",
+          targetPath: "demo.post.selectedId",
+          valueFrom: "$.id",
+          enabled: true,
+        },
+        {
+          id: "post-list-select-event",
+          event: "select",
+          action: "emit-event",
+          targetPath: "demo:post:selected",
+          valueFrom: "$",
+          enabled: true,
+        },
+      ],
+    },
+    DemoPostDetail: {
+      title: "Post detail",
+      items: DEMO_POST_ITEMS,
+      selectedIdKey: "demo.post.selectedId",
+      description: "This panel updates from the shared selected id.",
+      eventKind: "select_detail",
+    },
+    DemoSearchBar: {
+      title: "Search bar",
+      keywordKey: "demo.search.keyword",
+      searchEvent: "demo:search:changed",
+      placeholder: "Search posts...",
+      description: "Typing updates the shared keyword and refreshes the results panel.",
+      eventKind: "search_filter",
+      __interactions: [
+        {
+          id: "search-bar-state",
+          event: "search",
+          action: "set-shared-state",
+          targetPath: "demo.search.keyword",
+          valueFrom: "$.keyword",
+          enabled: true,
+        },
+        {
+          id: "search-bar-event",
+          event: "search",
+          action: "emit-event",
+          targetPath: "demo:search:changed",
+          valueFrom: "$",
+          enabled: true,
+        },
+      ],
+    },
+    DemoSearchResults: {
+      title: "Search results",
+      items: DEMO_POST_ITEMS,
+      keywordKey: "demo.search.keyword",
+      description: "This list filters itself from the shared search keyword.",
+      eventKind: "search_filter",
+    },
+    DemoRegistrationForm: {
+      title: "Registration form",
+      confirmText: "Send this registration?",
+      submitEvent: "demo:registration:submit",
+      responseEvent: "demo:registration:submit:completed",
+      buttonLabel: "Review and submit",
+      description: "Confirm before submit so the receiver can reply cleanly.",
+      eventKind: "submit_confirm",
+      __interactions: [
+        {
+          id: "registration-submit-state",
+          event: "demo:registration:submit",
+          action: "set-shared-state",
+          targetPath: "demo.registration.last",
+          valueFrom: "$",
+          enabled: true,
+        },
+      ],
+    },
+    DemoRequestReceiver: {
+      title: "Receiver",
+      listenEvent: "demo:button:request",
+      responseEvent: "demo:button:request:completed",
+      replyPrefix: "Handled by receiver",
+      description: "Listens for a request and sends a response back.",
+      eventKind: "request_bridge",
+    },
+    DemoRequestButton: {
+      title: "Request button",
+      buttonLabel: "Send request",
+      requestEvent: "demo:button:request",
+      responseEvent: "demo:button:request:completed",
+      message: "Button clicked",
+      description: "Press to send a request and wait for the receiver reply.",
+      eventKind: "request_bridge",
+    },
+    DemoEventPatternGuide: {
+      title: "Event patterns",
+      description:
+        "Use these four core patterns as the starting point for new components.",
+    },
+    DemoFlowSection: {
+      index: "1",
+      title: "Select → Detail",
+      description: "Click a post card, then check the detail panel on the right.",
+      accent: "amber",
     },
   };
 

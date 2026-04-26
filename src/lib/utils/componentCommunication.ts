@@ -87,6 +87,8 @@ export interface StackPageRuntimeApi {
   unsubscribe: (unsubscribeFn?: (() => void) | null) => void;
   setState: (path: string, value: any) => void;
   getState: <T = any>(path: string, defaultValue?: T) => T | undefined;
+  setPageState?: (path: string, value: any) => void;
+  getPageState?: <T = any>(path: string, defaultValue?: T) => T | undefined;
 }
 
 export type StackPageEventMode = "emit" | "request";
@@ -116,6 +118,164 @@ export interface StackPageEventSubscription {
 export type StackPageComponentProps<T extends object = {}> = T & {
   __stackpage?: StackPageRuntimeApi;
 };
+
+export interface CreateStackPageRuntimeApiOptions {
+  widgetId: string;
+  emitComponentEvent: (payload: EmitComponentEventPayload) => void;
+  subscribeComponentEvent: (
+    eventName: string,
+    handler: (payload: any, meta: ComponentEventMeta) => void
+  ) => () => void;
+  setSharedState: (path: string, value: any) => void;
+  getSharedState: <T = any>(path: string, defaultValue?: T) => T | undefined;
+  rules?: InteractionRule[];
+}
+
+export function createStackPageRuntimeApi({
+  widgetId,
+  emitComponentEvent,
+  subscribeComponentEvent,
+  setSharedState,
+  getSharedState,
+  rules,
+}: CreateStackPageRuntimeApiOptions): {
+  api: StackPageRuntimeApi;
+  disposeTrackedSubscriptions: () => void;
+} {
+  const trackedDisposers = new Set<() => void>();
+
+  const trackDisposer = (dispose: () => void) => {
+    trackedDisposers.add(dispose);
+    return () => {
+      try {
+        dispose();
+      } finally {
+        trackedDisposers.delete(dispose);
+      }
+    };
+  };
+
+  const api: StackPageRuntimeApi = {
+    widgetId,
+    emit: (eventName: string, payload?: any) =>
+      emitComponentEvent({
+        sourceWidgetId: widgetId,
+        eventName,
+        payload,
+        rules,
+      }),
+    emitWithAck: (
+      eventName: string,
+      payload?: any,
+      options?: { responseEvent?: string; timeoutMs?: number }
+    ) => {
+      const responseEvent = options?.responseEvent || `${eventName}:completed`;
+      const timeoutMs = options?.timeoutMs ?? 5000;
+      const requestId = `${widgetId}:${Date.now()}:${Math.random()
+        .toString(36)
+        .slice(2)}`;
+
+      return new Promise((resolve, reject) => {
+        let settled = false;
+        let timer: ReturnType<typeof globalThis.setTimeout>;
+        const unsubscribe = trackDisposer(
+          subscribeComponentEvent(responseEvent, (responsePayload: any) => {
+            if (settled) return;
+            if (
+              responsePayload?.__requestId &&
+              responsePayload.__requestId !== requestId
+            ) {
+              return;
+            }
+            settled = true;
+            globalThis.clearTimeout(timer);
+            unsubscribe();
+            const responseWithHandledAt =
+              responsePayload &&
+              typeof responsePayload === "object" &&
+              !Array.isArray(responsePayload)
+                ? {
+                    ...responsePayload,
+                    handledAt:
+                      responsePayload.handledAt || new Date().toISOString(),
+                  }
+                : {
+                    result: responsePayload,
+                    handledAt: new Date().toISOString(),
+                  };
+            resolve(responseWithHandledAt?.result ?? responseWithHandledAt);
+          })
+        );
+
+        timer = globalThis.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          unsubscribe();
+          reject(
+            new Error(
+              `Timeout waiting for ${responseEvent} after ${timeoutMs}ms`
+            )
+          );
+        }, timeoutMs);
+
+        const wrappedPayload =
+          payload && typeof payload === "object" && !Array.isArray(payload)
+            ? {
+                ...payload,
+                __requestId: requestId,
+                sentAt: payload.sentAt || new Date().toISOString(),
+              }
+            : {
+                value: payload,
+                __requestId: requestId,
+                sentAt: new Date().toISOString(),
+              };
+
+        emitComponentEvent({
+          sourceWidgetId: widgetId,
+          eventName,
+          payload: wrappedPayload,
+          rules,
+        });
+      });
+    },
+    subscribe: (
+      eventName: string,
+      handler: (payload: any, meta: ComponentEventMeta) => void
+    ) => {
+      const unsubscribe = trackDisposer(
+        subscribeComponentEvent(eventName, handler)
+      );
+      return unsubscribe;
+    },
+    unsubscribe: (unsubscribeFn?: (() => void) | null) => {
+      if (typeof unsubscribeFn === "function") {
+        unsubscribeFn();
+        trackedDisposers.delete(unsubscribeFn);
+      }
+    },
+    setState: (path: string, value: any) => setSharedState(path, value),
+    getState: <T = any>(path: string, defaultValue?: T) =>
+      getSharedState(path, defaultValue),
+    setPageState: (path: string, value: any) => setSharedState(path, value),
+    getPageState: <T = any>(path: string, defaultValue?: T) =>
+      getSharedState(path, defaultValue),
+  };
+
+  return {
+    api,
+    disposeTrackedSubscriptions: () => {
+      trackedDisposers.forEach((dispose) => {
+        try {
+          dispose();
+        } catch {
+          // no-op
+        }
+      });
+      trackedDisposers.clear();
+    },
+  };
+}
 
 export function createComponentEventBus(): ComponentEventBus {
   const subscribers = new Map<string, Map<string, ComponentEventHandler>>();

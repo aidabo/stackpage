@@ -29,11 +29,12 @@
         "build": "yarn build:lib && yarn build:demo",
         "build:lib": "tsc -p tsconfig.lib.json && NODE_OPTIONS='--no-warnings' vite build --config vite.config.lib.ts",
         "build:demo": "NODE_OPTIONS='--no-warnings' vite build",
-        "test:binding": "vite-node tests/binding-engine.runtime.test.ts",
-        "test:communication": "vite-node tests/component-communication.runtime.test.ts",
-        "test:runtime": "yarn test:binding && yarn test:communication",
-        "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
-    },
+    "test:binding": "vite-node tests/binding-engine.runtime.test.ts",
+    "test:communication": "vite-node tests/component-communication.runtime.test.ts",
+    "test:page-state": "vite-node tests/page-state.runtime.test.ts",
+    "test:runtime": "yarn test:binding && yarn test:communication && yarn test:page-state",
+    "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
+  },
     "devDependencies": {
         "@eslint/js": "^9.9.0",
         "@types/node": "^24.1.0",
