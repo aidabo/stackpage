@@ -1,0 +1,2744 @@
+{
+  "pages": [
+    {
+      "id": "page-1771411869338",
+      "type": "page",
+      "status": "draft",
+      "title": "untitled page",
+      "image": "",
+      "pageState": {
+        "selectedId": null,
+        "keyword": "demoe333",
+        "activeTab": "components",
+        "dialogOpen": false
+      },
+      "source": {
+        "lists": [
+          {
+            "id": "demo-list",
+            "name": "Demo List",
+            "description": "Demo list for local StackPage testing",
+            "items": [
+              {
+                "id": "1",
+                "label": "Alpha",
+                "value": "alpha"
+              },
+              {
+                "id": "2",
+                "label": "Beta",
+                "value": "beta"
+              }
+            ]
+          }
+        ],
+        "dataSources": [
+          {
+            "id": "demo-static",
+            "name": "Demo Static",
+            "type": "static",
+            "data": {
+              "title": "Demo datasource",
+              "items": [
+                {
+                  "id": "a",
+                  "title": "Ada",
+                  "content": "Shared datasource item A"
+                },
+                {
+                  "id": "b",
+                  "title": "Lin",
+                  "content": "Shared datasource item B"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 10,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-state-bridge",
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 26,
+            "content": "{\"name\":\"PageStateBridge\",\"props\":{\"title\":\"Page State Bridge\",\"description\":\"Inspect and update shared page state without direct component coupling.\",\"stateKey\":\"keyword\"}}"
+          },
+          {
+            "id": "widget-data-title",
+            "x": 6,
+            "y": 0,
+            "w": 6,
+            "h": 8,
+            "content": "{\"name\":\"Text\",\"props\":{\"title\":\"Datasource Title\",\"content\":\"\",\"__bindings\":{\"content\":{\"sourceId\":\"demo-static\",\"path\":\"$.title\"}}}}"
+          },
+          {
+            "id": "widget-data-cards",
+            "x": 6,
+            "y": 8,
+            "w": 6,
+            "h": 15,
+            "content": "{\"name\":\"CardList\",\"props\":{\"items\":[],\"__bindings\":{\"items\":{\"sourceId\":\"demo-static\",\"path\":\"$.items\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          },
+          {
+            "name": "PageStateBridge",
+            "id": "widget-cdbd131b-9819-45b9-9773-14e5d2f4e726",
+            "x": 6,
+            "y": 23,
+            "w": 4,
+            "h": 26,
+            "sizeToContent": true,
+            "content": "{\"name\":\"PageStateBridge\",\"props\":{\"title\":\"Page State Bridge\",\"description\":\"Inspect and update shared page state without direct component coupling.\",\"stateKey\":\"keyword\"}}"
+          },
+          {
+            "id": "widget-result-viewer",
+            "x": 0,
+            "y": 26,
+            "w": 6,
+            "h": 24,
+            "content": "{\"name\":\"ContactFormResultText\",\"props\":{\"title\":\"Shared State Result Viewer\",\"ackMessagePrefix\":\"Demo completed\",\"emptyText\":\"No demo result yet.\",\"pageStateKey\":\"selectedId\",\"subscriptions\":[{\"id\":\"sub-demo-1\",\"event\":\"demo:bridge.rules:after\",\"enabled\":true,\"replyMode\":\"none\"}],\"actions\":[{\"id\":\"result-action-1\",\"label\":\"Mirror Page State\",\"mode\":\"emit\",\"event\":\"demo:result.rules\",\"enabled\":true}],\"__interactions\":[{\"id\":\"result-rule-1\",\"event\":\"demo:result.rules\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.result.last\",\"valueFrom\":\"$\",\"enabled\":true},{\"id\":\"result-rule-2\",\"event\":\"demo:result.rules\",\"action\":\"set-prop\",\"targetWidgetId\":\"$self\",\"targetPath\":\"ruleLog\",\"valueFrom\":\"$.at\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-form-bridge",
+            "x": 0,
+            "y": 50,
+            "w": 6,
+            "h": 26,
+            "content": "{\"name\":\"ContactFormBridge\",\"props\":{\"title\":\"Event Bridge Sender\",\"successText\":\"Emitted event successfully\",\"waitingText\":\"Waiting for response\",\"ruleEcho\":\"demo-rules\",\"actions\":[{\"id\":\"bridge-action-1\",\"label\":\"Send (Emit)\",\"mode\":\"emit\",\"event\":\"contact:submit\",\"enabled\":true},{\"id\":\"bridge-action-2\",\"label\":\"Send (Request)\",\"mode\":\"request\",\"event\":\"contact:submit:request\",\"responseEvent\":\"contact:submit:request:completed\",\"enabled\":true},{\"id\":\"bridge-action-3\",\"label\":\"Demo State Event\",\"mode\":\"emit\",\"event\":\"demo:bridge.rules\",\"enabled\":true}],\"__interactions\":[{\"id\":\"bridge-rule-1\",\"event\":\"demo:bridge.rules\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.bridge.lastEmail\",\"valueFrom\":\"$.email\",\"enabled\":true},{\"id\":\"bridge-rule-2\",\"event\":\"demo:bridge.rules\",\"action\":\"emit-event\",\"targetPath\":\"demo:bridge.rules:after\",\"valueFrom\":\"$\",\"enabled\":true},{\"id\":\"bridge-rule-3\",\"event\":\"demo:bridge.rules:after\",\"action\":\"set-prop\",\"targetWidgetId\":\"$self\",\"targetPath\":\"title\",\"valueFrom\":\"$.name\",\"enabled\":true},{\"id\":\"bridge-rule-4\",\"event\":\"demo:bridge.rules\",\"action\":\"set-prop\",\"targetWidgetId\":\"$self\",\"targetPath\":\"ruleEcho\",\"valueFrom\":\"$.message\",\"enabled\":true}]}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "untitled page",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-event-patterns-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Event Patterns Demo",
+      "image": "",
+      "pageState": {
+        "selectedId": "post-1",
+        "keyword": "page",
+        "activeTab": "components",
+        "dialogOpen": false,
+        "demo.post.selectedId": "post-1",
+        "demo.search.keyword": "page",
+        "demo.registration.last": null
+      },
+      "source": {
+        "lists": [
+          {
+            "id": "demo-event-list",
+            "name": "Demo Event List",
+            "description": "Posts used by the event pattern demo",
+            "items": [
+              {
+                "id": "1",
+                "label": "Architecture",
+                "value": "architecture"
+              },
+              {
+                "id": "2",
+                "label": "Search",
+                "value": "search"
+              },
+              {
+                "id": "3",
+                "label": "Form",
+                "value": "form"
+              }
+            ]
+          }
+        ],
+        "dataSources": [
+          {
+            "id": "demo-posts",
+            "name": "Demo Posts",
+            "type": "static",
+            "data": {
+              "items": [
+                {
+                  "id": "post-1",
+                  "title": "Building a calm page builder",
+                  "excerpt": "Keep events local and shared state small.",
+                  "body": "Widgets emit simple events. Page state carries only what multiple widgets need to share.",
+                  "category": "Architecture"
+                },
+                {
+                  "id": "post-2",
+                  "title": "Designing searchable content",
+                  "excerpt": "Search bars should update a shared keyword, not mutate results directly.",
+                  "body": "The search UI updates page state and the result panel derives the list from the same source.",
+                  "category": "Search"
+                },
+                {
+                  "id": "post-3",
+                  "title": "Form submission with confirmation",
+                  "excerpt": "Ask first, send second, then show the receiver response.",
+                  "body": "The form uses request/response so the sender can show a result after the receiver processes the payload.",
+                  "category": "Form"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 36,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 1,
+              "w": 500
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 6,
+              "w": 1024
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "cellHeight": "1rem",
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "children": [
+          {
+            "id": "widget-event-guide",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoEventPatternGuide\",\"props\":{\"title\":\"Event patterns\",\"description\":\"Use these four core patterns as the starting point for new components.\"}}"
+          },
+          {
+            "id": "widget-section-select",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 2,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"1\",\"title\":\"Select → Detail\",\"description\":\"Click a card, then watch the detail panel update.\",\"accent\":\"amber\"}}"
+          },
+          {
+            "id": "widget-post-list",
+            "x": 0,
+            "y": 6,
+            "w": 6,
+            "h": 6,
+            "content": "{\"name\":\"DemoPostList\",\"props\":{\"title\":\"Post list cards\",\"description\":\"Click a card to set the selected id and show the detail panel.\",\"selectedIdKey\":\"demo.post.selectedId\",\"selectEvent\":\"demo:post:selected\",\"eventKind\":\"select_detail\",\"__bindings\":{\"items\":{\"sourceId\":\"demo-posts\",\"path\":\"$.items\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}},\"__interactions\":[{\"id\":\"post-list-select-state\",\"event\":\"select\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.post.selectedId\",\"valueFrom\":\"$.id\",\"enabled\":true},{\"id\":\"post-list-select-event\",\"event\":\"select\",\"action\":\"emit-event\",\"targetPath\":\"demo:post:selected\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-post-detail",
+            "x": 6,
+            "y": 6,
+            "w": 6,
+            "h": 6,
+            "content": "{\"name\":\"DemoPostDetail\",\"props\":{\"title\":\"Post detail\",\"description\":\"This panel updates from the shared selected id.\",\"selectedIdKey\":\"demo.post.selectedId\",\"eventKind\":\"select_detail\",\"__bindings\":{\"items\":{\"sourceId\":\"demo-posts\",\"path\":\"$.items\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          },
+          {
+            "id": "widget-section-search",
+            "x": 0,
+            "y": 12,
+            "w": 12,
+            "h": 2,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"2\",\"title\":\"Search → Results\",\"description\":\"Type in the bar and let the result panel filter itself.\",\"accent\":\"blue\"}}"
+          },
+          {
+            "id": "widget-search-bar",
+            "x": 0,
+            "y": 14,
+            "w": 4,
+            "h": 4,
+            "content": "{\"name\":\"DemoSearchBar\",\"props\":{\"title\":\"Search bar\",\"description\":\"Typing updates the shared keyword and refreshes the results panel.\",\"keywordKey\":\"demo.search.keyword\",\"searchEvent\":\"demo:search:changed\",\"placeholder\":\"Search posts...\",\"eventKind\":\"search_filter\",\"__interactions\":[{\"id\":\"search-bar-state\",\"event\":\"search\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.search.keyword\",\"valueFrom\":\"$.keyword\",\"enabled\":true},{\"id\":\"search-bar-event\",\"event\":\"search\",\"action\":\"emit-event\",\"targetPath\":\"demo:search:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-search-results",
+            "x": 4,
+            "y": 14,
+            "w": 8,
+            "h": 6,
+            "content": "{\"name\":\"DemoSearchResults\",\"props\":{\"title\":\"Search results\",\"description\":\"This list filters itself from the shared search keyword.\",\"keywordKey\":\"demo.search.keyword\",\"eventKind\":\"search_filter\",\"__bindings\":{\"items\":{\"sourceId\":\"demo-posts\",\"path\":\"$.items\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          },
+          {
+            "id": "widget-section-form",
+            "x": 0,
+            "y": 20,
+            "w": 12,
+            "h": 2,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"3\",\"title\":\"Submit → Confirm\",\"description\":\"Confirm before submit, then send the payload to the receiver.\",\"accent\":\"emerald\"}}"
+          },
+          {
+            "id": "widget-registration-form",
+            "x": 0,
+            "y": 22,
+            "w": 6,
+            "h": 6,
+            "content": "{\"name\":\"DemoRegistrationForm\",\"props\":{\"title\":\"Registration form\",\"description\":\"Confirm before submit so the receiver can reply cleanly.\",\"confirmText\":\"Send this registration?\",\"submitEvent\":\"demo:registration:submit\",\"responseEvent\":\"demo:registration:submit:completed\",\"buttonLabel\":\"Review and submit\",\"eventKind\":\"submit_confirm\",\"__interactions\":[{\"id\":\"registration-submit-state\",\"event\":\"submit\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.registration.last\",\"valueFrom\":\"$\",\"enabled\":true},{\"id\":\"registration-submit-event\",\"event\":\"submit\",\"action\":\"emit-event\",\"targetPath\":\"demo:registration:submit\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-registration-receiver",
+            "x": 6,
+            "y": 22,
+            "w": 6,
+            "h": 6,
+            "content": "{\"name\":\"DemoRequestReceiver\",\"props\":{\"title\":\"Registration receiver\",\"description\":\"Listens for a request and sends a response back.\",\"listenEvent\":\"demo:registration:submit\",\"responseEvent\":\"demo:registration:submit:completed\",\"replyPrefix\":\"Registration saved\",\"eventKind\":\"submit_confirm\"}}"
+          },
+          {
+            "id": "widget-section-request",
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 2,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"4\",\"title\":\"Request → Reply\",\"description\":\"Press the button and watch the receiver answer back.\",\"accent\":\"indigo\"}}"
+          },
+          {
+            "id": "widget-request-button",
+            "x": 0,
+            "y": 30,
+            "w": 6,
+            "h": 5,
+            "content": "{\"name\":\"DemoRequestButton\",\"props\":{\"title\":\"Request button\",\"description\":\"Press to send a request and wait for the receiver reply.\",\"buttonLabel\":\"Send request\",\"requestEvent\":\"demo:button:request\",\"responseEvent\":\"demo:button:request:completed\",\"message\":\"Button clicked\",\"eventKind\":\"request_bridge\"}}"
+          },
+          {
+            "id": "widget-request-receiver",
+            "x": 6,
+            "y": 30,
+            "w": 6,
+            "h": 5,
+            "content": "{\"name\":\"DemoRequestReceiver\",\"props\":{\"title\":\"Request receiver\",\"description\":\"Listens for a request and sends a response back.\",\"listenEvent\":\"demo:button:request\",\"responseEvent\":\"demo:button:request:completed\",\"replyPrefix\":\"Button request handled\",\"eventKind\":\"request_bridge\"}}"
+          },
+          {
+            "id": "widget-form-control-sampler",
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 14,
+            "content": "{\"name\":\"FormControlSampler\",\"props\":{\"title\":\"Form control sampler\",\"description\":\"Use this widget to test typing, selection, toggles, colors, file input, and submission without page-state sync.\",\"submitLabel\":\"Save draft\"}}"
+          }
+        ]
+      }
+    },
+    {
+      "id": "page-jsonserver-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "JSON Server Datasource Demo",
+      "image": "",
+      "pageState": {
+        "selectedId": "catalog-1",
+        "keyword": "json-server",
+        "activeTab": "components",
+        "dialogOpen": false
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "json-demo-catalog",
+            "name": "JSON Demo Catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/demoCatalogs/stackpage-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-json-demo-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"1\",\"title\":\"JSON Server → Datasource\",\"description\":\"This fixture page loads a JSON datasource from the local json-server process.\",\"accent\":\"indigo\"}}"
+          },
+          {
+            "id": "widget-json-demo-title",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"Text\",\"props\":{\"title\":\"Catalog title\",\"content\":\"\",\"__bindings\":{\"content\":{\"sourceId\":\"json-demo-catalog\",\"path\":\"$.title\"}}}}"
+          },
+          {
+            "id": "widget-json-demo-subtitle",
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"Text\",\"props\":{\"title\":\"Catalog subtitle\",\"content\":\"\",\"__bindings\":{\"content\":{\"sourceId\":\"json-demo-catalog\",\"path\":\"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-json-demo-updated",
+            "x": 0,
+            "y": 16,
+            "w": 12,
+            "h": 5,
+            "content": "{\"name\":\"Text\",\"props\":{\"title\":\"Last updated\",\"content\":\"\",\"__bindings\":{\"content\":{\"sourceId\":\"json-demo-catalog\",\"path\":\"$.updatedAt\"}}}}"
+          },
+          {
+            "id": "widget-json-demo-items",
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 16,
+            "content": "{\"name\":\"CardList\",\"props\":{\"items\":[],\"__bindings\":{\"items\":{\"sourceId\":\"json-demo-catalog\",\"path\":\"$.items\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "JSON Server Datasource Demo",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-business-ops-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Sales Pipeline Workspace",
+      "image": "",
+      "pageState": {
+        "selectedId": "deal-001",
+        "keyword": "enterprise",
+        "activeTab": "components",
+        "dialogOpen": false,
+        "sales.pipeline.selectedId": "deal-001",
+        "sales.pipeline.leadStatus": "new",
+        "sales.pipeline.stage": "all",
+        "sales.pipeline.keyword": "enterprise",
+        "sales.pipeline.selectedStage": "negotiation",
+        "sales.pipeline.reviewStatus": "needs review",
+        "sales.pipeline.outcomeStatus": "pending"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "crm-business-demo",
+            "name": "CRM Business Demo",
+            "type": "api",
+            "endpoint": "http://localhost:3500/businessCatalogs/crm-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 10,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-business-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"1\",\"title\":\"Sales pipeline → opportunity desk\",\"description\":\"A real-case CRM page combining opportunity data, workflow rules, and follow-up cards.\",\"accent\":\"emerald\"}}"
+          },
+          {
+            "id": "widget-business-filter",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 5,
+            "content": "{\"name\":\"BusinessDealFilter\",\"props\":{\"title\":\"Opportunity filters\",\"description\":\"Filter the opportunity pipeline by stage or keyword, then watch the list and detail cards update.\",\"stageKey\":\"sales.pipeline.stage\",\"keywordKey\":\"sales.pipeline.keyword\",\"filterEvent\":\"business:deal:filter\",\"stages\":[\"all\",\"qualification\",\"proposal\",\"negotiation\",\"closed won\"],\"__interactions\":[{\"id\":\"business-filter-stage\",\"event\":\"filter\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.stage\",\"valueFrom\":\"$.stage\",\"enabled\":true},{\"id\":\"business-filter-keyword\",\"event\":\"filter\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.keyword\",\"valueFrom\":\"$.keyword\",\"enabled\":true},{\"id\":\"business-filter-event\",\"event\":\"filter\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:filter:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-open",
+            "x": 0,
+            "y": 9,
+            "w": 4,
+            "h": 5,
+            "content": "{\"name\":\"StatsCard\",\"props\":{\"title\":\"Open deals\",\"value\":\"\",\"change\":\"\",\"description\":\"Open opportunities in the current pipeline\",\"__bindings\":{\"value\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.openDeals\"},\"change\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.openDealsDelta\"}}}}"
+          },
+          {
+            "id": "widget-business-win-rate",
+            "x": 4,
+            "y": 9,
+            "w": 4,
+            "h": 5,
+            "content": "{\"name\":\"StatsCard\",\"props\":{\"title\":\"Win rate\",\"value\":\"\",\"change\":\"\",\"description\":\"Deals won this month\",\"__bindings\":{\"value\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.winRate\"},\"change\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.winRateDelta\"}}}}"
+          },
+          {
+            "id": "widget-business-risk",
+            "x": 8,
+            "y": 9,
+            "w": 4,
+            "h": 5,
+            "content": "{\"name\":\"StatsCard\",\"props\":{\"title\":\"At risk\",\"value\":\"\",\"change\":\"\",\"description\":\"Deals needing follow-up\",\"__bindings\":{\"value\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.atRisk\"},\"change\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.kpis.atRiskDelta\"}}}}"
+          },
+          {
+            "id": "widget-business-list",
+            "x": 0,
+            "y": 14,
+            "w": 6,
+            "h": 18,
+            "content": "{\"name\":\"BusinessDealList\",\"props\":{\"title\":\"Opportunity pipeline\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"selectEvent\":\"business:deal:selected\",\"description\":\"Select an opportunity to update shared page state and notify the detail panel.\",\"__bindings\":{\"items\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.deals\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}},\"__interactions\":[{\"id\":\"business-deal-select-state\",\"event\":\"select\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.selectedId\",\"valueFrom\":\"$.id\",\"enabled\":true},{\"id\":\"business-deal-select-event\",\"event\":\"select\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:selected\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-stage-action",
+            "x": 0,
+            "y": 32,
+            "w": 12,
+            "h": 8,
+            "content": "{\"name\":\"BusinessDealStageAction\",\"props\":{\"title\":\"Stage actions\",\"description\":\"Advance the selected deal through qualification, proposal, negotiation, and closed won.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"stageChangedEvent\":\"business:deal:stage:changed\",\"stages\":[\"qualification\",\"proposal\",\"negotiation\",\"closed won\"],\"__interactions\":[{\"id\":\"business-stage-advance-state\",\"event\":\"advance-stage\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.selectedStage\",\"valueFrom\":\"$.nextStage\",\"enabled\":true},{\"id\":\"business-stage-advance-event\",\"event\":\"advance-stage\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:stage:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-review-action",
+            "x": 0,
+            "y": 40,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessDealReviewAction\",\"props\":{\"title\":\"Review step\",\"description\":\"Approve, reject, or reopen the selected opportunity and keep the outcome visible.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"reviewEvent\":\"business:deal:review:changed\",\"__interactions\":[{\"id\":\"business-review-approve-state\",\"event\":\"review-deal\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.reviewStatus\",\"valueFrom\":\"$.nextStatus\",\"enabled\":true},{\"id\":\"business-review-approve-event\",\"event\":\"review-deal\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:review:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-outcome-action",
+            "x": 0,
+            "y": 46,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessDealOutcomeAction\",\"props\":{\"title\":\"Outcome step\",\"description\":\"Approve and publish, request changes, or assign a follow-up after review.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\",\"outcomeEvent\":\"business:deal:outcome:changed\",\"__interactions\":[{\"id\":\"business-outcome-state\",\"event\":\"decide-outcome\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.outcomeStatus\",\"valueFrom\":\"$.nextStatus\",\"enabled\":true},{\"id\":\"business-outcome-event\",\"event\":\"decide-outcome\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:outcome:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-detail",
+            "x": 6,
+            "y": 14,
+            "w": 6,
+            "h": 18,
+            "content": "{\"name\":\"BusinessDealDetail\",\"props\":{\"title\":\"Opportunity detail\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"description\":\"This detail panel listens to the shared selected opportunity id.\",\"__bindings\":{\"items\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.deals\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          },
+          {
+            "id": "widget-business-lead-form",
+            "x": 0,
+            "y": 52,
+            "w": 6,
+            "h": 10,
+            "content": "{\"name\":\"ContactFormBridge\",\"props\":{\"title\":\"Lead intake sender\",\"successText\":\"Lead submission emitted\",\"waitingText\":\"Waiting for qualification reply\",\"ruleEcho\":\"business-lead-rules\",\"actions\":[{\"id\":\"lead-action-1\",\"label\":\"Send lead\",\"mode\":\"emit\",\"event\":\"business:lead:submit\",\"enabled\":true},{\"id\":\"lead-action-2\",\"label\":\"Qualify lead\",\"mode\":\"request\",\"event\":\"business:lead:qualify\",\"responseEvent\":\"business:lead:qualify:completed\",\"enabled\":true}],\"__interactions\":[{\"id\":\"lead-rule-status\",\"event\":\"demo:bridge.rules\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.leadStatus\",\"valueFrom\":\"$.status\",\"enabled\":true},{\"id\":\"lead-rule-echo\",\"event\":\"demo:bridge.rules\",\"action\":\"set-prop\",\"targetWidgetId\":\"$self\",\"targetPath\":\"ruleEcho\",\"valueFrom\":\"$.message\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-business-lead-result",
+            "x": 6,
+            "y": 52,
+            "w": 6,
+            "h": 10,
+            "content": "{\"name\":\"ContactFormResultText\",\"props\":{\"title\":\"Lead intake receiver\",\"ackMessagePrefix\":\"Lead reviewed\",\"emptyText\":\"No lead has been processed yet.\",\"pageStateKey\":\"sales.pipeline.leadStatus\",\"subscriptions\":[{\"id\":\"lead-sub-1\",\"event\":\"business:lead:submit\",\"enabled\":true,\"replyMode\":\"none\"},{\"id\":\"lead-sub-2\",\"event\":\"business:lead:qualify\",\"enabled\":true,\"replyMode\":\"ack\",\"responseEvent\":\"business:lead:qualify:completed\",\"resultTemplate\":\"Lead qualified\"}],\"actions\":[{\"id\":\"lead-result-1\",\"label\":\"Run lead rule\",\"mode\":\"emit\",\"event\":\"demo:bridge.rules\",\"enabled\":true}],\"__interactions\":[{\"id\":\"lead-result-status\",\"event\":\"demo:result.rules\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.leadStatus\",\"valueFrom\":\"$.status\",\"enabled\":true},{\"id\":\"lead-result-event\",\"event\":\"demo:result.rules\",\"action\":\"emit-event\",\"targetPath\":\"demo:result.rules:after\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Sales Pipeline Workspace",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-business-chain-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Business Chain Demo",
+      "image": "",
+      "pageState": {
+        "selectedId": "deal-002",
+        "keyword": "Northwind",
+        "activeTab": "components",
+        "dialogOpen": false,
+        "sales.pipeline.selectedId": "deal-002",
+        "sales.pipeline.stage": "all",
+        "sales.pipeline.keyword": "Northwind",
+        "sales.pipeline.selectedStage": "proposal",
+        "sales.pipeline.reviewStatus": "needs review",
+        "sales.pipeline.outcomeStatus": "pending",
+        "sales.pipeline.leadStatus": "new"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "crm-business-demo",
+            "name": "CRM Business Demo",
+            "type": "api",
+            "endpoint": "http://localhost:3500/businessCatalogs/crm-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 10,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-chain-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"2\",\"title\":\"Business chain scenario\",\"description\":\"Select a deal, move it through stage, review, and outcome in one place.\",\"accent\":\"indigo\"}}"
+          },
+          {
+            "id": "widget-chain-progress",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessChainProgressBar\",\"props\":{\"title\":\"Chain progress\",\"description\":\"Watch the workflow fill from selection to outcome.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\"}}"
+          },
+          {
+            "id": "widget-chain-summary",
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessChainStatusSummary\",\"props\":{\"title\":\"Chain status summary\",\"description\":\"Compact readout of the selected deal and its workflow state.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\",\"leadStatusKey\":\"sales.pipeline.leadStatus\"}}"
+          },
+          {
+            "id": "widget-chain-next-action",
+            "x": 0,
+            "y": 16,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessChainNextAction\",\"props\":{\"title\":\"Next action\",\"description\":\"A guided hint that tells the user what to do next in the business chain.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\",\"leadStatusKey\":\"sales.pipeline.leadStatus\"}}"
+          },
+          {
+            "id": "widget-chain-legend",
+            "x": 0,
+            "y": 22,
+            "w": 12,
+            "h": 6,
+            "content": "{\"name\":\"BusinessChainLegend\",\"props\":{\"title\":\"Chain legend\",\"description\":\"Color key for the business chain page so the workflow is easy to read.\"}}"
+          },
+          {
+            "id": "widget-chain-navigator",
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\":\"BusinessChainNavigator\",\"props\":{\"title\":\"Business chain navigator\",\"description\":\"Watch the active step update as the deal moves through selection, stage, review, and outcome.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\"}}"
+          },
+          {
+            "id": "widget-chain-guide",
+            "x": 0,
+            "y": 38,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\":\"BusinessChainGuide\",\"props\":{\"title\":\"Business chain guide\",\"description\":\"Follow the deal from selection to outcome using the same shared page state through every step.\",\"steps\":[{\"label\":\"1. Select\",\"summary\":\"Pick a deal so the workflow starts from the same target.\"},{\"label\":\"2. Stage\",\"summary\":\"Advance the deal through qualification, proposal, negotiation, or closed won.\"},{\"label\":\"3. Review\",\"summary\":\"Approve, reject, or reopen the deal after the stage change.\"},{\"label\":\"4. Outcome\",\"summary\":\"Publish, request changes, or assign a follow-up and watch the receiver log the event.\"}]}}"
+          },
+          {
+            "id": "widget-chain-list",
+            "x": 0,
+            "y": 48,
+            "w": 6,
+            "h": 16,
+            "content": "{\"name\":\"BusinessDealList\",\"props\":{\"title\":\"Selected deal lane\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"stageKey\":\"sales.pipeline.stage\",\"keywordKey\":\"sales.pipeline.keyword\",\"selectEvent\":\"business:deal:selected\",\"description\":\"This list is prefiltered to a single deal so the full chain is easy to test.\",\"__bindings\":{\"items\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.deals\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}},\"__interactions\":[{\"id\":\"chain-deal-select-state\",\"event\":\"select\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.selectedId\",\"valueFrom\":\"$.id\",\"enabled\":true},{\"id\":\"chain-deal-select-event\",\"event\":\"select\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:selected\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-chain-detail",
+            "x": 6,
+            "y": 48,
+            "w": 6,
+            "h": 16,
+            "content": "{\"name\":\"BusinessDealDetail\",\"props\":{\"title\":\"Chain detail\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"stageKey\":\"sales.pipeline.stage\",\"keywordKey\":\"sales.pipeline.keyword\",\"description\":\"Watch stage, review, and outcome status update as the flow progresses.\",\"__bindings\":{\"items\":{\"sourceId\":\"crm-business-demo\",\"path\":\"$.deals\",\"targetType\":\"array\",\"selector\":{\"type\":\"all\"}}}}}"
+          },
+          {
+            "id": "widget-chain-stage",
+            "x": 0,
+            "y": 64,
+            "w": 6,
+            "h": 8,
+            "content": "{\"name\":\"BusinessDealStageAction\",\"props\":{\"title\":\"Stage step\",\"description\":\"Advance the selected deal from proposal toward negotiation or closed won.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"workflowStageKey\":\"sales.pipeline.selectedStage\",\"stageChangedEvent\":\"business:deal:stage:changed\",\"stages\":[\"qualification\",\"proposal\",\"negotiation\",\"closed won\"],\"__interactions\":[{\"id\":\"chain-stage-state\",\"event\":\"advance-stage\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.selectedStage\",\"valueFrom\":\"$.nextStage\",\"enabled\":true},{\"id\":\"chain-stage-event\",\"event\":\"advance-stage\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:stage:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-chain-review",
+            "x": 6,
+            "y": 64,
+            "w": 6,
+            "h": 8,
+            "content": "{\"name\":\"BusinessDealReviewAction\",\"props\":{\"title\":\"Review step\",\"description\":\"Approve, reject, or reopen the selected deal after the stage is set.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"reviewEvent\":\"business:deal:review:changed\",\"__interactions\":[{\"id\":\"chain-review-state\",\"event\":\"review-deal\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.reviewStatus\",\"valueFrom\":\"$.nextStatus\",\"enabled\":true},{\"id\":\"chain-review-event\",\"event\":\"review-deal\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:review:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-chain-outcome",
+            "x": 0,
+            "y": 72,
+            "w": 7,
+            "h": 8,
+            "content": "{\"name\":\"BusinessDealOutcomeAction\",\"props\":{\"title\":\"Outcome step\",\"description\":\"Approve and publish, request changes, or assign follow-up after review.\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"reviewStatusKey\":\"sales.pipeline.reviewStatus\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\",\"outcomeEvent\":\"business:deal:outcome:changed\",\"__interactions\":[{\"id\":\"chain-outcome-state\",\"event\":\"decide-outcome\",\"action\":\"set-shared-state\",\"targetPath\":\"sales.pipeline.outcomeStatus\",\"valueFrom\":\"$.nextStatus\",\"enabled\":true},{\"id\":\"chain-outcome-event\",\"event\":\"decide-outcome\",\"action\":\"emit-event\",\"targetPath\":\"business:deal:outcome:changed\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-chain-receiver",
+            "x": 7,
+            "y": 72,
+            "w": 5,
+            "h": 8,
+            "content": "{\"name\":\"BusinessDealOutcomeReceiver\",\"props\":{\"title\":\"Outcome receiver\",\"description\":\"Review and outcome events appear here as a compact audit trail.\",\"listenEvent\":\"business:deal:outcome:changed\",\"reviewEvent\":\"business:deal:review:changed\",\"selectedIdKey\":\"sales.pipeline.selectedId\",\"outcomeStatusKey\":\"sales.pipeline.outcomeStatus\",\"maxEntries\":6}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Business Chain Demo",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-lifecycle-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Lifecycle Event Demo",
+      "image": "",
+      "pageState": {
+        "selectedId": "widget-lifecycle-dashboard",
+        "activeTab": "components",
+        "dialogOpen": false,
+        "lifecycle.watchWidgetId": "widget-lifecycle-dashboard",
+        "lifecycle.maxEntries": 12
+      },
+      "source": {
+        "lists": [],
+        "dataSources": []
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-lifecycle-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"3\",\"title\":\"Lifecycle events\",\"description\":\"A runtime page that exposes page bootstrap and widget mount/unmount events.\",\"accent\":\"violet\"}}"
+          },
+          {
+            "id": "widget-lifecycle-dashboard",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 16,
+            "content": "{\"name\":\"LifecycleEventDashboard\",\"props\":{\"title\":\"Page + widget lifecycle dashboard\",\"description\":\"Watch page:init, page:load, page:ready, widget:init, widget:load, and widget:unmount events while the page runtime mounts widgets.\",\"watchWidgetId\":\"widget-lifecycle-dashboard\",\"maxEntries\":12}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Lifecycle Event Demo",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-fold-post-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Content Review Workspace",
+      "image": "",
+      "pageState": {
+        "selectedId": "post-2",
+        "activeTab": "components",
+        "dialogOpen": false,
+        "content.review.selectedId": "post-2",
+        "content.review.selectedTitle": "Designing searchable content"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": []
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-fold-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\":\"DemoFlowSection\",\"props\":{\"index\":\"4\",\"title\":\"Content review → selection queue\",\"description\":\"A one-level accordion queue where clicking a row updates the receiver snapshot through shared state and a follow-up event.\",\"accent\":\"amber\"}}"
+          },
+          {
+            "id": "widget-fold-summary",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 7,
+            "content": "{\"name\":\"DemoPostFoldSummary\",\"props\":{\"title\":\"Review snapshot\",\"description\":\"A quick page-side guide that shows the current article selection before the receiver panel updates.\",\"selectedIdKey\":\"content.review.selectedId\",\"selectedTitleKey\":\"content.review.selectedTitle\",\"items\":[{\"id\":\"post-1\",\"title\":\"Building a calm page builder\",\"excerpt\":\"Keep events local and shared state small.\",\"body\":\"Widgets emit simple events. Page state carries only what multiple widgets need to share.\",\"category\":\"Architecture\"},{\"id\":\"post-2\",\"title\":\"Designing searchable content\",\"excerpt\":\"Search bars should update a shared keyword, not mutate results directly.\",\"body\":\"The search UI updates page state and the result panel derives the list from the same source.\",\"category\":\"Search\"},{\"id\":\"post-3\",\"title\":\"Form submission with confirmation\",\"excerpt\":\"Ask first, send second, then show the receiver response.\",\"body\":\"The form uses request/response so the sender can show a result after the receiver processes the payload.\",\"category\":\"Form\"}]}}"
+          },
+          {
+            "id": "widget-fold-tips",
+            "x": 0,
+            "y": 11,
+            "w": 12,
+            "h": 5,
+            "content": "{\"name\":\"DemoPostFoldTips\",\"props\":{\"title\":\"Review tips\",\"description\":\"This helper card keeps the review queue readable as a runnable sample.\",\"steps\":[\"Pick a post from the accordion.\",\"Watch the summary refresh immediately.\",\"Check the receiver history trail and latest detail.\"]}}"
+          },
+          {
+            "id": "widget-fold-navigator",
+            "x": 0,
+            "y": 16,
+            "w": 7,
+            "h": 18,
+            "content": "{\"name\":\"DemoPostFoldNavigator\",\"props\":{\"title\":\"Review queue navigator\",\"description\":\"Accordion rows emit fold-select and update the shared receiver snapshot.\",\"selectedIdKey\":\"content.review.selectedId\",\"selectEvent\":\"demo:fold:post:selected\",\"items\":[{\"id\":\"post-1\",\"title\":\"Building a calm page builder\",\"excerpt\":\"Keep events local and shared state small.\",\"body\":\"Widgets emit simple events. Page state carries only what multiple widgets need to share.\",\"category\":\"Architecture\"},{\"id\":\"post-2\",\"title\":\"Designing searchable content\",\"excerpt\":\"Search bars should update a shared keyword, not mutate results directly.\",\"body\":\"The search UI updates page state and the result panel derives the list from the same source.\",\"category\":\"Search\"},{\"id\":\"post-3\",\"title\":\"Form submission with confirmation\",\"excerpt\":\"Ask first, send second, then show the receiver response.\",\"body\":\"The form uses request/response so the sender can show a result after the receiver processes the payload.\",\"category\":\"Form\"}],\"__interactions\":[{\"id\":\"fold-navigator-select-state\",\"event\":\"fold-select\",\"action\":\"set-shared-state\",\"targetPath\":\"content.review.selectedId\",\"valueFrom\":\"$.id\",\"enabled\":true},{\"id\":\"fold-navigator-select-title\",\"event\":\"fold-select\",\"action\":\"set-shared-state\",\"targetPath\":\"content.review.selectedTitle\",\"valueFrom\":\"$.title\",\"enabled\":true},{\"id\":\"fold-navigator-select-event\",\"event\":\"fold-select\",\"action\":\"emit-event\",\"targetPath\":\"demo:fold:post:selected\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "id": "widget-fold-receiver",
+            "x": 7,
+            "y": 16,
+            "w": 5,
+            "h": 18,
+            "content": "{\"name\":\"DemoPostFoldReceiver\",\"props\":{\"title\":\"Content snapshot\",\"description\":\"Business-style receiver card showing the current selection, identity, and recent history trail.\",\"selectedIdKey\":\"content.review.selectedId\",\"items\":[{\"id\":\"post-1\",\"title\":\"Building a calm page builder\",\"excerpt\":\"Keep events local and shared state small.\",\"body\":\"Widgets emit simple events. Page state carries only what multiple widgets need to share.\",\"category\":\"Architecture\"},{\"id\":\"post-2\",\"title\":\"Designing searchable content\",\"excerpt\":\"Search bars should update a shared keyword, not mutate results directly.\",\"body\":\"The search UI updates page state and the result panel derives the list from the same source.\",\"category\":\"Search\"},{\"id\":\"post-3\",\"title\":\"Form submission with confirmation\",\"excerpt\":\"Ask first, send second, then show the receiver response.\",\"body\":\"The form uses request/response so the sender can show a result after the receiver processes the payload.\",\"category\":\"Form\"}]}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Content Review Workspace",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-media-showcase-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Media + Location Showcase Demo",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedMediaId": "media-image-1"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "media-showcase-catalog",
+            "name": "Media Showcase Catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/mediaCatalogs/media-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-media-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"6\", \"title\": \"Media + location showcase\", \"description\": \"Polished inquiry, media, slider, and map cards bound to a fixture datasource.\", \"accent\": \"rose\"}}"
+          },
+          {
+            "id": "widget-media-inquiry",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"MediaInquiryCard\", \"props\": {\"title\": \"Inquiry form\", \"description\": \"Collect project requests with a calm, premium form layout.\", \"submitLabel\": \"Send inquiry\", \"followUpLabel\": \"We\\u2019ll reply by email after review.\"}}"
+          },
+          {
+            "id": "widget-media-grid",
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 18,
+            "content": "{\"name\": \"MediaShowcaseGrid\", \"props\": {\"title\": \"Media cards\", \"description\": \"Cards for list, image, and video items that all jump to the detail page.\", \"items\": [], \"detailPageId\": \"page-media-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.items\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-media-slider",
+            "x": 0,
+            "y": 32,
+            "w": 12,
+            "h": 14,
+            "content": "{\"name\": \"MediaSliderCard\", \"props\": {\"title\": \"Image slider\", \"description\": \"A horizontal strip of hero frames for quick scanning.\", \"slides\": [], \"detailPageId\": \"page-media-detail-demo\", \"__bindings\": {\"slides\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.sliderItems\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-media-streetview",
+            "x": 0,
+            "y": 46,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"GoogleStreetViewCard\", \"props\": {\"title\": \"Street View\", \"subtitle\": \"Jump into the matching Google panoramic location.\", \"viewpoint\": \"35.6595,139.7005\", \"heading\": 170, \"pitch\": 8, \"fov\": 75, \"locationLabel\": \"Shibuya Crossing, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.title\"}, \"subtitle\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.subtitle\"}, \"viewpoint\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.viewpoint\"}, \"heading\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.heading\"}, \"pitch\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.pitch\"}, \"fov\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.fov\"}, \"locationLabel\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.streetview.locationLabel\"}}}}"
+          },
+          {
+            "id": "widget-media-map",
+            "x": 0,
+            "y": 58,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"GoogleMapCard\", \"props\": {\"title\": \"Map card\", \"subtitle\": \"Open a clean map link for the same place.\", \"center\": \"35.6595,139.7005\", \"zoom\": 16, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.map.title\"}, \"subtitle\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.map.subtitle\"}, \"center\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.map.center\"}, \"zoom\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.map.zoom\"}, \"locationLabel\": {\"sourceId\": \"media-showcase-catalog\", \"path\": \"$.location.map.locationLabel\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Media + Location Showcase Demo",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-media-detail-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Media Detail Demo",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedMediaId": "media-image-1"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "media-detail-catalog",
+            "name": "Media Detail Catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/mediaCatalogs/media-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-media-detail-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"7\", \"title\": \"Media detail page\", \"description\": \"Open a card with ?item=... to inspect a single media record and its location actions.\", \"accent\": \"blue\"}}"
+          },
+          {
+            "id": "widget-media-detail-panel",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 24,
+            "content": "{\"name\": \"MediaDetailPanel\", \"props\": {\"title\": \"Media detail\", \"description\": \"This page focuses on one selected media item and the official map links behind it.\", \"items\": [], \"detailPageId\": \"page-media-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"media-detail-catalog\", \"path\": \"$.items\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"media-detail-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"media-detail-catalog\", \"path\": \"$.subtitle\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Media Detail Demo",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-realestate-showcase-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Japan real-estate showcase",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedPropertyId": "property-rent-1",
+        "realestate.filter.intent": "all",
+        "realestate.filter.keyword": ""
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "realestate-showcase-catalog",
+            "name": "Japan real-estate catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/realEstateCatalogs/realestate-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-realestate-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"8\", \"title\": \"Real estate buy + rent showcase\", \"description\": \"Polished inquiry, buy/rent listing, slider, and map cards for property pages.\", \"accent\": \"rose\"}}"
+          },
+          {
+            "id": "widget-realestate-inquiry",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateInquiryCard\", \"props\": {\"title\": \"Property inquiry\", \"description\": \"Collect buy, rent, or sell requests in a calm premium form.\", \"submitLabel\": \"Send inquiry\", \"followUpLabel\": \"We will reply with matching listings and a showing plan.\"}}"
+          },
+          {
+            "id": "widget-realestate-filter",
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 7,
+            "content": "{\"name\": \"RealEstateFilterBar\", \"props\": {\"title\": \"Browse properties\", \"description\": \"Filter the showcase by sale or rent, and narrow the results with a keyword.\", \"intentKey\": \"realestate.filter.intent\", \"keywordKey\": \"realestate.filter.keyword\", \"activeIntent\": \"all\", \"activeKeyword\": \"\"}}"
+          },
+          {
+            "id": "widget-page-realestate-showcase-demo-neighborhood",
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateNeighborhoodCard\", \"props\": {\"title\": \"Neighborhood guide\", \"description\": \"A calm area summary for the selected property with nearby points of interest.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-page-realestate-showcase-demo-access",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateAccessCard\", \"props\": {\"title\": \"Access and surroundings\", \"description\": \"Street View, map, and surrounding context in one screen.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-grid",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 19,
+            "content": "{\"name\": \"RealEstatePropertyGrid\", \"props\": {\"title\": \"Featured properties\", \"description\": \"Premium sale and rental cards with detail actions for each property.\", \"items\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-slider",
+            "x": 0,
+            "y": 43,
+            "w": 12,
+            "h": 14,
+            "content": "{\"name\": \"RealEstatePropertySlider\", \"props\": {\"title\": \"Property slider\", \"description\": \"Horizontal premium cards for comparing properties.\", \"slides\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"slides\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.sliderItems\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-streetview",
+            "x": 0,
+            "y": 57,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateStreetViewCard\", \"props\": {\"title\": \"Neighborhood Street View\", \"subtitle\": \"Preview the surrounding streets before a showing.\", \"viewpoint\": \"35.6595,139.7005\", \"heading\": 175, \"pitch\": 8, \"fov\": 75, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.subtitle\"}, \"viewpoint\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.viewpoint\"}, \"heading\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.heading\"}, \"pitch\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.pitch\"}, \"fov\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.fov\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.locationLabel\"}}}}"
+          },
+          {
+            "id": "widget-realestate-map",
+            "x": 0,
+            "y": 69,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateMapCard\", \"props\": {\"title\": \"Property map\", \"subtitle\": \"Open a clean map link for the same property area.\", \"center\": \"35.6595,139.7005\", \"zoom\": 16, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.subtitle\"}, \"center\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.center\"}, \"zoom\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.zoom\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.locationLabel\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Japan real-estate showcase",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-realestate-detail-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Property detail",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedPropertyId": "property-rent-1"
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "realestate-detail-catalog",
+            "name": "Property detail catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/realEstateCatalogs/realestate-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-realestate-detail-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"9\", \"title\": \"Property detail page\", \"description\": \"Open with ?item=... to inspect a single property, the location view, and the lead actions.\", \"accent\": \"blue\"}}"
+          },
+          {
+            "id": "widget-realestate-detail-panel",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 24,
+            "content": "{\"name\": \"RealEstateDetailPanel\", \"props\": {\"title\": \"Property detail\", \"description\": \"Inspect the selected property and its viewing links.\", \"items\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-detail-inquiry",
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateInquiryCard\", \"props\": {\"title\": \"Property inquiry\", \"description\": \"Send an inquiry for the currently selected property directly from the detail page.\", \"submitLabel\": \"Send inquiry\", \"followUpLabel\": \"We will reply with the selected property and a viewing plan.\", \"selectedPropertyIdKey\": \"selectedPropertyId\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-detail-catalog\", \"path\": \"$.subtitle\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Property detail",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-realestate-sale-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Japan property sale",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedPropertyId": "property-sale-1",
+        "realestate.filter.intent": "sale",
+        "realestate.filter.keyword": ""
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "realestate-showcase-catalog",
+            "name": "Japan real-estate catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/realEstateCatalogs/realestate-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-realestate-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"8\", \"title\": \"Japan property sale\", \"description\": \"Sale-focused property browsing and neighborhood info.\", \"accent\": \"rose\"}}"
+          },
+          {
+            "id": "widget-realestate-inquiry",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateInquiryCard\", \"props\": {\"title\": \"Property inquiry\", \"description\": \"Collect buy, rent, or sell requests in a calm premium form.\", \"submitLabel\": \"Send inquiry\", \"followUpLabel\": \"We will reply with matching listings and a showing plan.\"}}"
+          },
+          {
+            "id": "widget-realestate-filter",
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 7,
+            "content": "{\"name\": \"RealEstateFilterBar\", \"props\": {\"title\": \"Browse properties\", \"description\": \"Filter the showcase by sale or rent, and narrow the results with a keyword.\", \"intentKey\": \"realestate.filter.intent\", \"keywordKey\": \"realestate.filter.keyword\", \"activeIntent\": \"sale\", \"activeKeyword\": \"\"}}"
+          },
+          {
+            "id": "widget-page-realestate-sale-demo-neighborhood",
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateNeighborhoodCard\", \"props\": {\"title\": \"Neighborhood guide\", \"description\": \"A calm area summary for the selected property with nearby points of interest.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-page-realestate-sale-demo-access",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateAccessCard\", \"props\": {\"title\": \"Access and surroundings\", \"description\": \"Street View, map, and surrounding context in one screen.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-grid",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 19,
+            "content": "{\"name\": \"RealEstatePropertyGrid\", \"props\": {\"title\": \"Featured properties\", \"description\": \"Open the detail page from sale cards.\", \"items\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-slider",
+            "x": 0,
+            "y": 43,
+            "w": 12,
+            "h": 14,
+            "content": "{\"name\": \"RealEstatePropertySlider\", \"props\": {\"title\": \"Property slider\", \"description\": \"Horizontal premium cards for comparing properties.\", \"slides\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"slides\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.sliderItems\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-streetview",
+            "x": 0,
+            "y": 57,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateStreetViewCard\", \"props\": {\"title\": \"Neighborhood Street View\", \"subtitle\": \"Preview the surrounding streets before a showing.\", \"viewpoint\": \"35.6595,139.7005\", \"heading\": 175, \"pitch\": 8, \"fov\": 75, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.subtitle\"}, \"viewpoint\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.viewpoint\"}, \"heading\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.heading\"}, \"pitch\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.pitch\"}, \"fov\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.fov\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.locationLabel\"}}}}"
+          },
+          {
+            "id": "widget-realestate-map",
+            "x": 0,
+            "y": 69,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateMapCard\", \"props\": {\"title\": \"Property map\", \"subtitle\": \"Open a clean map link for the same property area.\", \"center\": \"35.6595,139.7005\", \"zoom\": 16, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.subtitle\"}, \"center\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.center\"}, \"zoom\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.zoom\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.locationLabel\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Japan property sale",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-realestate-rent-demo",
+      "type": "page",
+      "status": "draft",
+      "title": "Japan property rent",
+      "image": "",
+      "pageState": {
+        "activeTab": "components",
+        "dialogOpen": false,
+        "selectedPropertyId": "property-rent-1",
+        "realestate.filter.intent": "rent",
+        "realestate.filter.keyword": ""
+      },
+      "source": {
+        "lists": [],
+        "dataSources": [
+          {
+            "id": "realestate-showcase-catalog",
+            "name": "Japan real-estate catalog",
+            "type": "api",
+            "endpoint": "http://localhost:3500/realEstateCatalogs/realestate-showcase-demo",
+            "method": "GET",
+            "headers": {},
+            "refreshInterval": 0
+          }
+        ]
+      },
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 8,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "id": "widget-realestate-header",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 4,
+            "content": "{\"name\": \"DemoFlowSection\", \"props\": {\"index\": \"9\", \"title\": \"Japan property rent\", \"description\": \"Rent-focused property browsing and neighborhood info.\", \"accent\": \"blue\"}}"
+          },
+          {
+            "id": "widget-realestate-inquiry",
+            "x": 0,
+            "y": 4,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateInquiryCard\", \"props\": {\"title\": \"Property inquiry\", \"description\": \"Collect buy, rent, or sell requests in a calm premium form.\", \"submitLabel\": \"Send inquiry\", \"followUpLabel\": \"We will reply with matching listings and a showing plan.\"}}"
+          },
+          {
+            "id": "widget-realestate-filter",
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 7,
+            "content": "{\"name\": \"RealEstateFilterBar\", \"props\": {\"title\": \"Browse properties\", \"description\": \"Filter the showcase by sale or rent, and narrow the results with a keyword.\", \"intentKey\": \"realestate.filter.intent\", \"keywordKey\": \"realestate.filter.keyword\", \"activeIntent\": \"rent\", \"activeKeyword\": \"\"}}"
+          },
+          {
+            "id": "widget-page-realestate-rent-demo-neighborhood",
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 10,
+            "content": "{\"name\": \"RealEstateNeighborhoodCard\", \"props\": {\"title\": \"Neighborhood guide\", \"description\": \"A calm area summary for the selected property with nearby points of interest.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-page-realestate-rent-demo-access",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateAccessCard\", \"props\": {\"title\": \"Access and surroundings\", \"description\": \"Street View, map, and surrounding context in one screen.\", \"items\": [], \"selectedPropertyIdKey\": \"selectedPropertyId\", \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-grid",
+            "x": 0,
+            "y": 31,
+            "w": 12,
+            "h": 19,
+            "content": "{\"name\": \"RealEstatePropertyGrid\", \"props\": {\"title\": \"Featured properties\", \"description\": \"Open the detail page from rental cards.\", \"items\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"items\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.properties\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-slider",
+            "x": 0,
+            "y": 43,
+            "w": 12,
+            "h": 14,
+            "content": "{\"name\": \"RealEstatePropertySlider\", \"props\": {\"title\": \"Property slider\", \"description\": \"Horizontal premium cards for comparing properties.\", \"slides\": [], \"detailPageId\": \"page-realestate-detail-demo\", \"__bindings\": {\"slides\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.sliderItems\", \"targetType\": \"array\", \"selector\": {\"type\": \"all\"}}, \"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.title\"}, \"description\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.subtitle\"}}}}"
+          },
+          {
+            "id": "widget-realestate-streetview",
+            "x": 0,
+            "y": 57,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateStreetViewCard\", \"props\": {\"title\": \"Neighborhood Street View\", \"subtitle\": \"Preview the surrounding streets before a showing.\", \"viewpoint\": \"35.6595,139.7005\", \"heading\": 175, \"pitch\": 8, \"fov\": 75, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.subtitle\"}, \"viewpoint\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.viewpoint\"}, \"heading\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.heading\"}, \"pitch\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.pitch\"}, \"fov\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.fov\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.streetview.locationLabel\"}}}}"
+          },
+          {
+            "id": "widget-realestate-map",
+            "x": 0,
+            "y": 69,
+            "w": 12,
+            "h": 12,
+            "content": "{\"name\": \"RealEstateMapCard\", \"props\": {\"title\": \"Property map\", \"subtitle\": \"Open a clean map link for the same property area.\", \"center\": \"35.6595,139.7005\", \"zoom\": 16, \"locationLabel\": \"Shibuya, Tokyo\", \"__bindings\": {\"title\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.title\"}, \"subtitle\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.subtitle\"}, \"center\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.center\"}, \"zoom\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.zoom\"}, \"locationLabel\": {\"sourceId\": \"realestate-showcase-catalog\", \"path\": \"$.location.map.locationLabel\"}}}}"
+          }
+        ]
+      },
+      "attributes": {
+        "type": "page",
+        "title": "Japan property rent",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-1778253289609",
+      "type": "page",
+      "status": "draft",
+      "title": "untitled page",
+      "image": "",
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 10,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "name": "DemoSearchBar",
+            "id": "widget-4872e392-9983-4dd1-868a-76b1124f521c",
+            "x": 2,
+            "y": 0,
+            "w": 8,
+            "h": 13,
+            "sizeToContent": true,
+            "content": "{\"name\":\"DemoSearchBar\",\"props\":{\"title\":\"Search bar\",\"keywordKey\":\"demo.search.keyword\",\"searchEvent\":\"demo:search:changed\",\"placeholder\":\"Search posts...\",\"description\":\"Typing updates the shared keyword and refreshes the results panel.\",\"eventKind\":\"search_filter\",\"__interactions\":[],\"__schema\":{\"type\":\"object\",\"properties\":{\"title\":{\"title\":\"Title\",\"type\":\"string\"},\"keywordKey\":{\"title\":\"KeywordKey\",\"type\":\"string\"},\"searchEvent\":{\"title\":\"SearchEvent\",\"type\":\"string\"},\"placeholder\":{\"title\":\"Placeholder\",\"type\":\"string\"},\"description\":{\"title\":\"Description\",\"type\":\"string\"},\"eventKind\":{\"title\":\"EventKind\",\"type\":\"string\"}},\"required\":[]},\"__bindings\":{},\"__schemaOptions\":{},\"__ignoredMappings\":[]}}"
+          },
+          {
+            "name": "DemoSearchResults",
+            "id": "widget-b8494c0d-2c70-426c-8228-72a6cbfc22c9",
+            "x": 2,
+            "y": 13,
+            "w": 8,
+            "h": 25,
+            "sizeToContent": true,
+            "content": "{\"name\":\"DemoSearchResults\",\"props\":{\"title\":\"Search results\",\"items\":[{\"id\":\"post-1\",\"title\":\"Building a calm page builder\",\"excerpt\":\"Keep events local and shared state small.\",\"body\":\"Widgets emit simple events. Page state carries only what multiple widgets need to share.\",\"category\":\"Architecture\"},{\"id\":\"post-2\",\"title\":\"Designing searchable content\",\"excerpt\":\"Search bars should update a shared keyword, not mutate results directly.\",\"body\":\"The search UI updates page state and the result panel derives the list from the same source.\",\"category\":\"Search\"},{\"id\":\"post-3\",\"title\":\"Form submission with confirmation\",\"excerpt\":\"Ask first, send second, then show the receiver response.\",\"body\":\"The form uses request/response so the sender can show a result after the receiver processes the payload.\",\"category\":\"Form\"}],\"keywordKey\":\"demo.search.keyword\",\"description\":\"This list filters itself from the shared search keyword.\",\"eventKind\":\"search_filter\",\"__schema\":{\"type\":\"object\",\"properties\":{\"title\":{\"title\":\"Title\",\"type\":\"string\"},\"items\":{\"title\":\"Items\",\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"title\":\"Id\",\"type\":\"string\"},\"title\":{\"title\":\"Title\",\"type\":\"string\"},\"excerpt\":{\"title\":\"Excerpt\",\"type\":\"string\"},\"body\":{\"title\":\"Body\",\"type\":\"string\",\"format\":\"textarea\"},\"category\":{\"title\":\"Category\",\"type\":\"string\"}}},\"x-array-binding\":true},\"keywordKey\":{\"title\":\"KeywordKey\",\"type\":\"string\"},\"description\":{\"title\":\"Description\",\"type\":\"string\"},\"eventKind\":{\"title\":\"EventKind\",\"type\":\"string\"}},\"required\":[]},\"__bindings\":{},\"__schemaOptions\":{},\"__ignoredMappings\":[],\"__interactions\":[]}}"
+          }
+        ]
+      },
+      "source": {
+        "lists": [],
+        "dataSources": []
+      },
+      "attributes": {
+        "type": "page",
+        "title": "untitled page",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "pageState": {
+        "selectedId": null,
+        "keyword": "",
+        "activeTab": "components",
+        "dialogOpen": false
+      },
+      "published_at": null
+    },
+    {
+      "id": "page-1778297704852",
+      "type": "page",
+      "status": "draft",
+      "title": "untitled page",
+      "image": "",
+      "layout": {
+        "acceptWidgets": true,
+        "removable": "#trash",
+        "sizeToContent": true,
+        "resizable": {
+          "handles": "all"
+        },
+        "minRow": 10,
+        "columnOpts": {
+          "breakpointForWindow": true,
+          "breakpoints": [
+            {
+              "c": 6,
+              "w": 1024
+            },
+            {
+              "c": 3,
+              "w": 800
+            },
+            {
+              "c": 1,
+              "w": 500
+            }
+          ],
+          "layout": "moveScale",
+          "columnMax": 12
+        },
+        "margin": 5,
+        "subGridDynamic": true,
+        "subGridOpts": {
+          "acceptWidgets": true,
+          "removable": "#trash",
+          "resizable": {
+            "handles": "se"
+          },
+          "sizeToContent": true,
+          "subGridDynamic": true,
+          "columnOpts": {
+            "breakpoints": [
+              {
+                "c": 1,
+                "w": 500
+              },
+              {
+                "c": 3,
+                "w": 800
+              },
+              {
+                "c": 6,
+                "w": 1024
+              }
+            ],
+            "layout": "moveScale"
+          },
+          "margin": 5,
+          "minRow": 1,
+          "cellHeight": "1rem"
+        },
+        "cellHeightUnit": "rem",
+        "cellHeight": 1,
+        "children": [
+          {
+            "name": "DemoSearchBar",
+            "id": "widget-4ec663a4-597a-46c5-b58c-7f3eccd8fad2",
+            "x": 4,
+            "y": 0,
+            "w": 4,
+            "h": 13,
+            "sizeToContent": true,
+            "content": "{\"name\":\"DemoSearchBar\",\"props\":{\"title\":\"Search bar\",\"keywordKey\":\"demo.search.keyword\",\"searchEvent\":\"demo:search:changed\",\"placeholder\":\"Search posts...\",\"description\":\"Typing updates the shared keyword and refreshes the results panel.\",\"eventKind\":\"search_filter\",\"__interactions\":[{\"id\":\"search-bar-state\",\"event\":\"search\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.search.keyword\",\"valueFrom\":\"$.keyword\",\"enabled\":true},{\"id\":\"search-bar-event\",\"event\":\"search\",\"action\":\"emit-event\",\"targetPath\":\"demo:search:changed\",\"valueFrom\":\"$\",\"enabled\":true}],\"__schema\":{\"type\":\"object\",\"properties\":{\"title\":{\"title\":\"Title\",\"type\":\"string\"},\"keywordKey\":{\"title\":\"KeywordKey\",\"type\":\"string\"},\"searchEvent\":{\"title\":\"SearchEvent\",\"type\":\"string\"},\"placeholder\":{\"title\":\"Placeholder\",\"type\":\"string\"},\"description\":{\"title\":\"Description\",\"type\":\"string\"},\"eventKind\":{\"title\":\"EventKind\",\"type\":\"string\"}},\"required\":[]},\"__bindings\":{},\"__schemaOptions\":{},\"__ignoredMappings\":[]}}"
+          },
+          {
+            "name": "ImageCard",
+            "id": "widget-0d8d7848-058b-419e-b0ed-e7b73014fd8a",
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 23,
+            "sizeToContent": true,
+            "content": "{\"name\":\"ImageCard\",\"props\":{\"src\":\"https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/07/image-26.png\",\"alt\":\"Sample image\",\"caption\":\"This is a sample image card\",\"width\":\"100%\",\"height\":\"auto\"}}"
+          },
+          {
+            "name": "DemoPostList",
+            "id": "widget-fafa4a97-8528-42c0-b531-a3e6ebb8b5f5",
+            "x": 1,
+            "y": 13,
+            "w": 4,
+            "h": 25,
+            "sizeToContent": true,
+            "content": "{\"name\":\"DemoPostList\",\"props\":{\"title\":\"Post cards\",\"items\":[{\"id\":\"post-1\",\"title\":\"Building a calm page builder\",\"excerpt\":\"Keep events local and shared state small.\",\"body\":\"Widgets emit simple events. Page state carries only what multiple widgets need to share.\",\"category\":\"Architecture\"},{\"id\":\"post-2\",\"title\":\"Designing searchable content\",\"excerpt\":\"Search bars should update a shared keyword, not mutate results directly.\",\"body\":\"The search UI updates page state and the result panel derives the list from the same source.\",\"category\":\"Search\"},{\"id\":\"post-3\",\"title\":\"Form submission with confirmation\",\"excerpt\":\"Ask first, send second, then show the receiver response.\",\"body\":\"The form uses request/response so the sender can show a result after the receiver processes the payload.\",\"category\":\"Form\"}],\"selectedIdKey\":\"demo.post.selectedId\",\"selectEvent\":\"demo:post:selected\",\"description\":\"Click a card to set the selected id and show the detail panel.\",\"eventKind\":\"select_detail\",\"__interactions\":[{\"id\":\"post-list-select-state\",\"event\":\"select\",\"action\":\"set-shared-state\",\"targetPath\":\"demo.post.selectedId\",\"valueFrom\":\"$.id\",\"enabled\":true},{\"id\":\"post-list-select-event\",\"event\":\"select\",\"action\":\"emit-event\",\"targetPath\":\"demo:post:selected\",\"valueFrom\":\"$\",\"enabled\":true}]}}"
+          },
+          {
+            "name": "Button",
+            "id": "widget-06a0f3c4-65eb-4e32-b316-fa45407071f1",
+            "x": 8,
+            "y": 23,
+            "w": 4,
+            "h": 6,
+            "sizeToContent": true,
+            "content": "{\"name\":\"Button\",\"props\":{\"text\":\"Click me\",\"color\":\"blue\",\"size\":\"md\",\"__schemaOptions\":{\"size\":{\"options\":[\"sm\",\"md\",\"lg\"]}}}}"
+          }
+        ]
+      },
+      "source": {
+        "lists": [],
+        "dataSources": []
+      },
+      "attributes": {
+        "type": "page",
+        "title": "untitled page",
+        "excerpt": "",
+        "image": "",
+        "status": "draft",
+        "published_at": null,
+        "margin": "0px",
+        "padding": "0px",
+        "background": "#ffffff",
+        "showMenubar": true
+      },
+      "pageState": {
+        "selectedId": null,
+        "keyword": "",
+        "activeTab": "components",
+        "dialogOpen": false
+      },
+      "published_at": null
+    }
+  ],
+  "posts": [],
+  "demoCatalogs": [
+    {
+      "id": "stackpage-demo",
+      "title": "StackPage JSON Server datasource",
+      "subtitle": "This page loads data from the local json-server fixture.",
+      "updatedAt": "2026-05-03T04:54:12.000Z",
+      "items": [
+        {
+          "id": "catalog-1",
+          "title": "Alpha",
+          "content": "Loaded from /demoCatalogs/stackpage-demo via json-server.",
+          "category": "Fixture"
+        },
+        {
+          "id": "catalog-2",
+          "title": "Beta",
+          "content": "Used to verify API datasource bindings in the demo.",
+          "category": "Regression"
+        },
+        {
+          "id": "catalog-3",
+          "title": "Gamma",
+          "content": "Keeps the demo runnable as a manual integration test.",
+          "category": "Demo"
+        }
+      ]
+    }
+  ],
+  "businessCatalogs": [
+    {
+      "id": "crm-demo",
+      "title": "CRM ops dashboard",
+      "subtitle": "Business fixtures for StackPage manual and automated tests.",
+      "updatedAt": "2026-05-03T04:54:12.000Z",
+      "kpis": {
+        "openDeals": "12",
+        "openDealsDelta": "+2",
+        "winRate": "34%",
+        "winRateDelta": "+4%",
+        "atRisk": "3",
+        "atRiskDelta": "2 need follow-up"
+      },
+      "deals": [
+        {
+          "id": "deal-001",
+          "name": "Acme Renewal",
+          "account": "Acme Corp",
+          "stage": "Negotiation",
+          "owner": "Mina",
+          "amount": "$45,000",
+          "summary": "Renewal in progress with procurement and legal review."
+        },
+        {
+          "id": "deal-002",
+          "name": "Northwind Expansion",
+          "account": "Northwind",
+          "stage": "Proposal",
+          "owner": "Jun",
+          "amount": "$72,000",
+          "summary": "Expansion proposal sent to finance and IT stakeholders."
+        },
+        {
+          "id": "deal-003",
+          "name": "Globex Pilot",
+          "account": "Globex",
+          "stage": "Qualification",
+          "owner": "Sara",
+          "amount": "$18,000",
+          "summary": "Pilot scope and success criteria are being validated."
+        }
+      ]
+    }
+  ],
+  "mediaCatalogs": [
+    {
+      "id": "media-showcase-demo",
+      "title": "Media + location showcase",
+      "subtitle": "Inquiry, list/detail, slider, and map cards backed by json-server fixtures.",
+      "updatedAt": "2026-05-03T04:54:12.000Z",
+      "items": [
+        {
+          "id": "media-list-1",
+          "kind": "list",
+          "title": "Launch story card",
+          "summary": "A concise editorial card with a detail action for the content team.",
+          "body": "Use this card when a list item needs to open into a richer detail page.",
+          "category": "Editorial",
+          "image": "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop",
+          "locationLabel": "Shibuya, Tokyo",
+          "locationSpotId": "streetview-shibuya"
+        },
+        {
+          "id": "media-image-1",
+          "kind": "image",
+          "title": "Campaign image card",
+          "summary": "A crisp image tile with an explicit detail button and strong captioning.",
+          "body": "Design the card to feel premium and still let the user jump to the detail page.",
+          "category": "Image",
+          "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=800&fit=crop",
+          "locationLabel": "Meguro, Tokyo",
+          "locationSpotId": "map-shibuya"
+        },
+        {
+          "id": "media-video-1",
+          "kind": "video",
+          "title": "Trailer video card",
+          "summary": "A one-unit video card with a detail route and a built-in action button.",
+          "body": "Use the same layout language as image cards so the gallery feels coherent.",
+          "category": "Video",
+          "video": "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
+          "poster": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=800&fit=crop",
+          "locationLabel": "Osaka, Japan",
+          "locationSpotId": "map-shibuya"
+        },
+        {
+          "id": "media-image-2",
+          "kind": "image",
+          "title": "Portrait detail card",
+          "summary": "A second image card so the slider and gallery have visual rhythm.",
+          "body": "Cards should stay clean and balanced even when the content source changes.",
+          "category": "Portrait",
+          "image": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=1200&h=800&fit=crop",
+          "locationLabel": "Yokohama, Japan",
+          "locationSpotId": "streetview-shibuya"
+        }
+      ],
+      "sliderItems": [
+        {
+          "id": "media-image-1",
+          "kind": "image",
+          "title": "Campaign image card",
+          "summary": "A crisp image tile with an explicit detail button and strong captioning.",
+          "body": "Design the card to feel premium and still let the user jump to the detail page.",
+          "category": "Image",
+          "image": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=800&fit=crop",
+          "locationLabel": "Meguro, Tokyo",
+          "locationSpotId": "map-shibuya"
+        },
+        {
+          "id": "media-video-1",
+          "kind": "video",
+          "title": "Trailer video card",
+          "summary": "A one-unit video card with a detail route and a built-in action button.",
+          "body": "Use the same layout language as image cards so the gallery feels coherent.",
+          "category": "Video",
+          "video": "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
+          "poster": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=800&fit=crop",
+          "locationLabel": "Osaka, Japan",
+          "locationSpotId": "map-shibuya"
+        },
+        {
+          "id": "media-image-2",
+          "kind": "image",
+          "title": "Portrait detail card",
+          "summary": "A second image card so the slider and gallery have visual rhythm.",
+          "body": "Cards should stay clean and balanced even when the content source changes.",
+          "category": "Portrait",
+          "image": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=1200&h=800&fit=crop",
+          "locationLabel": "Yokohama, Japan",
+          "locationSpotId": "streetview-shibuya"
+        }
+      ],
+      "location": {
+        "streetview": {
+          "title": "Street view snapshot",
+          "subtitle": "A postcard-style street view card that opens Google Maps panoramic view.",
+          "locationLabel": "Shibuya Crossing, Tokyo",
+          "viewpoint": "35.6595,139.7005",
+          "heading": 170,
+          "pitch": 8,
+          "fov": 75
+        },
+        "map": {
+          "title": "Map snapshot",
+          "subtitle": "A clean map card that launches Google Maps map view with the same location.",
+          "locationLabel": "Shibuya, Tokyo",
+          "center": "35.6595,139.7005",
+          "zoom": 16
+        }
+      }
+    }
+  ],
+  "realEstateCatalogs": [
+    {
+      "id": "realestate-showcase-demo",
+      "title": "Japan property sale and rent showcase",
+      "subtitle": "Premium listings, inquiry capture, and location cards for buy and rent flows.",
+      "updatedAt": "2026-05-07T04:54:12.000Z",
+      "properties": [
+        {
+          "id": "property-sale-1",
+          "kind": "sale",
+          "title": "Shibuya Residence",
+          "summary": "Premium condominium with city access, concierge service, and a calm interior.",
+          "body": "Best for buyers who want a polished urban home close to transit, dining, and office access.",
+          "category": "For Sale",
+          "price": "¥128,000,000",
+          "area": "78.4㎡",
+          "rooms": "3LDK",
+          "status": "Featured",
+          "image": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=800&fit=crop",
+          "locationLabel": "Shibuya, Tokyo",
+          "locationSpotId": "realestate-shibuya"
+        },
+        {
+          "id": "property-rent-1",
+          "kind": "rent",
+          "title": "Nakameguro Loft",
+          "summary": "Bright rental loft with a strong work-from-home layout and river access.",
+          "body": "A rental option for teams or singles who want design, light, and a walkable neighborhood.",
+          "category": "For Rent",
+          "price": "¥390,000 / month",
+          "area": "56.2㎡",
+          "rooms": "1LDK",
+          "status": "New",
+          "image": "https://images.unsplash.com/photo-1494526585095-c41746248156?w=1200&h=800&fit=crop",
+          "locationLabel": "Nakameguro, Tokyo",
+          "locationSpotId": "realestate-nakameguro"
+        },
+        {
+          "id": "property-sale-2",
+          "kind": "sale",
+          "title": "Daikanyama Maisonette",
+          "summary": "A quiet maisonette with video-tour style presentation and boutique interiors.",
+          "body": "Ideal for buyers seeking a residential feel with a premium neighborhood address.",
+          "category": "For Sale",
+          "price": "¥92,000,000",
+          "area": "64.8㎡",
+          "rooms": "2LDK",
+          "status": "Open House",
+          "video": "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
+          "poster": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&h=800&fit=crop",
+          "locationLabel": "Daikanyama, Tokyo",
+          "locationSpotId": "realestate-daikanyama"
+        },
+        {
+          "id": "property-rent-2",
+          "kind": "rent",
+          "title": "Yokohama Family House",
+          "summary": "Spacious rental home with parking, storage, and a practical floor plan.",
+          "body": "A rental home for families who want room to grow without losing location convenience.",
+          "category": "For Rent",
+          "price": "¥265,000 / month",
+          "area": "94.1㎡",
+          "rooms": "4LDK",
+          "status": "Popular",
+          "image": "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop",
+          "locationLabel": "Yokohama, Kanagawa",
+          "locationSpotId": "realestate-yokohama"
+        }
+      ],
+      "sliderItems": [
+        {
+          "id": "property-sale-1",
+          "kind": "sale",
+          "title": "Shibuya Residence",
+          "summary": "Premium condominium with city access, concierge service, and a calm interior.",
+          "body": "Best for buyers who want a polished urban home close to transit, dining, and office access.",
+          "category": "For Sale",
+          "price": "¥128,000,000",
+          "area": "78.4㎡",
+          "rooms": "3LDK",
+          "status": "Featured",
+          "image": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&h=800&fit=crop",
+          "locationLabel": "Shibuya, Tokyo",
+          "locationSpotId": "realestate-shibuya"
+        },
+        {
+          "id": "property-rent-1",
+          "kind": "rent",
+          "title": "Nakameguro Loft",
+          "summary": "Bright rental loft with a strong work-from-home layout and river access.",
+          "body": "A rental option for teams or singles who want design, light, and a walkable neighborhood.",
+          "category": "For Rent",
+          "price": "¥390,000 / month",
+          "area": "56.2㎡",
+          "rooms": "1LDK",
+          "status": "New",
+          "image": "https://images.unsplash.com/photo-1494526585095-c41746248156?w=1200&h=800&fit=crop",
+          "locationLabel": "Nakameguro, Tokyo",
+          "locationSpotId": "realestate-nakameguro"
+        },
+        {
+          "id": "property-sale-2",
+          "kind": "sale",
+          "title": "Daikanyama Maisonette",
+          "summary": "A quiet maisonette with video-tour style presentation and boutique interiors.",
+          "body": "Ideal for buyers seeking a residential feel with a premium neighborhood address.",
+          "category": "For Sale",
+          "price": "¥92,000,000",
+          "area": "64.8㎡",
+          "rooms": "2LDK",
+          "status": "Open House",
+          "video": "https://dnicugzydez8x.cloudfront.net/60-think-prd/2025/09/IMG_2444.mov",
+          "poster": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1200&h=800&fit=crop",
+          "locationLabel": "Daikanyama, Tokyo",
+          "locationSpotId": "realestate-daikanyama"
+        },
+        {
+          "id": "property-rent-2",
+          "kind": "rent",
+          "title": "Yokohama Family House",
+          "summary": "Spacious rental home with parking, storage, and a practical floor plan.",
+          "body": "A rental home for families who want room to grow without losing location convenience.",
+          "category": "For Rent",
+          "price": "¥265,000 / month",
+          "area": "94.1㎡",
+          "rooms": "4LDK",
+          "status": "Popular",
+          "image": "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=800&fit=crop",
+          "locationLabel": "Yokohama, Kanagawa",
+          "locationSpotId": "realestate-yokohama"
+        }
+      ],
+      "location": {
+        "streetview": {
+          "title": "Neighborhood Street View",
+          "subtitle": "Preview the surroundings for the selected property before a viewing.",
+          "locationLabel": "Shibuya, Tokyo",
+          "viewpoint": "35.6595,139.7005",
+          "heading": 175,
+          "pitch": 8,
+          "fov": 75
+        },
+        "map": {
+          "title": "Property map",
+          "subtitle": "Use the map card to check routes, transit, and neighborhood context.",
+          "locationLabel": "Shibuya, Tokyo",
+          "center": "35.6595,139.7005",
+          "zoom": 16
+        }
+      }
+    }
+  ]
+}
