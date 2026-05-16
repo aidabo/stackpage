@@ -77,7 +77,7 @@ export const DataTab: React.FC<DataTabProps> = ({
     }),
     [componentProps, bindings, componentSchema, ignoredFields]
   );
-  const resolvedProps = useDataBinding(fullProps);
+  const { resolvedProps } = useDataBinding(fullProps);
 
   //DEBUG
   useEffect(() => {

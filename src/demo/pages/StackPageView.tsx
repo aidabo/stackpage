@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   componentMapProvider,
   componentPropsProvider,
+  LifecycleEventDashboard,
 } from "@/demo/components/MyComponents";
 import {
   PageProps,
@@ -178,14 +179,20 @@ function StackPageView() {
       onCustomAction={handleCustomAction as any}
     >
       {/* Additional custom content can go here */}
-      <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg">
-        <h3 className="font-semibold text-green-800 mb-2 text-center">
-          Demo view uses the saved schema from jsonserver
-        </h3>
-        <p className="text-sm text-green-700 text-center">
-          Page state, bindings, and datasource config are restored on load.
-          Loaded data is runtime-only and refetches when the page opens.
-        </p>
+      <div className="mb-6 space-y-4">
+        <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+          <h3 className="font-semibold text-green-800 mb-2 text-center">
+            Demo view uses the saved schema from jsonserver
+          </h3>
+          <p className="text-sm text-green-700 text-center">
+            Page state, bindings, and datasource config are restored on load.
+            Loaded data is runtime-only and refetches when the page opens.
+          </p>
+        </div>
+        <LifecycleEventDashboard
+          title="Page + widget lifecycle demo"
+          description="Use this view to confirm page:init, page:load, page:ready, and widget lifecycle events while the runtime mounts widgets."
+        />
       </div>
     </StackPage>
   );

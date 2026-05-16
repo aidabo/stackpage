@@ -4,6 +4,10 @@ type BindingDebugPayload = {
   bindings: Record<string, any>;
   rawProps: Record<string, any>;
   resolvedProps: Record<string, any>;
+  hasResolvedBindings?: boolean;
+  resolvedBindingCount?: number;
+  totalBindingCount?: number;
+  resolvedBindingKeys?: string[];
 };
 
 const lastSnapshots = new Map<string, string>();
@@ -26,7 +30,17 @@ function safeStringify(value: unknown): string {
 export function logBindingResolution(payload: BindingDebugPayload): void {
   if (!isBindingDebugEnabled()) return;
 
-  const { widgetId, componentName, bindings, rawProps, resolvedProps } = payload;
+  const {
+    widgetId,
+    componentName,
+    bindings,
+    rawProps,
+    resolvedProps,
+    hasResolvedBindings,
+    resolvedBindingCount,
+    totalBindingCount,
+    resolvedBindingKeys,
+  } = payload;
   const boundKeys = Object.keys(bindings || {});
   if (boundKeys.length === 0) return;
 
@@ -44,6 +58,10 @@ export function logBindingResolution(payload: BindingDebugPayload): void {
     bindings,
     rawBoundValues,
     resolvedBoundValues,
+    hasResolvedBindings,
+    resolvedBindingCount,
+    totalBindingCount,
+    resolvedBindingKeys,
   });
   const snapshotKey = `${widgetId}:${componentName}`;
 
@@ -61,6 +79,13 @@ export function logBindingResolution(payload: BindingDebugPayload): void {
   // eslint-disable-next-line no-console
   console.log("resolvedBoundValues", resolvedBoundValues);
   // eslint-disable-next-line no-console
+  console.log("hasResolvedBindings", hasResolvedBindings);
+  // eslint-disable-next-line no-console
+  console.log("resolvedBindingCount", resolvedBindingCount);
+  // eslint-disable-next-line no-console
+  console.log("totalBindingCount", totalBindingCount);
+  // eslint-disable-next-line no-console
+  console.log("resolvedBindingKeys", resolvedBindingKeys);
+  // eslint-disable-next-line no-console
   console.groupEnd();
 }
-

@@ -212,6 +212,7 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
                 payload: wrappedPayload,
                 rules: requestRules,
                 depth: requestDepth,
+                runtimeScopeId: payload.runtimeScopeId,
               });
             }),
         }

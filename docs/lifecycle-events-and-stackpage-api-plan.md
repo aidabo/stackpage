@@ -272,11 +272,17 @@ This plan does **not** currently include:
 
 ## 12. Current status
 
-This is a **plan only**.
+This document is still the **forward contract**, but part of the plan is now implemented:
 
-The current implementation still uses hardcoded component logic in some widgets, and lifecycle events are not yet implemented as first-class runtime emissions.
+- `widget:init`
+- `widget:load`
+- `widget:unmount`
+- `page:init`
+- `page:load`
+- `page:ready`
+- scope-aware `once` execution for lifecycle interaction rules
 
-This document is the future contract for that migration.
+The remaining work is primarily UI authoring support and any further migration of hardcoded init logic out of component bodies.
 
 ---
 
@@ -386,19 +392,19 @@ Use this checklist for the first lifecycle-event implementation slice.
 
 ### 14.1 Runtime emission points
 
-- [ ] emit `page:init` when the page runtime is created
-- [ ] emit `page:load` after layout, page state, and source data are restored
-- [ ] emit `page:ready` after the page is interactive
-- [ ] emit `widget:init` when a widget runtime is created
-- [ ] emit `widget:load` after widget props and bindings are available
-- [ ] emit `widget:unmount` when a widget is removed or the page unloads
+- [x] emit `page:init` when the page runtime is created
+- [x] emit `page:load` after layout, page state, and source data are restored
+- [x] emit `page:ready` after the page is interactive
+- [x] emit `widget:init` when a widget runtime is created
+- [x] emit `widget:load` after widget props and bindings are available
+- [x] emit `widget:unmount` when a widget is removed or the page unloads
 
 ### 14.2 Rule execution support
 
-- [ ] allow lifecycle events to use the existing rule executor
-- [ ] support the `once` flag for bootstrap and cleanup rules
-- [ ] keep `set-prop`, `set-shared-state`, `emit-event`, and `emit-request` unchanged
-- [ ] keep async support only where the action requires it
+- [x] allow lifecycle events to use the existing rule executor
+- [x] support the `once` flag for bootstrap and cleanup rules
+- [x] keep `set-prop`, `set-shared-state`, `emit-event`, and `emit-request` unchanged
+- [x] keep async support only where the action requires it
 
 ### 14.3 UI authoring support
 

@@ -20,6 +20,7 @@ export interface InteractionRule {
   value?: any;
   valueFrom?: string;
   enabled?: boolean;
+  once?: boolean;
 }
 
 export interface RuleValidationIssue {
@@ -39,6 +40,7 @@ export interface EmitComponentEventPayload {
   payload?: any;
   rules?: InteractionRule[];
   depth?: number;
+  runtimeScopeId?: string;
 }
 
 export interface InteractionRuntime {
@@ -54,6 +56,7 @@ export interface InteractionRuntime {
     timeoutMs?: number;
     rules?: InteractionRule[];
     depth?: number;
+    runtimeScopeId?: string;
   }) => Promise<any>;
 }
 
@@ -119,8 +122,209 @@ export type StackPageComponentProps<T extends object = {}> = T & {
   __stackpage?: StackPageRuntimeApi;
 };
 
+export type StackPageLifecycleEventName =
+  | "page:init"
+  | "page:load"
+  | "page:ready"
+  | "widget:init"
+  | "widget:load"
+  | "widget:unmount";
+
+export interface StackPageLifecycleEventPayload {
+  widgetId: string;
+  componentName: string;
+  lifecycle: StackPageLifecycleEventName;
+  mode?: "edit" | "preview" | "view";
+  sentAt: string;
+  pageId?: string;
+  pageTitle?: string;
+  resolvedBindingCount?: number;
+  totalBindingCount?: number;
+}
+
+export interface StackPageWidgetLifecycleBinding {
+  sourceWidgetId: string;
+  componentName: string;
+  mode?: "edit" | "preview" | "view";
+  rules?: InteractionRule[];
+}
+
+export interface StackPageWidgetLifecycleRuntime {
+  emitComponentEvent: (payload: EmitComponentEventPayload) => void;
+  disposeTrackedSubscriptions: () => void;
+  clearRuntimeScope?: () => void;
+}
+
+export interface StackPageWidgetLoadTracker {
+  hasLoaded: () => boolean;
+  maybeEmitLoad: (params: {
+    hasResolvedBindings: boolean;
+    resolvedBindingCount?: number;
+    totalBindingCount?: number;
+  }) => boolean;
+}
+
+export interface StackPagePageLifecycleTracker {
+  beginPage: (pageId: string) => boolean;
+  beginLoadCycle: (pageId: string) => number;
+  markPageLoaded: (pageId: string, loadCycle: number) => boolean;
+  markGridReady: (pageId: string, loadCycle: number) => void;
+  canEmitReady: (pageId: string, loadCycle: number) => boolean;
+  markPageReady: (pageId: string, loadCycle: number) => boolean;
+  getActiveLoadCycle: (pageId: string) => number;
+}
+
+export function createStackPageLifecyclePayload({
+  widgetId,
+  componentName,
+  lifecycle,
+  mode,
+  sentAt = new Date().toISOString(),
+  pageId,
+  pageTitle,
+  resolvedBindingCount,
+  totalBindingCount,
+}: {
+  widgetId: string;
+  componentName: string;
+  lifecycle: StackPageLifecycleEventName;
+  mode?: "edit" | "preview" | "view";
+  sentAt?: string;
+  pageId?: string;
+  pageTitle?: string;
+  resolvedBindingCount?: number;
+  totalBindingCount?: number;
+}): StackPageLifecycleEventPayload {
+  return {
+    widgetId,
+    componentName,
+    lifecycle,
+    mode,
+    sentAt,
+    pageId,
+    pageTitle,
+    resolvedBindingCount,
+    totalBindingCount,
+  };
+}
+
+export function bindStackPageWidgetLifecycle(
+  runtime: StackPageWidgetLifecycleRuntime,
+  binding: StackPageWidgetLifecycleBinding
+): () => void {
+  const emitLifecycleEvent = (lifecycle: StackPageLifecycleEventName) => {
+    runtime.emitComponentEvent({
+      sourceWidgetId: binding.sourceWidgetId,
+      eventName: lifecycle,
+      payload: createStackPageLifecyclePayload({
+        widgetId: binding.sourceWidgetId,
+        componentName: binding.componentName,
+        lifecycle,
+        mode: binding.mode,
+      }),
+      rules: binding.rules,
+    });
+  };
+
+  emitLifecycleEvent("widget:init");
+
+  return () => {
+    emitLifecycleEvent("widget:unmount");
+    runtime.disposeTrackedSubscriptions();
+    runtime.clearRuntimeScope?.();
+  };
+}
+
+export function createStackPageWidgetLoadTracker(): StackPageWidgetLoadTracker {
+  let hasLoaded = false;
+
+  return {
+    hasLoaded: () => hasLoaded,
+    maybeEmitLoad: ({
+      hasResolvedBindings,
+    }: {
+      hasResolvedBindings: boolean;
+      resolvedBindingCount?: number;
+      totalBindingCount?: number;
+    }) => {
+      if (hasLoaded || !hasResolvedBindings) return false;
+      hasLoaded = true;
+      return true;
+    },
+  };
+}
+
+export function createStackPagePageLifecycleTracker(): StackPagePageLifecycleTracker {
+  let activePageId: string | null = null;
+  let activeLoadCycle = 0;
+  const loadedCycles = new Set<number>();
+  const gridReadyCycles = new Set<number>();
+  const readyCycles = new Set<number>();
+
+  return {
+    beginPage: (pageId: string) => {
+      if (!pageId) return false;
+      if (activePageId === pageId) return false;
+      activePageId = pageId;
+      activeLoadCycle = 0;
+      loadedCycles.clear();
+      gridReadyCycles.clear();
+      readyCycles.clear();
+      return true;
+    },
+    beginLoadCycle: (pageId: string) => {
+      if (!pageId) return 0;
+      if (activePageId !== pageId) {
+        activePageId = pageId;
+        activeLoadCycle = 0;
+        loadedCycles.clear();
+        gridReadyCycles.clear();
+        readyCycles.clear();
+      }
+      activeLoadCycle += 1;
+      return activeLoadCycle;
+    },
+    markPageLoaded: (pageId: string, loadCycle: number) => {
+      if (activePageId !== pageId || loadCycle <= 0) return false;
+      if (loadedCycles.has(loadCycle)) return false;
+      loadedCycles.add(loadCycle);
+      return true;
+    },
+    markGridReady: (pageId: string, loadCycle: number) => {
+      if (activePageId !== pageId || loadCycle <= 0) return;
+      gridReadyCycles.add(loadCycle);
+    },
+    canEmitReady: (pageId: string, loadCycle: number) => {
+      return (
+        activePageId === pageId &&
+        loadCycle > 0 &&
+        loadedCycles.has(loadCycle) &&
+        gridReadyCycles.has(loadCycle) &&
+        !readyCycles.has(loadCycle)
+      );
+    },
+    markPageReady: (pageId: string, loadCycle: number) => {
+      if (
+        activePageId !== pageId ||
+        loadCycle <= 0 ||
+        !loadedCycles.has(loadCycle) ||
+        !gridReadyCycles.has(loadCycle) ||
+        readyCycles.has(loadCycle)
+      ) {
+        return false;
+      }
+      readyCycles.add(loadCycle);
+      return true;
+    },
+    getActiveLoadCycle: (pageId: string) => {
+      return activePageId === pageId ? activeLoadCycle : 0;
+    },
+  };
+}
+
 export interface CreateStackPageRuntimeApiOptions {
   widgetId: string;
+  runtimeScopeId?: string;
   emitComponentEvent: (payload: EmitComponentEventPayload) => void;
   subscribeComponentEvent: (
     eventName: string,
@@ -133,6 +337,7 @@ export interface CreateStackPageRuntimeApiOptions {
 
 export function createStackPageRuntimeApi({
   widgetId,
+  runtimeScopeId,
   emitComponentEvent,
   subscribeComponentEvent,
   setSharedState,
@@ -141,8 +346,11 @@ export function createStackPageRuntimeApi({
 }: CreateStackPageRuntimeApiOptions): {
   api: StackPageRuntimeApi;
   disposeTrackedSubscriptions: () => void;
+  clearRuntimeScope: () => void;
 } {
   const trackedDisposers = new Set<() => void>();
+  const runtimeScope = runtimeScopeId || `widget:${widgetId}`;
+  const clearRuntimeScope = () => clearRuleExecutionScope(runtimeScope);
 
   const trackDisposer = (dispose: () => void) => {
     trackedDisposers.add(dispose);
@@ -163,6 +371,7 @@ export function createStackPageRuntimeApi({
         eventName,
         payload,
         rules,
+        runtimeScopeId: runtimeScope,
       }),
     emitWithAck: (
       eventName: string,
@@ -236,6 +445,7 @@ export function createStackPageRuntimeApi({
           eventName,
           payload: wrappedPayload,
           rules,
+          runtimeScopeId: runtimeScope,
         });
       });
     },
@@ -274,7 +484,41 @@ export function createStackPageRuntimeApi({
       });
       trackedDisposers.clear();
     },
+    clearRuntimeScope,
   };
+}
+
+const executedOnceRulesByScope = new Map<string, Set<string>>();
+
+function getRuleExecutionKey(rule: InteractionRule, index: number): string {
+  return [
+    rule.id || `rule-${index}`,
+    rule.event,
+    rule.action,
+    rule.targetWidgetId || "",
+    rule.targetPath || "",
+    rule.responseEvent || "",
+    rule.timeoutMs || "",
+  ].join("|");
+}
+
+function getOnceScopeId(eventPayload: EmitComponentEventPayload): string {
+  return eventPayload.runtimeScopeId || eventPayload.sourceWidgetId || "global";
+}
+
+function hasExecutedOnce(scopeId: string, ruleKey: string): boolean {
+  return executedOnceRulesByScope.get(scopeId)?.has(ruleKey) ?? false;
+}
+
+function markExecutedOnce(scopeId: string, ruleKey: string): void {
+  const scope = executedOnceRulesByScope.get(scopeId) || new Set<string>();
+  scope.add(ruleKey);
+  executedOnceRulesByScope.set(scopeId, scope);
+}
+
+export function clearRuleExecutionScope(scopeId: string): void {
+  if (!scopeId) return;
+  executedOnceRulesByScope.delete(scopeId);
 }
 
 export function createComponentEventBus(): ComponentEventBus {
@@ -332,6 +576,7 @@ export function normalizeInteractionRules(input: any): InteractionRule[] {
       value: rule.value,
       valueFrom: rule.valueFrom,
       enabled: rule.enabled !== false,
+      once: rule.once === true,
     }))
     .filter((rule) => rule.event && rule.action);
 }
@@ -448,9 +693,26 @@ export function executeInteractionRules(
 
   let executed = 0;
 
-  for (const rule of rules) {
+  const schedule = (task: () => void) => {
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(task);
+      return;
+    }
+    Promise.resolve().then(task);
+  };
+
+  for (let index = 0; index < rules.length; index += 1) {
+    const rule = rules[index];
     if (rule.enabled === false) continue;
     if (rule.event !== eventName) continue;
+    const ruleKey = getRuleExecutionKey(rule, index);
+    const onceScopeId = getOnceScopeId(eventPayload);
+    if (rule.once && hasExecutedOnce(onceScopeId, ruleKey)) {
+      continue;
+    }
+    if (rule.once) {
+      markExecutedOnce(onceScopeId, ruleKey);
+    }
 
     const value = resolveInteractionValue(payload, rule);
 
@@ -458,17 +720,24 @@ export function executeInteractionRules(
       if (!rule.targetWidgetId || !rule.targetPath) continue;
       const targetWidgetId =
         rule.targetWidgetId === "$self" ? sourceWidgetId : rule.targetWidgetId;
-
-      const targetProps = cloneObject(runtime.getWidgetProps(targetWidgetId) || {});
-      set(targetProps, rule.targetPath, value);
-      runtime.updateWidgetProps(targetWidgetId, targetProps);
+      const targetPath = rule.targetPath;
+      schedule(() => {
+        const targetProps = cloneObject(
+          runtime.getWidgetProps(targetWidgetId) || {}
+        );
+        set(targetProps, targetPath, value);
+        runtime.updateWidgetProps(targetWidgetId, targetProps);
+      });
       executed += 1;
       continue;
     }
 
     if (rule.action === "set-shared-state") {
       if (!rule.targetPath) continue;
-      runtime.setSharedState(rule.targetPath, value);
+      const targetPath = rule.targetPath;
+      schedule(() => {
+        runtime.setSharedState(targetPath, value);
+      });
       executed += 1;
       continue;
     }
@@ -481,6 +750,7 @@ export function executeInteractionRules(
         payload: value === undefined ? payload : value,
         rules,
         depth: depth + 1,
+        runtimeScopeId: eventPayload.runtimeScopeId,
       });
       executed += 1;
       continue;
@@ -504,29 +774,31 @@ export function executeInteractionRules(
           depth: depth + 1,
         })
         .then((result) => {
-          runtime.emitEvent({
-            sourceWidgetId,
-            eventName: onSuccessEvent,
-            payload:
-              result && typeof result === "object"
-                ? result
-                : { result, handledAt: new Date().toISOString() },
-            rules,
-            depth: depth + 1,
-          });
-        })
-        .catch((error: any) => {
-          runtime.emitEvent({
-            sourceWidgetId,
-            eventName: onErrorEvent,
-            payload: {
-              error: error?.message || String(error),
-              handledAt: new Date().toISOString(),
-            },
-            rules,
-            depth: depth + 1,
-          });
+        runtime.emitEvent({
+          sourceWidgetId,
+          eventName: onSuccessEvent,
+          payload:
+            result && typeof result === "object"
+              ? result
+              : { result, handledAt: new Date().toISOString() },
+          rules,
+          depth: depth + 1,
+          runtimeScopeId: eventPayload.runtimeScopeId,
         });
+      })
+      .catch((error: any) => {
+        runtime.emitEvent({
+          sourceWidgetId,
+            eventName: onErrorEvent,
+          payload: {
+            error: error?.message || String(error),
+            handledAt: new Date().toISOString(),
+          },
+          rules,
+          depth: depth + 1,
+          runtimeScopeId: eventPayload.runtimeScopeId,
+        });
+      });
       executed += 1;
     }
   }

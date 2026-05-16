@@ -4,7 +4,16 @@ import {
   executeInteractionRules,
 } from "../src/lib/utils/componentCommunication";
 
-function main() {
+const flushMicrotasks = () =>
+  new Promise<void>((resolve) => {
+    if (typeof queueMicrotask === "function") {
+      queueMicrotask(resolve);
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+
+async function main() {
   const bus = createComponentEventBus();
   const events: Array<{ event: string; payload: any }> = [];
   const sharedState: Record<string, any> = {};
@@ -64,6 +73,7 @@ function main() {
   );
 
   assert.equal(executed, 3);
+  await flushMicrotasks();
   assert.deepEqual(widgetProps.get("widget-a"), { title: "After" });
   assert.equal(sharedState.selectedId, "u1");
   assert.equal(events.length, 1);
@@ -73,4 +83,7 @@ function main() {
   console.log("component-communication.runtime.test.ts: OK");
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

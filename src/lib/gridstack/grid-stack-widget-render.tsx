@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GridStackWidget } from "gridstack";
 import { ComponentType } from "react";
@@ -11,7 +11,10 @@ import { logBindingResolution } from "../utils/bindingDebug";
 import { useStackPage } from "../components/StackPageContext";
 import { debugLog } from "../utils/debug";
 import {
+  bindStackPageWidgetLifecycle,
   createStackPageRuntimeApi,
+  createStackPageWidgetLoadTracker,
+  createStackPageLifecyclePayload,
   normalizeInteractionRules,
 } from "../utils/componentCommunication";
 
@@ -81,15 +84,20 @@ export function GridStackWidgetRenderer({
     getSharedState,
     subscribeComponentEvent,
   } = useStackPage();
+  const runtimeScopeRef = useRef(
+    `widget:${id}:${Date.now()}:${Math.random().toString(36).slice(2)}`
+  );
+  const interactionRuleSource = (rawProps as any)?.__interactions;
   const interactionRules = useMemo(
-    () => normalizeInteractionRules((rawProps as any)?.__interactions),
-    [rawProps]
+    () => normalizeInteractionRules(interactionRuleSource),
+    [interactionRuleSource]
   );
 
   const runtimeApi = useMemo(
     () =>
       createStackPageRuntimeApi({
         widgetId: id,
+        runtimeScopeId: runtimeScopeRef.current,
         emitComponentEvent,
         subscribeComponentEvent,
         setSharedState,
@@ -106,6 +114,30 @@ export function GridStackWidgetRenderer({
     ]
   );
 
+  const widgetLoadTrackerRef = useRef(createStackPageWidgetLoadTracker());
+
+  const lifecycleSnapshotRef = useRef({
+    componentName: componentData.name || "Unknown",
+    mode: currentMode,
+    rules: interactionRules,
+  });
+  lifecycleSnapshotRef.current = {
+    componentName: componentData.name || "Unknown",
+    mode: currentMode,
+    rules: interactionRules,
+  };
+
+  const emitComponentEventRef = useRef(emitComponentEvent);
+  emitComponentEventRef.current = emitComponentEvent;
+
+  const disposeTrackedSubscriptionsRef = useRef(
+    runtimeApi.disposeTrackedSubscriptions
+  );
+  disposeTrackedSubscriptionsRef.current =
+    runtimeApi.disposeTrackedSubscriptions;
+  const clearRuntimeScopeRef = useRef(runtimeApi.clearRuntimeScope);
+  clearRuntimeScopeRef.current = runtimeApi.clearRuntimeScope;
+
   const withSentAt = (payload: any) => {
     const sentAt = new Date().toISOString();
     if (payload && typeof payload === "object" && !Array.isArray(payload)) {
@@ -119,14 +151,57 @@ export function GridStackWidgetRenderer({
   }, [id, rawProps, registerWidgetSnapshot]);
 
   useEffect(() => {
-    return () => {
-      runtimeApi.disposeTrackedSubscriptions();
-    };
-  }, [runtimeApi]);
+    return bindStackPageWidgetLifecycle(
+      {
+        emitComponentEvent: (payload) => emitComponentEventRef.current(payload),
+        disposeTrackedSubscriptions: () =>
+          disposeTrackedSubscriptionsRef.current(),
+        clearRuntimeScope: () => clearRuntimeScopeRef.current(),
+      },
+      {
+        sourceWidgetId: id,
+        componentName: lifecycleSnapshotRef.current.componentName,
+        mode: lifecycleSnapshotRef.current.mode,
+        rules: lifecycleSnapshotRef.current.rules,
+      }
+    );
+  }, [id]);
 
   // Resolve bindings
-  const props = useDataBinding(rawProps);
+  const {
+    resolvedProps: props,
+    hasResolvedBindings,
+    resolvedBindingCount,
+    totalBindingCount,
+    resolvedBindingKeys,
+  } = useDataBinding(rawProps);
   //const props = rawProps;
+
+  useEffect(() => {
+    if (!widgetLoadTrackerRef.current.maybeEmitLoad({ hasResolvedBindings })) {
+      return;
+    }
+
+    emitComponentEvent({
+      sourceWidgetId: id,
+      eventName: "widget:load",
+      payload: createStackPageLifecyclePayload({
+        widgetId: id,
+        componentName: lifecycleSnapshotRef.current.componentName,
+        lifecycle: "widget:load",
+        mode: lifecycleSnapshotRef.current.mode,
+        resolvedBindingCount,
+        totalBindingCount,
+      }),
+      rules: lifecycleSnapshotRef.current.rules,
+    });
+  }, [
+    emitComponentEvent,
+    hasResolvedBindings,
+    id,
+    resolvedBindingCount,
+    totalBindingCount,
+  ]);
 
   logBindingResolution({
     widgetId: id,
@@ -134,6 +209,10 @@ export function GridStackWidgetRenderer({
     bindings: (rawProps as any)?.__bindings || {},
     rawProps: (rawProps as any) || {},
     resolvedProps: (props as any) || {},
+    hasResolvedBindings,
+    resolvedBindingCount,
+    totalBindingCount,
+    resolvedBindingKeys,
   });
 
   debugLog(
@@ -141,6 +220,9 @@ export function GridStackWidgetRenderer({
     {
       props,
       hasBindings: props?.__bindings ? Object.keys(props.__bindings).length : 0,
+      hasResolvedBindings,
+      resolvedBindingCount,
+      totalBindingCount,
     }
   );
 

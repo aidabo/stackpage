@@ -7,63 +7,93 @@ import {
 } from "../utils/bindingEngine";
 import { debugLog, debugWarn } from "../utils/debug";
 
-export const useDataBinding = (props: any) => {
+export interface DataBindingResolution<T = any> {
+  resolvedProps: T;
+  hasResolvedBindings: boolean;
+  resolvedBindingCount: number;
+  totalBindingCount: number;
+  resolvedBindingKeys: string[];
+}
+
+export const useDataBinding = (props: any): DataBindingResolution<any> => {
   const { source } = useStackPage();
-
-  const boundProps = useMemo(() => {
-    debugLog("[useDataBinding] Resolving props with bindings:", {
-      hasBindings: !!(
-        props?.__bindings && Object.keys(props.__bindings).length > 0
-      ),
-      bindings: props?.__bindings,
-      sourceDataSourcesCount: source.dataSources?.length ?? 0,
-      ignoredFields: props?.__ignoredMappings,
-    });
-
-    // 1. If no bindings, return original props
-    if (!props?.__bindings || Object.keys(props.__bindings).length === 0) {
-      return props || {};
-    }
-
-    // 2. Clone props to avoid mutation
-    const newProps = { ...props };
-
-    // 3. Group bindings by type
-    const { arrayBindings, elementBindings, regularBindings } = groupBindings(
-      props.__bindings
-    );
-
-    debugLog("[useDataBinding] Grouped bindings:", {
-      arrayBindings: Object.keys(arrayBindings),
-      elementBindings: Object.keys(elementBindings),
-      regularBindings: Object.keys(regularBindings),
-      ignoredFields: props.__ignoredMappings,
-    });
-
-    // 4. Process regular bindings first
-    Object.entries(regularBindings).forEach(([propKey, binding]: [string, any]) => {
-      resolveRegularBinding(propKey, binding, source.dataSources || [], newProps);
-    });
-
-    // 5. Process array bindings with their element bindings
-    Object.entries(arrayBindings).forEach(
-      ([arrayProp, arrayBinding]: [string, any]) => {
-        resolveArrayBinding(
-          arrayProp,
-          arrayBinding,
-          elementBindings,
-          props.__ignoredMappings || [],
-          source.dataSources || [],
-          newProps
-        );
-      }
-    );
-
-    return newProps;
-  }, [props, source.dataSources]);
-
-  return boundProps;
+  return useMemo(
+    () => resolveDataBinding(props, source.dataSources || []),
+    [props, source.dataSources]
+  );
 };
+
+export function resolveDataBinding(
+  props: any,
+  dataSources: any[]
+): DataBindingResolution<any> {
+  debugLog("[useDataBinding] Resolving props with bindings:", {
+    hasBindings: !!(props?.__bindings && Object.keys(props.__bindings).length > 0),
+    bindings: props?.__bindings,
+    sourceDataSourcesCount: dataSources.length,
+    ignoredFields: props?.__ignoredMappings,
+  });
+
+  // 1. If no bindings, return original props
+  if (!props?.__bindings || Object.keys(props.__bindings).length === 0) {
+    return {
+      resolvedProps: props || {},
+      hasResolvedBindings: false,
+      resolvedBindingCount: 0,
+      totalBindingCount: 0,
+      resolvedBindingKeys: [],
+    };
+  }
+
+  // 2. Clone props to avoid mutation
+  const newProps = { ...props };
+  const resolution = {
+    resolvedProps: newProps,
+    hasResolvedBindings: false,
+    resolvedBindingCount: 0,
+    totalBindingCount: Object.keys(props.__bindings).length,
+    resolvedBindingKeys: [] as string[],
+  };
+
+  // 3. Group bindings by type
+  const { arrayBindings, elementBindings, regularBindings } = groupBindings(
+    props.__bindings
+  );
+
+  debugLog("[useDataBinding] Grouped bindings:", {
+    arrayBindings: Object.keys(arrayBindings),
+    elementBindings: Object.keys(elementBindings),
+    regularBindings: Object.keys(regularBindings),
+    ignoredFields: props.__ignoredMappings,
+  });
+
+  // 4. Process regular bindings first
+  Object.entries(regularBindings).forEach(([propKey, binding]: [string, any]) => {
+    resolveRegularBinding(
+      propKey,
+      binding,
+      dataSources,
+      newProps,
+      resolution
+    );
+  });
+
+  // 5. Process array bindings with their element bindings
+  Object.entries(arrayBindings).forEach(([arrayProp, arrayBinding]: [string, any]) => {
+    resolveArrayBinding(
+      arrayProp,
+      arrayBinding,
+      elementBindings,
+      props.__ignoredMappings || [],
+      dataSources,
+      newProps,
+      resolution
+    );
+  });
+
+  resolution.hasResolvedBindings = resolution.resolvedBindingCount > 0;
+  return resolution;
+}
 
 /**
  * Group bindings into array bindings, element bindings, and regular bindings
@@ -100,7 +130,8 @@ function resolveRegularBinding(
   propKey: string,
   binding: BindingInfo,
   dataSources: any[],
-  resultProps: any
+  resultProps: any,
+  resolution: DataBindingResolution<any>
 ): void {
   const { sourceId, path } = binding;
 
@@ -140,6 +171,8 @@ function resolveRegularBinding(
   // Set the value
   if (value !== undefined) {
     resultProps[propKey] = value;
+    resolution.resolvedBindingCount += 1;
+    resolution.resolvedBindingKeys.push(propKey);
     debugLog(`[useDataBinding] Set ${propKey} =`, value);
   }
 }
@@ -153,7 +186,8 @@ function resolveArrayBinding(
   elementBindings: Record<string, BindingInfo>,
   ignoredFields: string[],
   dataSources: any[],
-  resultProps: any
+  resultProps: any,
+  resolution: DataBindingResolution<any>
 ): void {
   const { sourceId, path } = arrayBinding;
 
@@ -197,6 +231,10 @@ function resolveArrayBinding(
   }
 
   resultProps[arrayProp] = resolvedArray;
+  if (resolvedArray !== undefined) {
+    resolution.resolvedBindingCount += 1;
+    resolution.resolvedBindingKeys.push(arrayProp);
+  }
   debugLog(
     `[useDataBinding] Resolved array ${arrayProp} with ${resolvedArray.length} items:`,
     resolvedArray

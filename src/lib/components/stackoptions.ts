@@ -133,6 +133,8 @@ const defaultComponents: ComponentMap = {
  */
 export type ComponentMapProvider = () => ComponentMap;
 
+const componentMapCache = new WeakMap<ComponentMapProvider, ComponentMap>();
+
 export interface BusinessComponentGroup {
   id: string;
   label: string;
@@ -160,9 +162,13 @@ export type ComponentPropsProvider = () => Record<string, any>;
  */
 export const getComponentMap = (fn?: ComponentMapProvider): ComponentMap => {
   if (fn) {
+    const cached = componentMapCache.get(fn);
+    if (cached) return cached;
     const customMap = fn();
     // Merge with custom keys overriding defaults
-    return { ...defaultComponents, ...customMap };
+    const merged = { ...defaultComponents, ...customMap };
+    componentMapCache.set(fn, merged);
+    return merged;
   }
   return defaultComponents;
 };

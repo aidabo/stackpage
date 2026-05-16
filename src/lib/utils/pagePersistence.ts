@@ -10,9 +10,12 @@ export interface PrefetchedDataUpdate {
 
 export function cloneSource(source?: SourceLike | null): SourceLike | undefined {
   if (!source) return undefined;
+  const lists = Array.isArray(source.lists) ? source.lists : [];
+  const dataSources = Array.isArray(source.dataSources) ? source.dataSources : [];
+
   return {
-    lists: [...source.lists],
-    dataSources: source.dataSources.map((dataSource) => ({ ...dataSource })),
+    lists: [...lists],
+    dataSources: dataSources.map((dataSource) => ({ ...dataSource })),
   };
 }
 

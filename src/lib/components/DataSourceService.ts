@@ -1,21 +1,36 @@
 import { DataSource, DataSourceResult, HostFunctionDataSource } from "./types";
 
-export class DataSourceService {
-  // Static registry for host data sources
-  private static hostDataSourcesRegistry: HostFunctionDataSource[] = [];
+const HOST_DATA_SOURCES_REGISTRY_KEY = "__stackpageHostDataSourcesRegistry";
 
+const getHostDataSourcesRegistry = (): HostFunctionDataSource[] => {
+  const stackPageGlobal = globalThis as typeof globalThis & {
+    [HOST_DATA_SOURCES_REGISTRY_KEY]?: HostFunctionDataSource[];
+  };
+
+  if (!Array.isArray(stackPageGlobal[HOST_DATA_SOURCES_REGISTRY_KEY])) {
+    stackPageGlobal[HOST_DATA_SOURCES_REGISTRY_KEY] = [];
+  }
+
+  return stackPageGlobal[HOST_DATA_SOURCES_REGISTRY_KEY]!;
+};
+
+export class DataSourceService {
   // Method to set host data sources from the host app
   static setHostDataSources(sources: HostFunctionDataSource[]) {
     console.log(
       "[DataSourceService] Setting host data sources:",
       sources.length
     );
-    DataSourceService.hostDataSourcesRegistry = sources;
+    getHostDataSourcesRegistry().splice(
+      0,
+      getHostDataSourcesRegistry().length,
+      ...sources,
+    );
   }
 
   // Get all registered host data sources
   static getHostDataSources(): HostFunctionDataSource[] {
-    return [...DataSourceService.hostDataSourcesRegistry];
+    return [...getHostDataSourcesRegistry()];
   }
 
   // 获取数据源的数据（统一入口）
@@ -99,9 +114,10 @@ export class DataSourceService {
 
     // Look up in the registry by hostFunctionId
     let hostFunc: HostFunctionDataSource | undefined;
+    const hostDataSourcesRegistry = getHostDataSourcesRegistry();
 
     if (dataSource.hostFunctionId) {
-      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+      hostFunc = hostDataSourcesRegistry.find(
         (h) => h.id === dataSource.hostFunctionId
       );
 
@@ -114,7 +130,7 @@ export class DataSourceService {
 
     // If not found by ID, try by name
     if (!hostFunc && dataSource.hostFunctionName) {
-      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+      hostFunc = hostDataSourcesRegistry.find(
         (h) => h.name === dataSource.hostFunctionName
       );
 
@@ -127,7 +143,7 @@ export class DataSourceService {
 
     // If still not found, try to find by any matching name
     if (!hostFunc && dataSource.name) {
-      hostFunc = DataSourceService.hostDataSourcesRegistry.find(
+      hostFunc = hostDataSourcesRegistry.find(
         (h) =>
           h.name.toLowerCase().includes(dataSource.name.toLowerCase()) ||
           dataSource.name.toLowerCase().includes(h.name.toLowerCase())
@@ -141,7 +157,7 @@ export class DataSourceService {
     }
 
     if (!hostFunc || !hostFunc.fetchData) {
-      const available = DataSourceService.hostDataSourcesRegistry
+      const available = hostDataSourcesRegistry
         .map((f) => f.name)
         .join(", ");
       throw new Error(
