@@ -94,6 +94,5 @@ public/static/
 
 # System files
 Thumbs.db
-data/
 dist/
 .types/
