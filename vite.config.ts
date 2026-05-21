@@ -20,10 +20,11 @@ export default defineConfig({
     outDir: "dist/demo",
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-gridstack": ["gridstack"],
-          "vendor-rjsf": ["@rjsf/core", "@rjsf/utils", "@rjsf/validator-ajv8"],
+        manualChunks(id) {
+          if (id.includes("/node_modules/react/") || id.includes("/node_modules/react-dom/") || id.includes("/node_modules/react-router-dom/"))
+            return "vendor-react";
+          if (id.includes("/node_modules/gridstack/")) return "vendor-gridstack";
+          if (id.includes("/node_modules/@rjsf/")) return "vendor-rjsf";
         },
       },
     },

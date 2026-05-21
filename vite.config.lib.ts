@@ -42,8 +42,6 @@ export default defineConfig({
           lodash: "_",
           "react-router-dom": "ReactRouterDOM",
         },
-        // Ensure proper module handling
-        interop: "auto",
       },
     },
   },
