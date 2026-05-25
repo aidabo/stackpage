@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronUpIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import {
   getComponentMap,
+  getComponentProps,
   ComponentMapProvider,
   ComponentCatalogProvider,
+  ComponentPropsProvider,
 } from "./stackoptions";
 import { useStackPage } from "./StackPageContext";
 import DeleteDropZone from "./Deletedropzone";
@@ -13,12 +15,14 @@ import { useT } from "./StackI18nProvider";
 interface ComponentsTabProps {
   componentMapProvider?: ComponentMapProvider;
   componentCatalogProvider?: ComponentCatalogProvider;
+  componentPropsProvider?: ComponentPropsProvider;
   onDragStart: (e: React.DragEvent, componentType: string) => void;
 }
 
 export const ComponentsTab = ({
   componentMapProvider,
   componentCatalogProvider,
+  componentPropsProvider,
   onDragStart,
 }: ComponentsTabProps) => {
   const t = useT();
@@ -94,27 +98,32 @@ export const ComponentsTab = ({
       ? commonComponents
       : (activeBusiness?.components ?? []);
 
-  const renderComponentTile = (name: string) => (
-    <div
-      ref={registerDragSource}
-      key={name}
-      gs-type={name}
-      data-gs-type={name}
-      className="grid-stack-item grid-stack-item-widget"
-      draggable="true"
-      onDragStart={(e) => onDragStart(e, name)}
-      onDragEnd={() => console.log("====drag event end....")}
-      onClick={() => {
-        setSelectedComponent(name);
-        setSelectedInstance(null);
-      }}
-    >
-      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
-        <div className="font-medium text-gray-800 mb-2">{name}</div>
-        <div className="text-xs text-gray-500">Drag to main area</div>
+  const renderComponentTile = (name: string) => {
+    const componentProps = getComponentProps(componentPropsProvider);
+    const desc = componentProps[name]?._componentDesc;
+
+    return (
+      <div
+        ref={registerDragSource}
+        key={name}
+        gs-type={name}
+        data-gs-type={name}
+        className="grid-stack-item grid-stack-item-widget"
+        draggable="true"
+        onDragStart={(e) => onDragStart(e, name)}
+        onDragEnd={() => console.log("====drag event end....")}
+        onClick={() => {
+          setSelectedComponent(name);
+          setSelectedInstance(null);
+        }}
+      >
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 text-sm hover:bg-gray-100 cursor-pointer transition-all duration-200 hover:shadow-md text-center">
+          <div className="font-medium text-gray-800 mb-2">{name}</div>
+          <div className="text-xs text-gray-500">{desc ? t(desc) : t("Drag to main area")}</div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full bg-zinc-200 flex flex-col overflow-hidden">

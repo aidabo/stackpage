@@ -35,6 +35,8 @@ export interface StackPageContextType {
     margin: string;
     padding: string;
     background: string;
+    backgroundOpacity?: number;
+    backgroundTransparent?: boolean;
     showMenubar: boolean;
     // Removed lists and dataSources from here
   };
@@ -53,9 +55,10 @@ export interface StackPageContextType {
   | "page"
   | "list"
   | "datasource"
-  | "search";
+  | "search"
+  | "gallery";
   setActiveTab: (
-    tab: "components" | "properties" | "page" | "list" | "datasource" | "search"
+    tab: "components" | "properties" | "page" | "list" | "datasource" | "search" | "gallery"
   ) => void;
   widgetProps: Map<string, object>;
   updateWidgetProps: (widgetId: string, props: object) => void;

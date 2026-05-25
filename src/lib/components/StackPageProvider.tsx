@@ -22,7 +22,7 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
   );
   const [selectedInstance, setSelectedInstance] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<
-    "components" | "properties" | "page" | "list" | "datasource" | "search"
+    "components" | "properties" | "page" | "list" | "datasource" | "search" | "gallery"
   >("components");
   const [widgetProps, setWidgetProps] = useState<Map<string, object>>(
     new Map()
@@ -41,6 +41,8 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     margin: "0px",
     padding: "0px",
     background: "#ffffff",
+    backgroundOpacity: 1,
+    backgroundTransparent: false,
     showMenubar: true,
   });
 

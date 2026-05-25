@@ -13,7 +13,10 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
   const [progress, setProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePageAttributeChange = (attribute: string, value: string) => {
+  const handlePageAttributeChange = (
+    attribute: string,
+    value: string | number | boolean
+  ) => {
     const newAttributes = {
       ...attributes,
       [attribute]: value,
@@ -64,6 +67,17 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
       fileInputRef.current.value = "";
     }
   };
+
+  const backgroundOpacityPercent = Math.round(
+    Number(attributes.backgroundOpacity ?? 1) * 100
+  );
+  const previewOpacity = Math.max(
+    0,
+    Math.min(1, Number(attributes.backgroundOpacity ?? 1) || 1)
+  );
+  const previewBackground = Boolean(attributes.backgroundTransparent)
+    ? "repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%) 50% / 16px 16px"
+    : attributes.background || "#ffffff";
 
   const statusOptions = ["draft", "published"];
 
@@ -322,7 +336,92 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
             />
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Background color for the main content area
+            Background color for the grid stack root
+          </p>
+        </div>
+
+        <div className="border-b border-gray-100 pb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Background Preview
+          </label>
+          <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+            <div
+              className="rounded-lg border border-gray-200 overflow-hidden"
+              style={{
+                minHeight: 88,
+                background: previewBackground,
+                opacity: Boolean(attributes.backgroundTransparent)
+                  ? 1
+                  : previewOpacity,
+              }}
+            >
+              <div
+                className="flex items-center justify-center min-h-[88px] text-sm font-medium text-gray-700"
+                style={{
+                  backdropFilter: "saturate(120%)",
+                }}
+              >
+                {attributes.backgroundTransparent
+                  ? "Transparent"
+                  : `${attributes.background || "#ffffff"} · ${backgroundOpacityPercent}%`}
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            This matches the GridStack root background style.
+          </p>
+        </div>
+
+        <div className="border-b border-gray-100 pb-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Transparent Background
+              </label>
+              <p className="text-xs text-gray-500">
+                Hide the grid-stack background color completely
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={Boolean(attributes.backgroundTransparent)}
+              onChange={(e) =>
+                handlePageAttributeChange(
+                  "backgroundTransparent",
+                  e.target.checked as any
+                )
+              }
+              className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+            />
+          </div>
+        </div>
+
+        <div className="border-b border-gray-100 pb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Background Opacity
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={backgroundOpacityPercent}
+              disabled={Boolean(attributes.backgroundTransparent)}
+              onChange={(e) =>
+                handlePageAttributeChange(
+                  "backgroundOpacity",
+                  Number(e.target.value) / 100
+                )
+              }
+              className="flex-1"
+            />
+            <span className="text-sm text-gray-600 w-14 text-right">
+              {backgroundOpacityPercent}%
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Controls the grid-stack background color transparency
           </p>
         </div>
       </div>
@@ -367,6 +466,24 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
             <span className="font-medium">Background:</span>
             <code className="px-2 py-1 rounded bg-gray-100 truncate max-w-[120px]">
               {attributes.background || "Not set"}
+            </code>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Opacity:</span>
+            <code className="px-2 py-1 rounded bg-gray-100">
+              {backgroundOpacityPercent}%
+            </code>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="font-medium">Transparent:</span>
+            <code
+              className={`px-2 py-1 rounded ${
+                attributes.backgroundTransparent
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {attributes.backgroundTransparent ? "Yes" : "No"}
             </code>
           </div>
 

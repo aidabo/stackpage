@@ -4,6 +4,7 @@ import {
   useEffect,
   ReactNode,
   useCallback,
+  useMemo,
   lazy,
   Suspense,
 } from "react";
@@ -24,6 +25,7 @@ import {
   ListBulletIcon,
   CircleStackIcon,
   MagnifyingGlassIcon,
+  PhotoIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -102,6 +104,11 @@ const SearchTabLazy = lazy(() =>
     default: module.SearchTab,
   }))
 );
+const GalleryTabLazy = lazy(() =>
+  import("./GalleryTab").then((module) => ({
+    default: module.GalleryTab,
+  }))
+);
 
 const DialogLoadingFallback = () => (
   <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
@@ -170,9 +177,80 @@ const getTabIcon = (tab: string) => {
       return <CircleStackIcon className={iconClass} />;
     case "search":
       return <MagnifyingGlassIcon className={iconClass} />;
+    case "gallery":
+      return <PhotoIcon className={iconClass} />;
     default:
       return <CubeIcon className={iconClass} />;
   }
+};
+
+const clampOpacity = (value: unknown) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(0, Math.min(1, parsed));
+};
+
+const cssColorWithOpacity = (color: string, opacity: number) => {
+  const alpha = clampOpacity(opacity);
+  const normalizedColor = String(color || "").trim();
+  if (!normalizedColor || alpha >= 1) {
+    return normalizedColor || "transparent";
+  }
+
+  const toRgba = (rgbValue: string) => {
+    const match = rgbValue
+      .replace(/\s+/g, "")
+      .match(/^rgba?\((\d+),(\d+),(\d+)(?:,([\d.]+))?\)$/i);
+    if (!match) return normalizedColor;
+    const [, r, g, b] = match;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const hexMatch = normalizedColor.match(/^#([0-9a-f]{3,8})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    const expand = (value: string) =>
+      value.length === 1 ? value + value : value;
+    const parsedHex =
+      hex.length === 3
+        ? {
+            r: parseInt(expand(hex[0]), 16),
+            g: parseInt(expand(hex[1]), 16),
+            b: parseInt(expand(hex[2]), 16),
+          }
+        : hex.length === 4
+          ? {
+              r: parseInt(expand(hex[0]), 16),
+              g: parseInt(expand(hex[1]), 16),
+              b: parseInt(expand(hex[2]), 16),
+            }
+          : hex.length >= 6
+            ? {
+                r: parseInt(hex.slice(0, 2), 16),
+                g: parseInt(hex.slice(2, 4), 16),
+                b: parseInt(hex.slice(4, 6), 16),
+              }
+            : null;
+    if (parsedHex) {
+      return `rgba(${parsedHex.r}, ${parsedHex.g}, ${parsedHex.b}, ${alpha})`;
+    }
+  }
+
+  if (normalizedColor.startsWith("rgb")) {
+    return toRgba(normalizedColor);
+  }
+
+  if (typeof document !== "undefined") {
+    const probe = document.createElement("span");
+    probe.style.color = normalizedColor;
+    probe.style.display = "none";
+    document.body.appendChild(probe);
+    const computed = getComputedStyle(probe).color;
+    document.body.removeChild(probe);
+    return toRgba(computed);
+  }
+
+  return normalizedColor;
 };
 
 type EditorTabKey =
@@ -181,7 +259,8 @@ type EditorTabKey =
   | "page"
   | "list"
   | "datasource"
-  | "search";
+  | "search"
+  | "gallery";
 
 const EDITOR_TABS: EditorTabKey[] = [
   "components",
@@ -190,6 +269,7 @@ const EDITOR_TABS: EditorTabKey[] = [
   "list",
   "datasource",
   "search",
+  "gallery",
 ];
 
 // Main StackPage Content Component
@@ -221,6 +301,7 @@ const StackPageContent = ({
     list: "List",
     datasource: "Data Source",
     search: "Search",
+    gallery: "Gallery",
   };
 
   const isMobile = useMobile();
@@ -730,8 +811,23 @@ const StackPageContent = ({
   const mainContentStyle = {
     margin: attributes.margin,
     padding: attributes.padding,
-    backgroundColor: attributes.background,
   };
+
+  const gridStackRootStyle = useMemo(() => {
+    const backgroundTransparent = Boolean(attributes.backgroundTransparent);
+    const backgroundOpacity = clampOpacity(attributes.backgroundOpacity ?? 1);
+    return {
+      minHeight: "100%",
+      width: "100%",
+      backgroundColor: backgroundTransparent
+        ? "transparent"
+        : cssColorWithOpacity(attributes.background, backgroundOpacity),
+    };
+  }, [
+    attributes.background,
+    attributes.backgroundOpacity,
+    attributes.backgroundTransparent,
+  ]);
 
   const containerStyle =
     currentMode === "edit"
@@ -744,7 +840,7 @@ const StackPageContent = ({
   return (
     <GridStackProvider key={resetKey} initialOptions={initialOptions}>
       <div
-        className="bg-white text-black flex flex-col stack-page-container h-full min-h-0"
+        className="text-black flex flex-col stack-page-container h-full min-h-0 bg-transparent"
         style={containerStyle}
       >
         {/* Toolbar - Only show in edit mode */}
@@ -873,7 +969,7 @@ const StackPageContent = ({
             style={mainContentStyle}
           >
             <div className="h-full">
-              <div className="bg-white rounded-lg shadow h-full flex flex-col">
+              <div className="bg-transparent rounded-lg shadow h-full flex flex-col">
                 <div
                   className={`flex-1 relative p-0 grid-stack-mode-${currentMode}`}
                 >
@@ -882,6 +978,8 @@ const StackPageContent = ({
                   {/* When page load reset drop event binding for view or edit mode.  */}
                   <GridStackRenderProvider
                     setupExternalDropForGrid={setupExternalDropForGrid}
+                    className="grid-stack h-full min-h-0"
+                    style={gridStackRootStyle}
                     onGridReady={(grid) => {
                       setupExternalDropForGrid(grid);
                       applyEditMode(grid, currentMode === "edit");
@@ -968,6 +1066,7 @@ const StackPageContent = ({
                           <ComponentsTabLazy
                             componentMapProvider={componentMapProvider}
                             componentCatalogProvider={componentCatalogProvider}
+                            componentPropsProvider={componentPropsProvider}
                             onDragStart={handleDragStart}
                           />
                         </Suspense>
@@ -989,6 +1088,28 @@ const StackPageContent = ({
                           }
                         >
                           <SearchTabLazy
+                            onCustomAction={onCustomAction}
+                            onDragStart={handleDragStart}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
+                    {loadedTabs.has("gallery") && (
+                      <div
+                        style={{
+                          display: activeTab === "gallery" ? "block" : "none",
+                          height: "100%",
+                        }}
+                        className="h-full min-h-0 overflow-hidden"
+                      >
+                        <Suspense
+                          fallback={
+                            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                              {t("Loading tab...")}
+                            </div>
+                          }
+                        >
+                          <GalleryTabLazy
                             onCustomAction={onCustomAction}
                             onDragStart={handleDragStart}
                           />

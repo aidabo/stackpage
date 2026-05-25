@@ -23,6 +23,8 @@ export interface GridStackRenderProviderProps {
   children?: React.ReactNode;
   setupExternalDropForGrid: (grid: GridStack) => void,
   onGridReady?: (grid: GridStack) => void;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 // Override the default resizeToContent method to ensure content.firstChildElement is null error,
@@ -40,7 +42,7 @@ GridStack.prototype.resizeToContent = function (el: GridItemHTMLElement) {
 
 export const GridStackRenderProvider: React.FC<
   GridStackRenderProviderProps
-> = ({ children, setupExternalDropForGrid, onGridReady }) => {
+> = ({ children, setupExternalDropForGrid, onGridReady, className, style }) => {
   const {
     _gridStack: { value: gridStack, set: setGridStack },
     initialOptions,
@@ -132,7 +134,13 @@ export const GridStackRenderProvider: React.FC<
         [gridStack],
       )}
     >
-      <div ref={containerRef}>{gridStack ? children : null}</div>
+      <div
+        ref={containerRef}
+        className={className}
+        style={style}
+      >
+        {gridStack ? children : null}
+      </div>
     </GridStackRenderContext.Provider>
   );
 };
