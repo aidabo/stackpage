@@ -26,6 +26,7 @@ import {
   CircleStackIcon,
   MagnifyingGlassIcon,
   PhotoIcon,
+  HomeIcon,
 } from "@heroicons/react/24/outline";
 
 import {
@@ -109,6 +110,11 @@ const GalleryTabLazy = lazy(() =>
     default: module.GalleryTab,
   }))
 );
+const EstateGalleryTabLazy = lazy(() =>
+  import("./EstateGalleryTab").then((module) => ({
+    default: module.EstateGalleryTab,
+  }))
+);
 
 const DialogLoadingFallback = () => (
   <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
@@ -139,6 +145,7 @@ export interface StackPageProps {
   // 新增：获取宿主数据源的函数
   getHostDataSources?: GetHostDataSourcesFn;
   i18n?: StackI18n;
+  estateFeatureEnabled?: boolean;
 }
 
 // Mobile detection hook
@@ -179,6 +186,8 @@ const getTabIcon = (tab: string) => {
       return <MagnifyingGlassIcon className={iconClass} />;
     case "gallery":
       return <PhotoIcon className={iconClass} />;
+    case "estate-gallery":
+      return <HomeIcon className={iconClass} />;
     default:
       return <CubeIcon className={iconClass} />;
   }
@@ -260,17 +269,21 @@ type EditorTabKey =
   | "list"
   | "datasource"
   | "search"
-  | "gallery";
+  | "gallery"
+  | "estate-gallery";
 
-const EDITOR_TABS: EditorTabKey[] = [
-  "components",
-  "properties",
-  "page",
-  "list",
-  "datasource",
-  "search",
-  "gallery",
-];
+const getEditorTabs = (estateFeatureEnabled: boolean): EditorTabKey[] => {
+  const baseTabs: EditorTabKey[] = [
+    "components",
+    "properties",
+    "page",
+    "list",
+    "datasource",
+    "search",
+    "gallery",
+  ];
+  return estateFeatureEnabled ? [...baseTabs, "estate-gallery"] : baseTabs;
+};
 
 // Main StackPage Content Component
 const StackPageContent = ({
@@ -286,6 +299,7 @@ const StackPageContent = ({
   onCustomAction,
   getHostDataSources,
   children,
+  estateFeatureEnabled = false,
 }: StackPageProps) => {
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
     pageMode,
@@ -302,7 +316,13 @@ const StackPageContent = ({
     datasource: "Data Source",
     search: "Search",
     gallery: "Gallery",
+    "estate-gallery": "Property Gallery",
   };
+
+  const editorTabs = useMemo(
+    () => getEditorTabs(estateFeatureEnabled),
+    [estateFeatureEnabled],
+  );
 
   const isMobile = useMobile();
   const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
@@ -349,6 +369,19 @@ const StackPageContent = ({
   }, [pageMode]);
 
   useEffect(() => {
+    if (estateFeatureEnabled) return;
+    setLoadedTabs((prev) => {
+      if (!prev.has("estate-gallery")) return prev;
+      const next = new Set(prev);
+      next.delete("estate-gallery");
+      return next;
+    });
+    if (activeTab === "estate-gallery") {
+      setActiveTab("gallery");
+    }
+  }, [estateFeatureEnabled, activeTab, setActiveTab]);
+
+  useEffect(() => {
     setTimeout(() => {
       if (initialLoadRef.current && isMobile) {
         initialLoadRef.current = false;
@@ -389,16 +422,15 @@ const StackPageContent = ({
   /**
    * When switch mode, change draggable and resizable settings of grid
    */
-  useEffect(() => {
-    if (!stackActionsRef.current || !stackActionsRef.current._gridStack.value) {
-      console.log("No GridStack available!");
-      return;
-    }
-    applyEditMode(stackActionsRef.current?._gridStack.value, currentMode === "edit");
-  }, [currentMode]);
-
-  const applyEditMode = (grid: GridStack, editable: boolean) => {
+  const applyEditMode = useCallback(function applyEditMode(
+    grid: GridStack,
+    editable: boolean,
+  ) {
     if (!grid) return;
+
+    grid.opts.acceptWidgets = editable;
+    grid.opts.alwaysShowResizeHandle = editable ? true : false;
+
     if (editable) {
       grid.setStatic(false);
       grid.enableMove(true);
@@ -408,11 +440,23 @@ const StackPageContent = ({
       grid.enableResize(false);
       grid.setStatic(true);
     }
-    //reset grid to be dropable
-    if (editable) {
-      grid.opts.acceptWidgets = true;
+
+    // Keep nested grids in sync so loaded/added sub-grids do not fall back
+    // to GridStack's default resize-handle auto-hide behavior after reload.
+    grid.engine.nodes.forEach((node) => {
+      if (node.subGrid) {
+        applyEditMode(node.subGrid, editable);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!stackActionsRef.current || !stackActionsRef.current._gridStack.value) {
+      console.log("No GridStack available!");
+      return;
     }
-  };
+    applyEditMode(stackActionsRef.current?._gridStack.value, currentMode === "edit");
+  }, [currentMode, applyEditMode]);
 
   const handleLoadLayout = useCallback(
     async (pageid: string): Promise<any> => {
@@ -636,9 +680,10 @@ const StackPageContent = ({
       layout = updateLayoutWithNewProps(layout, widgetProps);
     }
     const savedSource = stripRuntimeDataFromSource(source);
+    const currentPageId = String(pageid || pageProps?.id || "").trim();
     const currentPageProps: PageProps = {
       ...pageProps,
-      id: pageid,
+      id: currentPageId,
       layout: layout,
       attributes: attributes,
       pageState: sharedState,
@@ -1116,6 +1161,28 @@ const StackPageContent = ({
                         </Suspense>
                       </div>
                     )}
+                    {loadedTabs.has("estate-gallery") && (
+                      <div
+                        style={{
+                          display: activeTab === "estate-gallery" ? "block" : "none",
+                          height: "100%",
+                        }}
+                        className="h-full min-h-0 overflow-hidden"
+                      >
+                        <Suspense
+                          fallback={
+                            <div className="h-full flex items-center justify-center text-sm text-gray-500">
+                              {t("Loading tab...")}
+                            </div>
+                          }
+                        >
+                          <EstateGalleryTabLazy
+                            onCustomAction={onCustomAction}
+                            onDragStart={handleDragStart}
+                          />
+                        </Suspense>
+                      </div>
+                    )}
                   </ExternalDragSourceContext.Provider>
 
                   {loadedTabs.has("properties") && (
@@ -1207,15 +1274,15 @@ const StackPageContent = ({
                     }`}
                   style={{ height: "100%" }}
                 >
-                  {EDITOR_TABS.map((tab) => (
-                    <button
-                      key={tab}
-                      className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${activeTab === tab
-                        ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  {editorTabs.map((tab) => (
+                      <button
+                        key={tab}
+                        className={`flex flex-col items-center justify-center py-4 px-2 text-xs font-medium transition-colors ${activeTab === tab
+                          ? "text-blue-600 bg-blue-50 border-r-2 border-blue-600"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                         }`}
                       onClick={() => setActiveTab(tab)}
-                      title={tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      title={TAB_LABELS[tab] || tab}
                     >
                       {getTabIcon(tab)}
                       <span className="mt-1 capitalize">

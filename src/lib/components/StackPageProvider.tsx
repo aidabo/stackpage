@@ -22,7 +22,14 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
   );
   const [selectedInstance, setSelectedInstance] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<
-    "components" | "properties" | "page" | "list" | "datasource" | "search" | "gallery"
+    | "components"
+    | "properties"
+    | "page"
+    | "list"
+    | "datasource"
+    | "search"
+    | "gallery"
+    | "estate-gallery"
   >("components");
   const [widgetProps, setWidgetProps] = useState<Map<string, object>>(
     new Map()

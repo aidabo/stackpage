@@ -56,9 +56,18 @@ export interface StackPageContextType {
   | "list"
   | "datasource"
   | "search"
-  | "gallery";
+  | "gallery"
+  | "estate-gallery";
   setActiveTab: (
-    tab: "components" | "properties" | "page" | "list" | "datasource" | "search" | "gallery"
+    tab:
+      | "components"
+      | "properties"
+      | "page"
+      | "list"
+      | "datasource"
+      | "search"
+      | "gallery"
+      | "estate-gallery"
   ) => void;
   widgetProps: Map<string, object>;
   updateWidgetProps: (widgetId: string, props: object) => void;

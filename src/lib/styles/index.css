@@ -57,6 +57,18 @@
   overflow: hidden !important;
 }
 
+/* Keep resize handles visible in edit mode even after GridStack rebinds DD state.
+ * GridStack autohides handles by default on desktop, which can make markers appear
+ * to "disappear" after reload/save/drop unless we force them visible here too. */
+.grid-stack-mode-edit .grid-stack-item.ui-resizable-autohide > .ui-resizable-handle {
+  display: block !important;
+  opacity: 1;
+}
+
+.grid-stack-mode-edit .grid-stack-item > .ui-resizable-handle {
+  z-index: 30;
+}
+
 /* demo.css */
 .widget-header {
   height: 36px;
