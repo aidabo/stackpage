@@ -16,21 +16,24 @@ export const EstateGalleryTab = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = useCallback(async () => {
+  const handleSearch = useCallback((e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!onCustomAction) {
       setError("Custom action handler not provided");
       return;
     }
 
-    if (!query.trim()) {
+    const nextQuery = query.trim();
+    if (!nextQuery) {
+      setResults(null);
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const result = onCustomAction("gallery/properties", { query, onDragStart });
-      setResults(result);
+      const result = onCustomAction("gallery/properties", { query: nextQuery, onDragStart });
+      setResults(<div key={`${nextQuery}-${Date.now()}`}>{result}</div>);
     } catch (err) {
       console.error("Property gallery search error:", err);
       setError("Failed to perform property gallery search");
@@ -38,12 +41,6 @@ export const EstateGalleryTab = ({
       setIsLoading(false);
     }
   }, [query, onCustomAction, onDragStart]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
 
   return (
     <div
@@ -55,13 +52,12 @@ export const EstateGalleryTab = ({
     >
       <div className="p-4 bg-white border-b border-gray-200">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Property Gallery</h3>
-        <div className="flex gap-2">
+        <form className="flex gap-2" onSubmit={handleSearch}>
           <div className="relative flex-1">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
               placeholder="Search properties..."
               className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -70,13 +66,13 @@ export const EstateGalleryTab = ({
             </div>
           </div>
           <button
-            onClick={handleSearch}
+            type="submit"
             disabled={isLoading || !onCustomAction}
             className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? "..." : "Search"}
           </button>
-        </div>
+        </form>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </div>
       <div className="flex-1 overflow-auto p-4">
