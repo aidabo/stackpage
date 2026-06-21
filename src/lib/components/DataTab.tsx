@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import Form from "@rjsf/core";
-import validator from "@rjsf/validator-ajv8";
+import { customizeValidator } from "@rjsf/validator-ajv8";
 import {
   CustomFieldTemplate,
   FileWidget,
@@ -20,6 +20,7 @@ import {
 import {
   generateSchemaFromCurrentProps,
   generateUiSchema,
+  normalizeStackPageSchema,
   getFileType,
   getFileAccept,
 } from "./PropertyTypeUtils";
@@ -32,6 +33,35 @@ import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
 import { InteractionRule } from "../utils/componentCommunication";
 import { useT } from "./StackI18nProvider";
+
+
+const stackPageValidator = customizeValidator({
+  // Page-builder editors often store Google/Map/search URLs with Japanese text
+  // while the URL input is still valid for users. AJV's strict URI format emits
+  // "must match format \"uri\"" for unencoded Unicode, so StackPage keeps
+  // URI as an editor hint/widget selector and relaxes format validation here.
+  customFormats: {
+    uri: () => true,
+  },
+});
+
+const stringifyEditorValue = (value: unknown): string => {
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === "string" ? item : String(item ?? "")))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+};
 
 interface DataTabProps {
   selectedInstance: any;
@@ -106,6 +136,25 @@ export const DataTab: React.FC<DataTabProps> = ({
     return cleanProps;
   };
 
+  const coerceFormDataForSchema = useCallback((formData: any, currentSchema: any): any => {
+    if (!formData || !currentSchema?.properties) return formData;
+    const coerced = { ...formData };
+    Object.entries(currentSchema.properties).forEach(([key, fieldSchema]: [string, any]) => {
+      const value = coerced[key];
+      if (fieldSchema?.type === "string" && Array.isArray(value)) {
+        coerced[key] = stringifyEditorValue(value);
+      } else if (
+        fieldSchema?.type === "string" &&
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        coerced[key] = stringifyEditorValue(value);
+      }
+    });
+    return coerced;
+  }, []);
+
   const { schema, uiSchema } = useMemo(() => {
     try {
       let finalSchema = localComponentSchema;
@@ -121,6 +170,8 @@ export const DataTab: React.FC<DataTabProps> = ({
 
         finalSchema = generateSchemaFromCurrentProps(cleanProps);
       }
+
+      finalSchema = normalizeStackPageSchema(finalSchema);
 
       if (!finalSchema.type) finalSchema.type = "object";
       if (!finalSchema.properties) finalSchema.properties = {};
@@ -166,6 +217,11 @@ export const DataTab: React.FC<DataTabProps> = ({
       return { schema: fallbackSchema, uiSchema: fallbackUiSchema };
     }
   }, [localComponentSchema, componentProps, bindings]);
+
+  const formDataForEditor = useMemo(
+    () => coerceFormDataForSchema(resolvedProps, schema),
+    [coerceFormDataForSchema, resolvedProps, schema]
+  );
 
   useEffect(() => {
     console.log("Current schema:", schema);
@@ -436,6 +492,10 @@ export const DataTab: React.FC<DataTabProps> = ({
     CustomDateWidget,
     CustomDateTimeWidget,
     CustomEmailWidget,
+    // RJSF maps { type: "string", format: "uri" } to URLWidget.
+    // Keep this alias so plain URI fields use StackPage's styled URL editor
+    // while media/file URI fields can still explicitly use FileWidget.
+    URLWidget: CustomURLWidget,
     CustomURLWidget,
     CustomColorWidget,
     CustomCheckboxWidget,
@@ -514,9 +574,9 @@ export const DataTab: React.FC<DataTabProps> = ({
                 key={selectedInstance?.id || componentType}
                 schema={schema}
                 uiSchema={uiSchema}
-                formData={resolvedProps}
+                formData={formDataForEditor}
                 onChange={onPropertyChange}
-                validator={validator}
+                validator={stackPageValidator}
                 widgets={widgets}
                 templates={templates}
                 liveValidate

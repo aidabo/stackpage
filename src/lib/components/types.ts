@@ -2,7 +2,6 @@
 export type FieldType =
   | "text"
   | "textarea"
-  | "richtext"
   | "select"
   | "checkbox"
   | "number"
@@ -10,6 +9,7 @@ export type FieldType =
   | "video"
   | "audio"
   | "color"
+  | "uri"
   | "file"
   | "tel"
   | "email"

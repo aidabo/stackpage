@@ -7,6 +7,7 @@ import {
   getFileType,
   getFileAccept,
   inferPropertySchema,
+  isFileTypeField,
 } from "./PropertyTypeUtils";
 
 const COLOR_PRESETS = [
@@ -35,6 +36,24 @@ const COLOR_PRESETS = [
   "#4B0082",
   "#EE82EE",
 ];
+
+const toFileWidgetValue = (value: unknown): string =>
+  typeof value === "string" ? value : "";
+
+const toEditorStringValue = (value: unknown): string => {
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "")).filter(Boolean).join(", ");
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+};
 
 const toNumber = (value: any, fallback = 0) => {
   const parsed = Number(value);
@@ -152,15 +171,18 @@ export const CustomFieldTemplate = (props: any) => {
 // Enhanced file upload widget that works for all file types
 export const FileWidget = (props: any) => {
   const [uploading, setUploading] = React.useState(false);
-  const [currentValue, setCurrentValue] = React.useState(props.value || "");
+  const [currentValue, setCurrentValue] = React.useState(() =>
+    toFileWidgetValue(props.value)
+  );
   const [selectedFileName, setSelectedFileName] = React.useState("");
   const [blobUrls, setBlobUrls] = React.useState<Set<string>>(new Set());
   const [uploadProgress, setUploadProgress] = React.useState(0);
 
   React.useEffect(() => {
-    setCurrentValue(props.value || "");
+    const nextValue = toFileWidgetValue(props.value);
+    setCurrentValue(nextValue);
     // Reset selected file name when value changes externally
-    if (!props.value) {
+    if (!nextValue) {
       setSelectedFileName("");
     }
   }, [props.value]);
@@ -715,31 +737,13 @@ export const ArrayOfObjectsWidget = (props: any) => {
     // Enhanced file detection
     const isFileField =
       format === "file" ||
-      format === "uri" ||
-      key.toLowerCase().includes("url") ||
-      key.toLowerCase().includes("image") ||
-      key.toLowerCase().includes("video") ||
-      key.toLowerCase().includes("audio") ||
-      key.toLowerCase().includes("file") ||
-      key.toLowerCase().includes("src") ||
-      key.toLowerCase().includes("icon") ||
-      key.toLowerCase().includes("avatar") ||
-      key.toLowerCase().includes("logo") ||
-      key.toLowerCase().includes("thumbnail") ||
-      key.toLowerCase().includes("media") ||
-      (typeof value === "string" &&
-        (value.startsWith("http") ||
-          value.startsWith("data:") ||
-          value.startsWith("blob:") ||
-          value.includes("/uploads/") ||
-          value.includes("/images/") ||
-          value.includes("/media/") ||
-          /\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|ogg|mp3|wav|pdf|doc|docx)$/i.test(
-            value
-          )));
+      Boolean(schema["x-media-type"]) ||
+      isFileTypeField(key, value);
 
     if (isFileField) {
       return "file";
+    } else if (schema["x-widget"] === "textarea" || schema["x-stackpage-widget"] === "textarea" || format === "textarea") {
+      return "textarea";
     } else if (format === "color") {
       return "color";
     } else if (format === "email") {
@@ -761,8 +765,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
 
   // Updated SimpleFileWidget for ArrayOfObjectsWidget - FIXED FUNCTION SIGNATURE
   const SimpleFileWidget = (fileProps: any) => {
-    const [currentValue, setCurrentValue] = React.useState(
-      fileProps.value || ""
+    const [currentValue, setCurrentValue] = React.useState(() =>
+      toFileWidgetValue(fileProps.value)
     );
     const [selectedFileName, setSelectedFileName] = React.useState("");
     const [blobUrls, setBlobUrls] = React.useState<Set<string>>(new Set());
@@ -770,8 +774,9 @@ export const ArrayOfObjectsWidget = (props: any) => {
     const [uploadProgress, setUploadProgress] = React.useState(0);
 
     React.useEffect(() => {
-      setCurrentValue(fileProps.value || "");
-      if (!fileProps.value) {
+      const nextValue = toFileWidgetValue(fileProps.value);
+      setCurrentValue(nextValue);
+      if (!nextValue) {
         setSelectedFileName("");
       }
     }, [fileProps.value]);
@@ -1053,6 +1058,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
   ) => {
     const widgetType = getFieldWidget(key, schema, value);
     const placeholder = `Enter ${key}`;
+    const stringValue = toEditorStringValue(value);
 
     switch (widgetType) {
       case "color":
@@ -1070,7 +1076,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
               />
               <input
                 type="text"
-                value={value || ""}
+                value={stringValue}
                 onChange={(e) => onChange(e.target.value)}
                 className="flex-1 p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 placeholder={placeholder}
@@ -1146,7 +1152,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
         const options = schema.enum || [];
         return (
           <select
-            value={value || ""}
+            value={stringValue}
             onChange={(e) => onChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
@@ -1157,6 +1163,17 @@ export const ArrayOfObjectsWidget = (props: any) => {
               </option>
             ))}
           </select>
+        );
+
+      case "textarea":
+        return (
+          <textarea
+            value={stringValue}
+            onChange={(e) => onChange(e.target.value)}
+            rows={schema?.["ui:options"]?.rows || schema?.rows || 4}
+            className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+            placeholder={placeholder}
+          />
         );
 
       case "file":
@@ -1174,7 +1191,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
         return (
           <input
             type="date"
-            value={value || ""}
+            value={stringValue}
             onChange={(e) => onChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
@@ -1184,7 +1201,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
         return (
           <input
             type="datetime-local"
-            value={value || ""}
+            value={stringValue}
             onChange={(e) => onChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
@@ -1194,7 +1211,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
         return (
           <input
             type={widgetType}
-            value={value || ""}
+            value={stringValue}
             onChange={(e) => onChange(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             placeholder={placeholder}

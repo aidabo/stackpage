@@ -1,12 +1,54 @@
 // PropertyTypeUtils.ts - 增强版本，包含更好的数组项媒体类型检测
 // Helper functions for file type detection
+
+const TEXTAREA_WIDGET = "textarea";
+
+const setTextareaWidget = (schema: any) => {
+  schema["x-widget"] = TEXTAREA_WIDGET;
+  return schema;
+};
+
+export const isTextareaWidgetSchema = (schema: any): boolean =>
+  schema?.["x-widget"] === TEXTAREA_WIDGET ||
+  schema?.["x-stackpage-widget"] === TEXTAREA_WIDGET ||
+  // Legacy StackPage schemas used format: "textarea" before RJSF/AJV
+  // validation. Keep reading it, but never generate it for new schemas.
+  schema?.format === TEXTAREA_WIDGET;
+
+export const normalizeStackPageSchema = (schema: any): any => {
+  if (!schema || typeof schema !== "object") return schema;
+  const clone = Array.isArray(schema) ? [...schema] : { ...schema };
+
+  if (clone.format === TEXTAREA_WIDGET || clone.format === "richtext") {
+    delete clone.format;
+    clone["x-widget"] = TEXTAREA_WIDGET;
+  }
+
+  if (clone.properties && typeof clone.properties === "object") {
+    clone.properties = Object.fromEntries(
+      Object.entries(clone.properties).map(([key, value]) => [
+        key,
+        normalizeStackPageSchema(value),
+      ])
+    );
+  }
+
+  if (clone.items && typeof clone.items === "object") {
+    clone.items = normalizeStackPageSchema(clone.items);
+  }
+
+  return clone;
+};
+
 export const getFileType = (
   name: string,
-  value: string
+  value: unknown
 ): "image" | "video" | "audio" | "document" | "file" => {
-  if (!value) {
-    // If no value, try to detect from name
-    const nameLower = name.toLowerCase();
+  const nameLower = name.toLowerCase();
+  if (typeof value !== "string" || !value) {
+    // If no string value, try to detect from name only.
+    // Component props can be boolean/number/object/array in StackPage; those are not file URLs.
+
     if (
       nameLower.includes("image") ||
       nameLower.includes("avatar") ||
@@ -27,8 +69,6 @@ export const getFileType = (
     }
     return "file";
   }
-
-  const nameLower = name.toLowerCase();
 
   // Check for data URLs
   if (value.startsWith("data:")) {
@@ -150,46 +190,49 @@ export const getFileAccept = (name: string, value: any): string => {
 // File type detection function
 export const isFileTypeField = (key: string, value: any): boolean => {
   const keyLower = key.toLowerCase();
+  const isStringValue = typeof value === "string";
+  const isEmptyValue = value === null || value === undefined || value === "";
 
-  // Check for special field names that should be file fields
-  const fileFieldNames = [
-    "src",
-    "source",
-    "file",
+  // Strong media field names can use the file picker even before a URL is set.
+  // Avoid generic names such as "source" or "url": estate/source/status/google_map_url
+  // are ordinary business props and must not become FileWidget fields.
+  const strongMediaFieldNames = [
     "image",
-    "url",
     "avatar",
     "logo",
     "icon",
     "video",
     "audio",
-    "media",
-    "backgroundImage",
+    "backgroundimage",
     "background-image",
-    "background-image-url",
     "poster",
     "thumbnail",
     "photo",
     "picture",
   ];
+  const exactFileFieldNames = ["src", "file", "document"];
 
-  const isFileByName = fileFieldNames.some((fileName) =>
+  const isStrongFileByName = strongMediaFieldNames.some((fileName) =>
     keyLower.includes(fileName)
   );
+  const isExactFileByName = exactFileFieldNames.includes(keyLower);
 
-  // Also check if the value looks like a file reference
+  // Also check if the value looks like a file reference.
   const isFileByValue =
-    typeof value === "string" &&
-    (value.startsWith("data:") || // Data URLs
-      value.startsWith("blob:") || // Blob URLs
+    isStringValue &&
+    (value.startsWith("data:") ||
+      value.startsWith("blob:") ||
       value.match(
         /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|avi|webm|mkv|mp3|wav|ogg|pdf|doc|docx|txt|rtf)$/i
-      ) || // File extensions
+      ) ||
       value.match(
         /\/[^/]+\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|avi|webm|mkv|mp3|wav|ogg|pdf|doc|docx|txt|rtf)(\?.*)?$/i
-      )); // URL with file extension
+      ));
 
-  return isFileByName || (isFileByValue as boolean);
+  return Boolean(
+    isFileByValue ||
+      ((isStrongFileByName || isExactFileByName) && (isEmptyValue || isStringValue))
+  );
 };
 
 // Number field detection function
@@ -388,7 +431,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
     baseSchema.type = "string";
     // Enhanced textarea detection - if value length > 80, set as textarea
     if (value && value && value.length > 80) {
-      baseSchema.format = "textarea";
+      setTextareaWidget(baseSchema);
     }
 
     // Enhanced select field detection
@@ -428,7 +471,7 @@ export const inferPropertySchema = (key: string, value: any): any => {
         keyLower.includes("content") ||
         keyLower.includes("description"))
     ) {
-      baseSchema.format = "textarea";
+      setTextareaWidget(baseSchema);
     }
   } else if (type === "number") {
     baseSchema.type = "number";
@@ -504,16 +547,16 @@ export const inferPropertySchema = (key: string, value: any): any => {
         baseSchema.format = "json";
       }
     } else if (value.length > 0 && typeof value[0] === "string") {
-      baseSchema.items = { type: "string" };
-      // Check if array contains select options
-      if (
-        value.every((item) => typeof item === "string") &&
-        value.length <= 10
-      ) {
-        baseSchema.enum = value;
-      }
+      // A simple string array often represents a list stored in one business prop
+      // (for example features/tags), not real feature_1/feature_2 fields.
+      // Use an editable text fallback; explicit __schema can opt into array UI.
+      baseSchema.type = "string";
+      setTextareaWidget(baseSchema);
+      baseSchema.description = "Enter one item per line or separate items with commas.";
     } else {
-      baseSchema.items = { type: "string" };
+      baseSchema.type = "string";
+      setTextareaWidget(baseSchema);
+      baseSchema.description = "Enter one item per line or separate items with commas.";
     }
   } else if (type === "object" && value !== null) {
     baseSchema.type = "object";
@@ -567,6 +610,8 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       "x-active-select-source",
       "x-media-type",
       "x-array-binding",
+      "x-widget",
+      "x-stackpage-widget",
     ];
     passthroughKeys.forEach((k) => {
       if (override[k] !== undefined) {
@@ -648,7 +693,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
                 itemProp.type = "string";
                 // Long text detection
                 if (itemValue.length > 80) {
-                  itemProp.format = "textarea";
+                  setTextareaWidget(itemProp);
                 }
               } else if (typeof itemValue === "number") {
                 itemProp.type = "number";
@@ -666,14 +711,11 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
           // Add a marker for array binding support
           property["x-array-binding"] = true;
         } else {
-          // Array of simple types (string, number, boolean) - treat as select field
+          // Array of simple values has no stable per-item field names. Treat it as
+          // editable text by default; component runtime can split comma/newline text.
           property.type = "string";
-          property.items = { type: typeof firstElement };
-
-          // If it's strings and looks like options, set as enum
-          if (typeof firstElement === "string" && value.length <= 10) {
-            property.enum = value;
-          }
+          setTextareaWidget(property);
+          property.description = "Enter one item per line or separate items with commas.";
         }
       }
     }
@@ -744,7 +786,7 @@ export const generateSchemaFromCurrentProps = (props: any): any => {
       
       // Enhanced textarea detection - if value length > 80, set as textarea
       if (value && value.length > 80) {
-        property.format = "textarea";
+        setTextareaWidget(property);
       }
     } else if (typeof value === "number") {
       property.type = "number";
@@ -798,6 +840,12 @@ export const generateUiSchema = (schema: any): any => {
       if (property["x-array-binding"]) {
         uiSchema[key]["x-array-binding"] = property["x-array-binding"];
       }
+      if (property["x-widget"]) {
+        uiSchema[key]["x-widget"] = property["x-widget"];
+      }
+      if (property["x-stackpage-widget"]) {
+        uiSchema[key]["x-stackpage-widget"] = property["x-stackpage-widget"];
+      }
 
       // Handle array types
       if (property.type === "array") {
@@ -816,20 +864,16 @@ export const generateUiSchema = (schema: any): any => {
       }
       // Handle other widget assignments
       else if (property.format === "uri") {
-        const keyLower = key.toLowerCase();
-        if (
-          keyLower.includes("image") ||
-          keyLower.includes("avatar") ||
-          keyLower.includes("photo")
-        ) {
-          uiSchema[key]["ui:widget"] = "FileWidget";
-        } else if (keyLower.includes("video")) {
-          uiSchema[key]["ui:widget"] = "FileWidget";
-        } else if (keyLower.includes("audio")) {
+        // RJSF standard: { type: "string", format: "uri" } is a URL input.
+        // StackPage extension: add x-media-type only when this URI should use
+        // the custom media/file uploader. Do not treat ordinary URLs as files.
+        if (property["x-media-type"]) {
           uiSchema[key]["ui:widget"] = "FileWidget";
         } else {
-          uiSchema[key]["ui:widget"] = "FileWidget";
+          uiSchema[key]["ui:widget"] = "CustomURLWidget";
         }
+      } else if (property.format === "richtext") {
+        uiSchema[key]["ui:widget"] = "CustomTextareaWidget";
       } else if (property.format === "color") {
         uiSchema[key]["ui:widget"] = "CustomColorWidget";
       } else if (
@@ -840,7 +884,7 @@ export const generateUiSchema = (schema: any): any => {
         uiSchema[key]["ui:widget"] = "CustomSelectWidget";
       } else if (property.type === "boolean") {
         uiSchema[key]["ui:widget"] = "CustomCheckboxWidget";
-      } else if (property.format === "textarea") {
+      } else if (isTextareaWidgetSchema(property)) {
         uiSchema[key]["ui:widget"] = "CustomTextareaWidget";
       } else if (property.format === "email") {
         uiSchema[key]["ui:widget"] = "CustomEmailWidget";

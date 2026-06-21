@@ -5,6 +5,7 @@ import {
   getFileType,
   isDateField,
   isNumberField,
+  isTextareaWidgetSchema,
 } from "./PropertyTypeUtils";
 import { FieldSchema, FieldType, NamedList, DataSource } from "./types";
 
@@ -22,7 +23,6 @@ interface SchemaEditorDialogProps {
 const FIELD_TYPES: FieldType[] = [
   "text",
   "textarea",
-  "richtext",
   "select",
   "checkbox",
   "number",
@@ -30,6 +30,7 @@ const FIELD_TYPES: FieldType[] = [
   "video",
   "audio",
   "color",
+  "uri",
   "file",
   "tel",
   "email",
@@ -58,15 +59,15 @@ const fieldTypeToJsonSchemaFormat = (
 ): string | undefined => {
   switch (fieldType) {
     case "textarea":
-      return "textarea";
-    case "richtext":
-      return "richtext";
+      return undefined;
     case "email":
       return "email";
     case "date":
       return "date";
     case "color":
       return "color";
+    case "uri":
+      return "uri";
     case "password":
       return "password";
     case "tel":
@@ -94,6 +95,12 @@ const getMediaType = (fieldType: FieldType): string | undefined => {
       return "file";
     default:
       return undefined;
+  }
+};
+
+const applyTextareaWidgetHint = (fieldType: FieldType, schema: any) => {
+  if (fieldType === "textarea") {
+    schema["x-widget"] = "textarea";
   }
 };
 
@@ -561,6 +568,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
       if (keyLower.includes("password")) return "password";
       if (keyLower.includes("tel") || keyLower.includes("phone")) return "tel";
       if (keyLower.includes("color")) return "color";
+      if (keyLower.includes("url") || keyLower.includes("link")) return "uri";
       if (keyLower.includes("date")) return "date";
       if (value.length > 100) return "textarea";
 
@@ -613,7 +621,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                   } else if (itemSchemaDef.enum) {
                     itemField.type = "select";
                     itemField.options = itemSchemaDef.enum;
-                  } else if (itemSchemaDef.format === "textarea") {
+                  } else if (isTextareaWidgetSchema(itemSchemaDef) || itemSchemaDef.format === "richtext") {
                     itemField.type = "textarea";
                   } else if (itemSchemaDef.format === "email") {
                     itemField.type = "email";
@@ -624,10 +632,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                   } else if (itemSchemaDef["x-media-type"]) {
                     itemField.type = itemSchemaDef["x-media-type"];
                   } else if (itemSchemaDef.format === "uri") {
-                    // 尝试从名称推断媒体类型
-                    const fileType = getFileType(itemKey, "");
-                    itemField.type =
-                      fileType === "document" ? "file" : fileType;
+                    itemField.type = "uri";
                   }
 
                   return itemField;
@@ -638,10 +643,8 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
             field.type = "select";
             field.options = schemaDef.enum;
             field.activeSelectSource = "options";
-          } else if (schemaDef.format === "textarea") {
+          } else if (isTextareaWidgetSchema(schemaDef) || schemaDef.format === "richtext") {
             field.type = "textarea";
-          } else if (schemaDef.format === "richtext") {
-            field.type = "richtext";
           } else if (schemaDef.format === "color") {
             field.type = "color";
           } else if (schemaDef.format === "email") {
@@ -651,9 +654,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
           } else if (schemaDef["x-media-type"]) {
             field.type = schemaDef["x-media-type"];
           } else if (schemaDef.format === "uri") {
-            // Try to detect from name if format is uri but no x-media-type
-            const fileType = getFileType(key, "");
-            field.type = fileType === "document" ? "file" : fileType;
+            field.type = "uri";
           } else if (schemaDef["x-list-reference"]) {
             field.type = "select";
             field.listRef = schemaDef["x-list-reference"];
@@ -794,7 +795,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
               return "file";
           }
         }
-        return "text";
+        return "uri";
       }
 
       // 长文本检查
@@ -972,6 +973,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
         if (format) {
           property.format = format;
         }
+        applyTextareaWidgetHint(field.type, property);
 
         // 添加媒体类型信息
         const mediaType = getMediaType(field.type);
@@ -1022,6 +1024,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                 if (itemFormat) {
                   itemProp.format = itemFormat;
                 }
+                applyTextareaWidgetHint(itemField.type, itemProp);
 
                 // 添加媒体类型信息
                 const mediaType = getMediaType(itemField.type);
@@ -1523,6 +1526,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                       if (format) {
                         prop.format = format;
                       }
+                      applyTextareaWidgetHint(field.type, prop);
 
                       // 添加媒体类型信息
                       const mediaType = getMediaType(field.type);
@@ -1577,6 +1581,7 @@ export const SchemaEditorDialog: React.FC<SchemaEditorDialogProps> = ({
                                 if (itemFormat) {
                                   itemProp.format = itemFormat;
                                 }
+                                applyTextareaWidgetHint(itemField.type, itemProp);
 
                                 const mediaType = getMediaType(itemField.type);
                                 if (mediaType) {
