@@ -59,6 +59,7 @@ import { StatusButton } from "./StatusButton";
 import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource, StackI18n } from "./types";
 import { DataSourceService } from "./DataSourceService";
+import { resolveParams, type ParamContext } from "../utils/paramResolver";
 import {
   applyPrefetchedDataToSource,
   collectBindingSourceIdsFromLayout,
@@ -146,6 +147,13 @@ export interface StackPageProps {
   getHostDataSources?: GetHostDataSourcesFn;
   i18n?: StackI18n;
   estateFeatureEnabled?: boolean;
+  /**
+   * URL search params for dynamic datasource params, e.g.
+   * Object.fromEntries(useSearchParams()). Exposed to datasource
+   * `parameters` as the `{{query.*}}` namespace. Domain-agnostic;
+   * see docs/planning/13_stackpage_dynamic_datasource_params_spec.md.
+   */
+  urlQuery?: Record<string, string>;
 }
 
 // Mobile detection hook
@@ -300,6 +308,7 @@ const StackPageContent = ({
   getHostDataSources,
   children,
   estateFeatureEnabled = false,
+  urlQuery,
 }: StackPageProps) => {
   const [currentMode, setCurrentMode] = useState<"edit" | "preview" | "view">(
     pageMode,
@@ -498,6 +507,15 @@ const StackPageContent = ({
           if (requiredSourceIds.size > 0 && persistedSource.dataSources) {
             const updates: Array<{ id: string; result: any }> = [];
 
+            // Runtime context for {{query.*}} / {{state.*}} / {{params.*}}
+            // param tokens. Uses the freshly-loaded pageState (pre-fetch runs
+            // before replacePageState) so initial/deep-link params resolve.
+            const paramContext: ParamContext = {
+              query: urlQuery || {},
+              state: loadedPageProps.pageState || {},
+              params: { pageid },
+            };
+
             for (const ds of persistedSource.dataSources) {
               if (
                 requiredSourceIds.has(ds.id) &&
@@ -508,9 +526,17 @@ const StackPageContent = ({
                   console.log(
                     `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`,
                   );
+                  // Resolve dynamic tokens, then fetch with a clone whose
+                  // `parameters` are the resolved concrete values. Replacing
+                  // (not passing as 2nd arg) prevents DataSourceService from
+                  // re-merging the raw {{tokens}} back on top.
+                  const resolvedParams = resolveParams(
+                    (ds as any).parameters,
+                    paramContext,
+                  );
                   const result = await DataSourceService.fetchDataSourceData(
-                    ds,
-                    ds.parameters || {},
+                    { ...ds, parameters: resolvedParams } as typeof ds,
+                    {},
                   );
                   updates.push({ id: ds.id, result });
                 } catch (err) {
@@ -551,7 +577,7 @@ const StackPageContent = ({
       }
       return pageProps.layout;
     },
-    [onLoadLayout, getHostDataSources, replacePageState, setPageAttributes, setSource],
+    [onLoadLayout, getHostDataSources, replacePageState, setPageAttributes, setSource, urlQuery, pageid],
   );
 
   const handleReload = useCallback(async () => {

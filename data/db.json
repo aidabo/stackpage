@@ -2740,5 +2740,25 @@
         }
       }
     }
+  ],
+  "estateProperties": [
+    {
+      "id": "p-1",
+      "title": "Sunny Loft",
+      "price": 32000000,
+      "city": "Tokyo"
+    },
+    {
+      "id": "p-2",
+      "title": "Garden House",
+      "price": 48000000,
+      "city": "Yokohama"
+    },
+    {
+      "id": "p-3",
+      "title": "Riverside Flat",
+      "price": 27500000,
+      "city": "Osaka"
+    }
   ]
 }

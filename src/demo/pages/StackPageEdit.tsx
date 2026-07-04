@@ -171,6 +171,7 @@ function StackPageEdit() {
     <StackPage
       pageid={currentPageid as string}
       pageMode={mode as any}
+      urlQuery={Object.fromEntries(searchParams)}
       onSaveLayout={saveLayout}
       onLoadLayout={loadLayout}
       componentMapProvider={componentMapProvider}

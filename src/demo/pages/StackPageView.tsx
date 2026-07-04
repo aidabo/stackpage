@@ -171,6 +171,7 @@ function StackPageView() {
     <StackPage
       pageid={currentPageid as string}
       pageMode="view"
+      urlQuery={Object.fromEntries(searchParams)}
       onSaveLayout={saveLayout}
       onLoadLayout={loadLayout}
       componentMapProvider={componentMapProvider}

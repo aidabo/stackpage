@@ -15,6 +15,13 @@ import {
 } from "@heroicons/react/24/outline";
 import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSourceService } from "./DataSourceService";
+import {
+  buildTestParams,
+  isDynamicParamValue,
+  parseParamSource,
+  buildParamValue,
+  type ParamSource,
+} from "../utils/paramResolver";
 
 interface DataSourceDialogProps {
   isOpen: boolean;
@@ -142,7 +149,7 @@ const COMMON_PARAMS = [
   "offset",
   "sort",
   "order",
-  "q",
+  "keyword",
   "search",
   "filter",
   "fields",
@@ -191,6 +198,18 @@ interface ParamItem {
   key: string;
   value: string;
   isAdvanced?: boolean;
+  /**
+   * Test-only concrete value for a dynamic ({{token}}) param. Used by the Test
+   * tab to stand in for the runtime value (URL query / page state) that is not
+   * available at author time. Never persisted to the datasource.
+   */
+  testValue?: string;
+  /**
+   * UI-only source selection (static / query / state / params). The canonical
+   * persisted form is still `value` (a literal or a `{{ns.path}}` token); this
+   * only keeps the dropdown stable while editing (e.g. an empty path).
+   */
+  source?: ParamSource;
 }
 
 interface SuggestionItem {
@@ -432,6 +451,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   key,
                   value: String(value),
                   isAdvanced: isAdvancedParam(key),
+                  source: parseParamSource(String(value)).source,
                 })
               )
             );
@@ -465,6 +485,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   key,
                   value: String(value),
                   isAdvanced: isAdvancedParam(key),
+                  source: parseParamSource(String(value)).source,
                 })
               )
             );
@@ -708,6 +729,112 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setParameters(parameters.filter((param) => param.id !== id));
   };
 
+  const handleUpdateParamTestValue = (id: string, testValue: string) => {
+    setParameters((prev) =>
+      prev.map((param) => (param.id === id ? { ...param, testValue } : param))
+    );
+  };
+
+  // The dropdown source for a param (falls back to parsing its value).
+  const getParamSource = (param: ParamItem): ParamSource =>
+    param.source ?? parseParamSource(param.value).source;
+
+  // The editable path/value shown in the input for a param.
+  const getParamPath = (param: ParamItem): string => {
+    const source = getParamSource(param);
+    return source === "static"
+      ? param.value
+      : parseParamSource(param.value).path;
+  };
+
+  // Switch a param between static / query / state / params, rebuilding value.
+  const handleUpdateParamSource = (id: string, source: ParamSource) => {
+    setParameters((prev) =>
+      prev.map((param) =>
+        param.id === id
+          ? {
+              ...param,
+              source,
+              value: buildParamValue(source, getParamPath(param)),
+            }
+          : param
+      )
+    );
+  };
+
+  // Edit the path/value portion, keeping the chosen source.
+  const handleUpdateParamPath = (id: string, path: string) => {
+    setParameters((prev) =>
+      prev.map((param) => {
+        if (param.id !== id) return param;
+        const source = getParamSource(param);
+        return { ...param, source, value: buildParamValue(source, path) };
+      })
+    );
+  };
+
+  /** Source dropdown shown before a param's value input. */
+  const renderParamSourceSelect = (param: ParamItem) => (
+    <select
+      className="p-2 border rounded text-sm bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none flex-shrink-0"
+      title="Where this parameter's value comes from at runtime"
+      value={getParamSource(param)}
+      onChange={(e) =>
+        handleUpdateParamSource(param.id, e.target.value as ParamSource)
+      }
+    >
+      <option value="static">Static</option>
+      <option value="query">URL query</option>
+      <option value="state">Page state</option>
+      <option value="params">Route param</option>
+    </select>
+  );
+
+  /**
+   * Per-source description shown under a dynamic param row so the author knows
+   * what to type in the path field (the namespace comes from the dropdown, not
+   * the path). Static params show nothing.
+   */
+  const renderParamSourceHint = (param: ParamItem) => {
+    const source = getParamSource(param);
+    if (source === "static") return null;
+    const path = getParamPath(param) || "path";
+    const hints: Record<Exclude<ParamSource, "static">, string> = {
+      query: `Reads ?${path}= from the page URL (type just the query key, e.g. item → ?item=)`,
+      state: `Reads pageState.${path} (type just the state path, e.g. selected.propertyId — dotted paths ok)`,
+      params: `Reads the route param "${path}" (type just the param name, e.g. pageid)`,
+    };
+    return (
+      <p className="text-xs text-gray-500 pl-1">
+        {hints[source]} — stored as{" "}
+        <code className="text-gray-700">{buildParamValue(source, getParamPath(param))}</code>
+      </p>
+    );
+  };
+
+  /**
+   * Effective parameters for the Test tab. Dynamic ({{token}}) params use their
+   * author-supplied test value; static params use their literal value.
+   * See buildTestParams in paramResolver.
+   */
+  const buildTestParameters = (): Record<string, string> =>
+    buildTestParams(parameters);
+
+  /** Inline test-value input shown to the right of a dynamic param's value. */
+  const renderParamTestValueInput = (param: ParamItem) => {
+    if (!isDynamicParamValue(param.value)) return null;
+    return (
+      <input
+        type="text"
+        className="w-32 p-2 border border-amber-300 bg-amber-50 rounded text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 outline-none flex-shrink-0"
+        placeholder="test value"
+        title="Test value for this {{token}} param — used only in the Test tab, never saved"
+        value={param.testValue ?? ""}
+        onChange={(e) => handleUpdateParamTestValue(param.id, e.target.value)}
+      />
+    );
+  };
+
   const addOrUpdateParameter = (
     key: string,
     value: string,
@@ -912,7 +1039,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       );
       const result = await DataSourceService.fetchDataSourceData(
         testDataSource,
-        config.parameters
+        buildTestParameters()
       );
 
       if (result.success) {
@@ -1424,6 +1551,15 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Basic Parameters
                   </h4>
+                  {parameters.some((p) => isDynamicParamValue(p.value)) && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mb-3">
+                      Pick a <span className="font-medium">source</span> (URL query / Page state /
+                      Route param) and a path to bind a param at runtime — stored as{" "}
+                      <code>{"{{source.path}}"}</code>. Enter a{" "}
+                      <span className="font-medium">test value</span> (amber box) to try it in the
+                      Test tab; blank test values are dropped.
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {[
                       "page",
@@ -1445,35 +1581,40 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   </div>
                   <div className="space-y-3">
                     {basicParameters.map((param) => (
-                      <div key={param.id} className="flex gap-2 items-center">
-                        <AutoCompleteInput
-                          value={param.key}
-                          onChange={(value) =>
-                            handleUpdateParameter(param.id, "key", value)
-                          }
-                          suggestions={paramNameSuggestions}
-                          placeholder="Parameter name"
-                          type="key"
-                        />
-                        <input
-                          type="text"
-                          className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                          placeholder="Value"
-                          value={param.value}
-                          onChange={(e) =>
-                            handleUpdateParameter(
-                              param.id,
-                              "value",
-                              e.target.value
-                            )
-                          }
-                        />
-                        <button
-                          onClick={() => handleRemoveParameter(param.id)}
-                          className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
+                      <div key={param.id} className="space-y-1">
+                        <div className="flex gap-2 items-center">
+                          <AutoCompleteInput
+                            value={param.key}
+                            onChange={(value) =>
+                              handleUpdateParameter(param.id, "key", value)
+                            }
+                            suggestions={paramNameSuggestions}
+                            placeholder="Parameter name"
+                            type="key"
+                          />
+                          {renderParamSourceSelect(param)}
+                          <input
+                            type="text"
+                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                            placeholder={
+                              getParamSource(param) === "static"
+                                ? "Value"
+                                : "path e.g. item"
+                            }
+                            value={getParamPath(param)}
+                            onChange={(e) =>
+                              handleUpdateParamPath(param.id, e.target.value)
+                            }
+                          />
+                          {renderParamTestValueInput(param)}
+                          <button
+                            onClick={() => handleRemoveParameter(param.id)}
+                            className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                        {renderParamSourceHint(param)}
                       </div>
                     ))}
                     <button
@@ -1518,35 +1659,40 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   {showAdvancedParams && (
                     <div className="space-y-3">
                       {advancedParameters.map((param) => (
-                        <div key={param.id} className="flex gap-2 items-center">
-                          <AutoCompleteInput
-                            value={param.key}
-                            onChange={(value) =>
-                              handleUpdateParameter(param.id, "key", value)
-                            }
-                            suggestions={paramNameSuggestions}
-                            placeholder="e.g. filter, sort, fields"
-                            type="key"
-                          />
-                          <input
-                            type="text"
-                            className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                            placeholder="Value (e.g. name,asc or id,name,price)"
-                            value={param.value}
-                            onChange={(e) =>
-                              handleUpdateParameter(
-                                param.id,
-                                "value",
-                                e.target.value
-                              )
-                            }
-                          />
-                          <button
-                            onClick={() => handleRemoveParameter(param.id)}
-                            className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
+                        <div key={param.id} className="space-y-1">
+                          <div className="flex gap-2 items-center">
+                            <AutoCompleteInput
+                              value={param.key}
+                              onChange={(value) =>
+                                handleUpdateParameter(param.id, "key", value)
+                              }
+                              suggestions={paramNameSuggestions}
+                              placeholder="e.g. filter, sort, fields"
+                              type="key"
+                            />
+                            {renderParamSourceSelect(param)}
+                            <input
+                              type="text"
+                              className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                              placeholder={
+                                getParamSource(param) === "static"
+                                  ? "Value (e.g. name,asc)"
+                                  : "path e.g. pipeline.stage"
+                              }
+                              value={getParamPath(param)}
+                              onChange={(e) =>
+                                handleUpdateParamPath(param.id, e.target.value)
+                              }
+                            />
+                            {renderParamTestValueInput(param)}
+                            <button
+                              onClick={() => handleRemoveParameter(param.id)}
+                              className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {renderParamSourceHint(param)}
                         </div>
                       ))}
                       {advancedParameters.length === 0 && (
