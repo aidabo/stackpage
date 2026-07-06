@@ -92,6 +92,14 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
   const setSharedState = useCallback((path: string, value: any) => {
     if (!path) return;
     setSharedStateStore((prev) => {
+      // Idempotent write: if the value at `path` is unchanged, return the same
+      // state object so React bails out of the update. Without this, an effect
+      // that re-writes the same value on every render (e.g. a component pushing
+      // a default into shared state) produces a new state object each time and
+      // loops forever — "Maximum update depth exceeded".
+      if (Object.is(get(prev, path), value)) {
+        return prev;
+      }
       const next = { ...prev };
       set(next, path, value);
       sharedStateRef.current = next;

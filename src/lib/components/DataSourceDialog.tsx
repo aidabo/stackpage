@@ -9,8 +9,6 @@ import {
   TableCellsIcon,
   ArrowPathIcon,
   CpuChipIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { VisualDataPreview } from "./VisualDataPreview";
@@ -383,7 +381,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
   const [headers, setHeaders] = useState<HeaderItem[]>([]);
   const [parameters, setParameters] = useState<ParamItem[]>([]);
-  const [showAdvancedParams, setShowAdvancedParams] = useState(false);
 
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
@@ -699,12 +696,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     ]);
   };
 
-  const handleAddAdvancedParameter = () => {
-    setParameters([
-      ...parameters,
-      { id: `param-${Date.now()}`, key: "", value: "", isAdvanced: true },
-    ]);
-  };
 
   const handleUpdateParameter = (
     id: string,
@@ -1060,8 +1051,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   };
 
   // 获取基础参数和高级参数
-  const basicParameters = parameters.filter((p) => !p.isAdvanced);
-  const advancedParameters = parameters.filter((p) => p.isAdvanced);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -1546,10 +1535,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   </ul>
                 </div>
 
-                {/* 基础参数 */}
+                {/* Parameters (single unified list) */}
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
-                    Basic Parameters
+                    Parameters
                   </h4>
                   {parameters.some((p) => isDynamicParamValue(p.value)) && (
                     <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mb-3">
@@ -1580,7 +1569,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     ))}
                   </div>
                   <div className="space-y-3">
-                    {basicParameters.map((param) => (
+                    {parameters.map((param) => (
                       <div key={param.id} className="space-y-1">
                         <div className="flex gap-2 items-center">
                           <AutoCompleteInput
@@ -1621,88 +1610,15 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       onClick={handleAddParameter}
                       className="w-full py-2 text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center gap-2 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
                     >
-                      <PlusIcon className="w-4 h-4" /> Add Basic Parameter
+                      <PlusIcon className="w-4 h-4" /> Add Parameter
                     </button>
-                  </div>
-                </div>
-
-                {/* 高级参数 */}
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-medium text-gray-700">
-                        Advanced Parameters
-                      </h4>
-                      <button
-                        onClick={() =>
-                          setShowAdvancedParams(!showAdvancedParams)
-                        }
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        {showAdvancedParams ? (
-                          <ChevronUpIcon className="w-4 h-4" />
-                        ) : (
-                          <ChevronDownIcon className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                    {showAdvancedParams && (
-                      <button
-                        onClick={handleAddAdvancedParameter}
-                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <PlusIcon className="w-3 h-3" /> Add Advanced
-                      </button>
+                    {parameters.length === 0 && (
+                      <p className="text-sm text-gray-500 italic">
+                        No parameters. Add key/value pairs — including filters,
+                        sorting, or field selection — as needed.
+                      </p>
                     )}
                   </div>
-
-                  {showAdvancedParams && (
-                    <div className="space-y-3">
-                      {advancedParameters.map((param) => (
-                        <div key={param.id} className="space-y-1">
-                          <div className="flex gap-2 items-center">
-                            <AutoCompleteInput
-                              value={param.key}
-                              onChange={(value) =>
-                                handleUpdateParameter(param.id, "key", value)
-                              }
-                              suggestions={paramNameSuggestions}
-                              placeholder="e.g. filter, sort, fields"
-                              type="key"
-                            />
-                            {renderParamSourceSelect(param)}
-                            <input
-                              type="text"
-                              className="flex-1 p-2 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                              placeholder={
-                                getParamSource(param) === "static"
-                                  ? "Value (e.g. name,asc)"
-                                  : "path e.g. pipeline.stage"
-                              }
-                              value={getParamPath(param)}
-                              onChange={(e) =>
-                                handleUpdateParamPath(param.id, e.target.value)
-                              }
-                            />
-                            {renderParamTestValueInput(param)}
-                            <button
-                              onClick={() => handleRemoveParameter(param.id)}
-                              className="text-red-500 hover:bg-red-100 p-2 rounded transition flex-shrink-0"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                          {renderParamSourceHint(param)}
-                        </div>
-                      ))}
-                      {advancedParameters.length === 0 && (
-                        <p className="text-sm text-gray-500 italic">
-                          No advanced parameters added. Use for filters,
-                          sorting, field selection, etc.
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 

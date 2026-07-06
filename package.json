@@ -32,6 +32,8 @@
         "test:binding": "vite-node tests/binding-engine.runtime.test.ts",
     "test:param-resolver": "vite-node tests/param-resolver.runtime.test.ts",
     "test:dynamic-params": "vite-node tests/dynamic-params.runtime.test.ts",
+    "test:reactive-params": "vite-node tests/reactive-params.runtime.test.ts",
+    "test:page-interactions": "vite-node tests/page-interactions.runtime.test.ts",
         "test:communication": "vite-node tests/component-communication.runtime.test.ts",
         "test:component-map": "vite-node tests/component-map-cache.runtime.test.ts",
         "test:shared-input": "vite-node tests/optimistic-shared-input.runtime.test.ts",
@@ -41,7 +43,7 @@
         "test:fold-fixture": "vite-node tests/fold-post-demo.runtime.test.ts",
         "test:realestate-fixture": "vite-node tests/realestate-demo.runtime.test.ts",
         "test:media-fixture": "vite-node tests/media-location-demo.runtime.test.ts",
-        "test:runtime": "yarn test:binding && yarn test:param-resolver && yarn test:dynamic-params && yarn test:communication && yarn test:component-map && yarn test:shared-input && yarn test:preview-mode && yarn test:lifecycle && yarn test:page-state && yarn test:demo-fixture && yarn test:fold-fixture && yarn test:media-fixture && yarn test:realestate-fixture",
+        "test:runtime": "yarn test:binding && yarn test:param-resolver && yarn test:dynamic-params && yarn test:reactive-params && yarn test:page-interactions && yarn test:communication && yarn test:component-map && yarn test:shared-input && yarn test:preview-mode && yarn test:lifecycle && yarn test:page-state && yarn test:demo-fixture && yarn test:fold-fixture && yarn test:media-fixture && yarn test:realestate-fixture",
         "test:demo-fixture": "vite-node tests/jsonserver-demo.runtime.test.ts",
         "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
     },

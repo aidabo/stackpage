@@ -16,6 +16,7 @@ import {
   TrashIcon,
   CloudArrowDownIcon,
   EyeIcon,
+  BoltIcon,
   ArrowLeftCircleIcon,
   PencilIcon,
   InformationCircleIcon,
@@ -60,6 +61,8 @@ import { TooltipButton } from "./TooltipButton";
 import { GetHostDataSourcesFn, HostFunctionDataSource, StackI18n } from "./types";
 import { DataSourceService } from "./DataSourceService";
 import { resolveParams, type ParamContext } from "../utils/paramResolver";
+import { useReactiveDataSources } from "./useReactiveDataSources";
+import { PageEventsDialog } from "./PageEventsDialog";
 import {
   applyPrefetchedDataToSource,
   collectBindingSourceIdsFromLayout,
@@ -335,6 +338,8 @@ const StackPageContent = ({
 
   const isMobile = useMobile();
   const [showEditor, setShowEditor] = useState<boolean>(!isMobile);
+  const [pageEventsOpen, setPageEventsOpen] = useState<boolean>(false);
+  const [pageEventsLayout, setPageEventsLayout] = useState<any>(undefined);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const initialLoadRef = useRef(true);
   const [loadedTabs, setLoadedTabs] = useState<Set<EditorTabKey>>(
@@ -354,6 +359,15 @@ const StackPageContent = ({
     setSelectedComponent,
     widgetProps, // Add this to get widgetProps from context
   } = useStackPage();
+
+  // Tier B: re-fetch datasources whose {{state.*}} params change at runtime.
+  useReactiveDataSources({
+    source,
+    setSource,
+    pageState: sharedState,
+    urlQuery,
+    pageid,
+  });
 
   const [pageProps, setPageProps] = useState<PageProps>({
     id: pageid,
@@ -968,6 +982,21 @@ const StackPageContent = ({
                   className="bg-purple-600 hover:bg-purple-700 text-white"
                 />
 
+                {/* Page Events (whole-page interaction overview) */}
+                <TooltipButton
+                  onClick={() => {
+                    try {
+                      setPageEventsLayout(getCurrentPageProps().layout);
+                    } catch {
+                      setPageEventsLayout(undefined);
+                    }
+                    setPageEventsOpen(true);
+                  }}
+                  icon={<BoltIcon className="stack-btn-icon" />}
+                  tooltip={t("Page Events")}
+                  className="bg-amber-500 hover:bg-amber-600 text-white"
+                />
+
                 {/* Save */}
                 <StatusButton
                   onClick={handleSave}
@@ -1381,6 +1410,13 @@ const StackPageContent = ({
             />
           </Suspense>
         )}
+
+        <PageEventsDialog
+          open={pageEventsOpen}
+          onClose={() => setPageEventsOpen(false)}
+          layout={pageEventsLayout}
+          t={t}
+        />
       </div>
     </GridStackProvider>
   );
