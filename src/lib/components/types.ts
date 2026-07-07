@@ -51,6 +51,9 @@ export interface BaseDataSource {
   icon?: string;
   // 通用参数字段 - 所有数据源类型都可以有
   parameters?: Record<string, any>;
+  // Parameter keys that MUST be provided (author sees them and the Test tab blocks
+  // running until they have an effective/test value). e.g. ["property_id"].
+  requiredParameters?: string[];
   // NEW: Wrapper key for array results
   wrapperKey?: string;
   data?: any;

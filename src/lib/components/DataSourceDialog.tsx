@@ -997,6 +997,25 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       return;
     }
 
+    // Required host-function parameters must have an effective (or Test) value.
+    if (sourceType === "host-function" && selectedHostSource?.requiredParameters?.length) {
+      const effective = buildTestParameters();
+      const isUnresolved = (v: unknown) => {
+        const s = String(v ?? "").trim();
+        return s === "" || /^\{\{.*\}\}$/.test(s);
+      };
+      const missing = selectedHostSource.requiredParameters.filter((key) =>
+        isUnresolved(effective[key])
+      );
+      if (missing.length > 0) {
+        alert(
+          `Required parameter(s) not set: ${missing.join(", ")}\n` +
+            `For dynamic ({{state.*}}) params, enter a Test value so the test can run.`
+        );
+        return;
+      }
+    }
+
     setIsTesting(true);
     setTestResult(null);
 
@@ -1224,6 +1243,22 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                                 {selectedHostSource.description}
                               </p>
                             )}
+                            {Array.isArray(selectedHostSource.requiredParameters) &&
+                              selectedHostSource.requiredParameters.length > 0 && (
+                                <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs">
+                                  <span className="font-medium text-red-600">
+                                    Required parameters:
+                                  </span>
+                                  {selectedHostSource.requiredParameters.map((rp) => (
+                                    <span
+                                      key={rp}
+                                      className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-mono"
+                                    >
+                                      {rp}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <InformationCircleIcon className="w-4 h-4" />
                               <span>
