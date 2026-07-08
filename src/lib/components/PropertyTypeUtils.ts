@@ -834,6 +834,15 @@ export const generateUiSchema = (schema: any): any => {
       if (property["x-dynamic-select"]) {
         uiSchema[key]["x-dynamic-select"] = property["x-dynamic-select"];
       }
+      // Remote-options select (e.g. AgentCard staff pulldown) — pass the fetch
+      // descriptor through so CustomSelectWidget can populate options from the API.
+      ["x-options-url", "x-options-root", "x-options-value", "x-options-label"].forEach(
+        (extKey) => {
+          if (property[extKey] !== undefined) {
+            uiSchema[key][extKey] = property[extKey];
+          }
+        }
+      );
       if (property["x-media-type"]) {
         uiSchema[key]["x-media-type"] = property["x-media-type"];
       }

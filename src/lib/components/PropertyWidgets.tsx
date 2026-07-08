@@ -523,9 +523,48 @@ export const CustomSelectWidget = (props: any) => {
       }
     }
 
-    // Priority 2: Async Callback (API / Dynamic)
-    // Deprecated: onGetSelectOptions is removed.
-    // If dynamic options are needed, they should be handled via bindings or list references.
+    // Priority 2: Remote options (API). Declared on the schema via:
+    //   "x-dynamic-select": true, "x-options-url": "/api/...",
+    //   optional "x-options-root" (path to the array in the response),
+    //   "x-options-value" (item field for value, default id|value),
+    //   "x-options-label" (item field for label, default label|name).
+    // The endpoint returns display data only (e.g. staff id + label) — never secrets
+    // like emails — so the picked value stays an opaque id resolved server-side.
+    if (schema["x-dynamic-select"] && schema["x-options-url"]) {
+      const url = String(schema["x-options-url"]);
+      const rootKey = schema["x-options-root"];
+      const valueKey = schema["x-options-value"] || "id";
+      const labelKey = schema["x-options-label"] || "label";
+      let cancelled = false;
+      fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((json) => {
+          if (cancelled || !json) return;
+          const arr = Array.isArray(json)
+            ? json
+            : rootKey && Array.isArray(json[rootKey])
+              ? json[rootKey]
+              : Array.isArray(json.data)
+                ? json.data
+                : [];
+          const mapped = arr
+            .map((item: any) => {
+              if (item == null) return null;
+              if (typeof item !== "object") return { value: item, label: String(item) };
+              const value = item[valueKey] ?? item.id ?? item.value;
+              const label = item[labelKey] ?? item.label ?? item.name ?? value;
+              return value == null ? null : { value: String(value), label: String(label) };
+            })
+            .filter(Boolean);
+          setDynamicOptions(mapped as any[]);
+        })
+        .catch(() => {
+          if (!cancelled) setDynamicOptions([]);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
   }, [schema, lists, componentType, name]);
 
   const allOptions = [...staticOptions, ...dynamicOptions];
