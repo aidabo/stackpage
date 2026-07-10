@@ -91,20 +91,24 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
 
   const setSharedState = useCallback((path: string, value: any) => {
     if (!path) return;
-    setSharedStateStore((prev) => {
-      // Idempotent write: if the value at `path` is unchanged, return the same
-      // state object so React bails out of the update. Without this, an effect
-      // that re-writes the same value on every render (e.g. a component pushing
-      // a default into shared state) produces a new state object each time and
-      // loops forever — "Maximum update depth exceeded".
-      if (Object.is(get(prev, path), value)) {
-        return prev;
-      }
-      const next = { ...prev };
-      set(next, path, value);
-      sharedStateRef.current = next;
-      return next;
-    });
+    // Idempotent write: if the value at `path` is unchanged, bail so React skips
+    // the update. Without this, an effect that re-writes the same value on every
+    // render (e.g. a component pushing a default into shared state) would loop
+    // forever — "Maximum update depth exceeded".
+    const prev = sharedStateRef.current;
+    if (Object.is(get(prev, path), value)) {
+      return;
+    }
+    // Update the ref SYNCHRONOUSLY (not inside the setState updater) so an
+    // imperative read-after-write in the same tick — e.g. a card toggling its
+    // inquiry-selection state and the render that follows reading it back via
+    // getPageState — sees the new value immediately instead of lagging one update
+    // behind. `next` is derived from the ref, so successive writes in the same
+    // batch chain correctly.
+    const next = { ...prev };
+    set(next, path, value);
+    sharedStateRef.current = next;
+    setSharedStateStore(next);
   }, []);
 
   const replacePageState = useCallback((state: Record<string, any>) => {
