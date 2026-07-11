@@ -287,24 +287,40 @@ export const isNumberField = (key: string, value: any): boolean => {
 };
 
 export const isDateField = (key: string, value: any): boolean => {
-  const keyLower = key.toLowerCase();
-
-  // Field name indicators for date fields
-  const dateFieldNames = [
+  // Date-indicating field names. Matched against whole word segments (below), NOT
+  // as substrings — otherwise "endpoint" matches "end", "update" matches "date",
+  // "runtime" matches "time", etc. and non-date fields render as date pickers.
+  const dateFieldNames = new Set([
     "date",
+    "datetime",
     "time",
+    "timestamp",
     "created",
     "updated",
+    "modified",
     "published",
     "birth",
+    "birthday",
     "start",
     "end",
     "deadline",
     "expiry",
+    "expiration",
+    "expires",
     "due",
-  ];
+  ]);
 
-  const isDateByName = dateFieldNames.some((name) => keyLower.includes(name));
+  // Split the key into word segments (camelCase + snake/kebab/space) and require a
+  // segment to EQUAL a date word. e.g. "endpoint" → ["endpoint"] (no match);
+  // "created_at" → ["created","at"] ("created" matches); "startDate" →
+  // ["start","date"] (matches).
+  const segments = String(key || "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+  const isDateByName = segments.some((seg) => dateFieldNames.has(seg));
 
   // Value pattern indicators for common date formats
   const isDateByValue =
