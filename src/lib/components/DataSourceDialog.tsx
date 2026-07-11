@@ -1009,8 +1009,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
       );
       if (missing.length > 0) {
         alert(
-          `Required parameter(s) not set: ${missing.join(", ")}\n` +
-            `For dynamic ({{state.*}}) params, enter a Test value so the test can run.`
+          `テスト値を入力してください: ${missing.join(", ")}\n\n` +
+            `これらのパラメータは動的バインド（{{query.*}} / {{state.*}} / {{params.*}}）で、` +
+            `値が入るのはライブページ表示時のみです。Test タブで実行するには、各パラメータの` +
+            `「テスト値」欄に実際の値を入力してください。`
         );
         return;
       }
