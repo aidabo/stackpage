@@ -924,6 +924,25 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
           return;
         }
 
+        // Block save when a required parameter is left unset. An unset id/filter
+        // silently yields an empty result (or a 422) at runtime, which is hard to
+        // diagnose — surface it here. A value counts as set whether it is a literal
+        // or a dynamic token like {{query.item}}.
+        {
+          const requiredParams = targetHostSource.requiredParameters || [];
+          const missingParams = requiredParams.filter((key) => {
+            const v = (config.parameters || {})[key];
+            return v === undefined || v === null || String(v).trim() === "";
+          });
+          if (missingParams.length > 0) {
+            alert(
+              `必須パラメータが未設定です: ${missingParams.join(", ")}\n\n` +
+                `各パラメータのソース（URL query / Page state / Route param / Static）と値を設定してください。`,
+            );
+            return;
+          }
+        }
+
         // 关键：创建新的数据源实例，保存宿主函数ID和fetchData函数引用
         newDataSource = {
           ...baseData,

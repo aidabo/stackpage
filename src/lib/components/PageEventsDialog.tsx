@@ -89,6 +89,14 @@ export function PageEventsDialog({
           </button>
         </div>
 
+        {/* Hint: this dialog shows interaction rules only; page-level data sources
+            (e.g. loading a record from a URL query param) live in the Data Source tab. */}
+        <div className="border-b bg-blue-50/60 px-4 py-2 text-xs text-blue-800">
+          {t(
+            "This dialog is read-only and shows interaction rules only. To load page data from a URL query param (e.g. {{query.item}} on a detail page), configure a page-level data source in the Data Source tab.",
+          )}
+        </div>
+
         {/* Summary */}
         <div className="flex flex-wrap gap-2 border-b bg-gray-50 p-3 text-xs">
           <Chip
