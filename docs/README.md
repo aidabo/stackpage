@@ -15,6 +15,10 @@ This is the first vision / entry point for understanding StackPage page building
 > 3. `lifecycle-events-and-stackpage-api-plan.md`
 > 4. `../README.md`
 
+## i18n
+
+On 2026-07-20, static labels and editor chrome in the shared stackpage components were routed through `StackI18nProvider`. Dynamic page data, schema names, event names, and runtime values remain untranslated.
+
 ## Quick map
 
 ```mermaid

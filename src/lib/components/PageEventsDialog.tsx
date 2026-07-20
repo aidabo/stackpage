@@ -32,7 +32,7 @@ function Chip({ label, className = "" }: { label: string; className?: string }) 
   );
 }
 
-function RuleRow({ rule }: { rule: InteractionRule }) {
+function RuleRow({ rule, t }: { rule: InteractionRule; t: (key: string) => string }) {
   const color =
     actionColor[rule.action] || "bg-gray-50 text-gray-700 border-gray-200";
   return (
@@ -50,7 +50,7 @@ function RuleRow({ rule }: { rule: InteractionRule }) {
         <span className="text-xs text-gray-400">value={rule.valueFrom}</span>
       )}
       {rule.enabled === false && (
-        <Chip label="disabled" className="bg-gray-100 text-gray-400 border-gray-200" />
+        <Chip label={t("disabled")} className="bg-gray-100 text-gray-400 border-gray-200" />
       )}
     </div>
   );
@@ -83,7 +83,7 @@ export function PageEventsDialog({
           <button
             onClick={onClose}
             className="rounded p-1 text-gray-500 hover:bg-gray-100"
-            aria-label="close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -149,7 +149,7 @@ export function PageEventsDialog({
                   </div>
                   <div className="divide-y px-3 py-1">
                     {w.rules.map((rule, i) => (
-                      <RuleRow key={rule.id || i} rule={rule} />
+                      <RuleRow key={rule.id || i} rule={rule} t={t} />
                     ))}
                   </div>
                 </div>

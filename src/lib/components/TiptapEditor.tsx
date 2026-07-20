@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
+import { useT } from './StackI18nProvider';
 
 // Using a simple contenteditable div for simplicity to avoid complex Tiptap setup 
 // in this environment if dependencies aren't fully resolvable.
@@ -12,6 +13,7 @@ interface TiptapEditorProps {
 
 const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placeholder }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const t = useT();
 
   // Simple sync for initial load
   useEffect(() => {
@@ -33,7 +35,7 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placehol
   };
 
   const handleLink = () => {
-    const url = window.prompt('Enter URL:', 'https://');
+    const url = window.prompt(t('Enter URL:'), 'https://');
     if (url) {
       execCmd('createLink', url);
     }
@@ -46,16 +48,16 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placehol
           
           {/* Basic Formatting */}
           <div className="flex items-center border-r border-gray-700 pr-2 gap-1">
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Bold" onClick={() => execCmd('bold')}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Bold')} onClick={() => execCmd('bold')}>
                <span className="font-bold text-xs">B</span>
             </button>
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Italic" onClick={() => execCmd('italic')}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Italic')} onClick={() => execCmd('italic')}>
                <span className="italic text-serif text-xs">I</span>
             </button>
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Underline" onClick={() => execCmd('underline')}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Underline')} onClick={() => execCmd('underline')}>
                <span className="underline text-xs">U</span>
             </button>
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Insert Link" onClick={handleLink}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Insert Link')} onClick={handleLink}>
                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
             </button>
           </div>
@@ -65,31 +67,31 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placehol
              <select 
                onChange={(e) => execCmd('fontName', e.target.value)}
                className="bg-gray-800 text-xs text-white border border-gray-700 rounded px-1 py-1 focus:outline-none focus:border-blue-500 h-7"
-               title="Font Family"
+               title={t('Font Family')}
              >
-               <option value="Inter, sans-serif">Default</option>
-               <option value="Georgia, serif">Serif</option>
-               <option value="Courier New, monospace">Mono</option>
-               <option value="Arial, sans-serif">Arial</option>
-               <option value="Times New Roman, serif">Times</option>
+               <option value="Inter, sans-serif">{t('Default')}</option>
+               <option value="Georgia, serif">{t('Serif')}</option>
+               <option value="Courier New, monospace">{t('Mono')}</option>
+               <option value="Arial, sans-serif">{t('Arial')}</option>
+               <option value="Times New Roman, serif">{t('Times')}</option>
              </select>
 
              <select 
                onChange={(e) => execCmd('fontSize', e.target.value)}
                className="bg-gray-800 text-xs text-white border border-gray-700 rounded px-1 py-1 focus:outline-none focus:border-blue-500 h-7"
-               title="Font Size"
+               title={t('Font Size')}
                defaultValue="3"
              >
-               <option value="1">Tiny</option>
-               <option value="2">Small</option>
-               <option value="3">Normal</option>
-               <option value="4">Large</option>
-               <option value="5">Huge</option>
-               <option value="6">Massive</option>
-               <option value="7">Gigantic</option>
+               <option value="1">{t('Tiny')}</option>
+               <option value="2">{t('Small')}</option>
+               <option value="3">{t('Normal')}</option>
+               <option value="4">{t('Large')}</option>
+               <option value="5">{t('Huge')}</option>
+               <option value="6">{t('Massive')}</option>
+               <option value="7">{t('Gigantic')}</option>
              </select>
 
-             <div className="flex items-center gap-1" title="Text Color">
+             <div className="flex items-center gap-1" title={t('Text Color')}>
                <span className="text-xs font-bold text-gray-500">A</span>
                <input 
                  type="color" 
@@ -101,10 +103,10 @@ const TiptapEditor: React.FC<TiptapEditorProps> = ({ content, onChange, placehol
 
           {/* Alignment */}
            <div className="flex items-center gap-1">
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Ordered List" onClick={() => execCmd('insertOrderedList')}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Ordered List')} onClick={() => execCmd('insertOrderedList')}>
                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
             </button>
-            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title="Unordered List" onClick={() => execCmd('insertUnorderedList')}>
+            <button className="p-1.5 hover:text-white hover:bg-gray-700 rounded transition-colors" title={t('Unordered List')} onClick={() => execCmd('insertUnorderedList')}>
                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
            </div>

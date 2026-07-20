@@ -120,13 +120,16 @@ const EstateGalleryTabLazy = lazy(() =>
   }))
 );
 
-const DialogLoadingFallback = () => (
-  <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
-    <div className="bg-white rounded-lg shadow px-4 py-3 text-sm text-gray-700">
-      Loading dialog...
+const DialogLoadingFallback = () => {
+  const t = useT();
+  return (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded-lg shadow px-4 py-3 text-sm text-gray-700">
+        {t("Loading dialog...")}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export interface StackPageOptions {
   options: any; // Define any specific options for the StackPage here
@@ -321,14 +324,14 @@ const StackPageContent = ({
 
   // Tab label mapping
   const TAB_LABELS: Record<string, string> = {
-    components: "Components",
-    properties: "Properties",
-    page: "Page",
-    list: "List",
-    datasource: "Data Source",
-    search: "Search",
-    gallery: "Gallery",
-    "estate-gallery": "Property Gallery",
+    components: t("Components"),
+    properties: t("Properties"),
+    page: t("Page"),
+    list: t("List"),
+    datasource: t("Data Source"),
+    search: t("Search"),
+    gallery: t("Gallery"),
+    "estate-gallery": t("Property Gallery"),
   };
 
   const editorTabs = useMemo(
@@ -372,7 +375,7 @@ const StackPageContent = ({
   const [pageProps, setPageProps] = useState<PageProps>({
     id: pageid,
     type: "page",
-    title: "untitled page",
+    title: t("untitled page"),
     layout: gridOptions,
   });
   const [title, setTitle] = useState<string>();
@@ -751,7 +754,7 @@ const StackPageContent = ({
 
   const handleClear = () => {
     if (
-      confirm("Are you sure you want to clear all data? This cannot be undone.")
+      confirm(t("Are you sure you want to clear all data? This cannot be undone."))
     ) {
       setInitialOptions(gridOptions);
       // Force remount

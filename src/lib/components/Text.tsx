@@ -1,3 +1,5 @@
+import { useT } from "./StackI18nProvider";
+
 interface TextProps {
   content?: string;
   image?: string;
@@ -9,6 +11,7 @@ interface TextProps {
 function Text(props: TextProps) {
   const { content, image, src, title } = props;
   const imageUrl = image || src;
+  const t = useT();
 
   return (
     <div className="flex flex-col items-center p-2 bg-white border rounded shadow-sm text-left gap-2 h-full overflow-hidden">
@@ -18,7 +21,7 @@ function Text(props: TextProps) {
         <div className="w-full relative min-h-[100px] bg-gray-50 flex items-center justify-center rounded overflow-hidden">
           <img 
             src={imageUrl} 
-            alt={title || "Component image"} 
+            alt={title || t("Component image")} 
             className="object-cover max-w-full min-h-48"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -36,7 +39,7 @@ function Text(props: TextProps) {
       {/* Render generic debug info if neither content nor image exists */}
       {!content && !imageUrl && !title && (
         <div className="text-xs text-gray-400 italic">
-          No content to display. Add 'content', 'title', or 'image' properties.
+          {t("No content to display. Add 'content', 'title', or 'image' properties.")}
         </div>
       )}
     </div>
