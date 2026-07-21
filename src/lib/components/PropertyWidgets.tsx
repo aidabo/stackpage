@@ -767,6 +767,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
       return "date";
     } else if (format === "datetime") {
       return "datetime-local";
+    } else if (type === "boolean") {
+      return "checkbox";
     } else if (type === "number") {
       return "number";
     } else if (format === "select" || format === "dynamic-select") {
@@ -1074,6 +1076,19 @@ export const ArrayOfObjectsWidget = (props: any) => {
     const stringValue = toEditorStringValue(value);
 
     switch (widgetType) {
+      case "checkbox":
+        return (
+          <label className="flex items-center gap-3 py-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={Boolean(value)}
+              onChange={(event) => onChange(event.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>{schema.title || key}</span>
+          </label>
+        );
+
       case "color":
         const colorValue = value || "#000000";
         const colorFieldOpen = openColorField === key;
