@@ -170,11 +170,43 @@ export function resolveArrayWithElementBindings(params: {
   arrayBinding: BindingInfo;
   elementBindings: Record<string, BindingInfo>;
   ignoredFields: string[];
+  existingArray?: any[];
   sourceData: any;
 }): any[] {
-  const { arrayProp, arrayBinding, elementBindings, ignoredFields, sourceData } =
-    params;
+  const {
+    arrayProp,
+    arrayBinding,
+    elementBindings,
+    ignoredFields,
+    existingArray = [],
+    sourceData,
+  } = params;
   const sourceArray = toArray(resolveBindingValue(sourceData, arrayBinding));
+
+  const getExistingItem = (sourceItem: any, index: number) => {
+    if (sourceItem?.id !== undefined && sourceItem?.id !== null) {
+      const byId = existingArray.find(
+        (item) => String(item?.id) === String(sourceItem.id),
+      );
+      if (byId) return byId;
+    }
+    return existingArray[index];
+  };
+
+  const getIgnoredExistingFields = (sourceItem: any, index: number) => {
+    const existingItem = getExistingItem(sourceItem, index);
+    const resultItem: any = {};
+    if (!existingItem || typeof existingItem !== "object") return resultItem;
+    ignoredFields
+      .filter((key) => key.startsWith(`${arrayProp}[].`))
+      .forEach((key) => {
+        const fieldName = key.slice(`${arrayProp}[].`.length);
+        if (Object.prototype.hasOwnProperty.call(existingItem, fieldName)) {
+          set(resultItem, fieldName, existingItem[fieldName]);
+        }
+      });
+    return resultItem;
+  };
 
   const arrayElementBindings = Object.entries(elementBindings)
     .filter(([key]) => key.startsWith(`${arrayProp}[]`))
@@ -184,11 +216,14 @@ export function resolveArrayWithElementBindings(params: {
     }, {} as Record<string, BindingInfo>);
 
   if (Object.keys(arrayElementBindings).length === 0) {
-    return sourceArray;
+    return sourceArray.map((sourceItem, index) => ({
+      ...sourceItem,
+      ...getIgnoredExistingFields(sourceItem, index),
+    }));
   }
 
   return sourceArray.map((sourceItem, index) => {
-    const resultItem: any = {};
+    const resultItem: any = getIgnoredExistingFields(sourceItem, index);
 
     Object.entries(arrayElementBindings).forEach(([bindingKey, binding]) => {
       const fieldMatch = bindingKey.match(/\[\]\.(.+)/);

@@ -237,6 +237,9 @@ function resolveArrayBinding(
       arrayBinding,
       elementBindings,
       ignoredFields,
+      existingArray: Array.isArray(resultProps[arrayProp])
+        ? resultProps[arrayProp]
+        : [],
       sourceData,
     });
   } catch (error) {

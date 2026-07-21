@@ -136,6 +136,41 @@ function main() {
     ],
   );
 
+  assert.deepEqual(
+    resolveArrayWithElementBindings({
+      arrayProp: "tagList",
+      arrayBinding: {
+        sourceId: "tags-source",
+        path: "items",
+        targetType: "array",
+        selector: { type: "all" },
+      },
+      elementBindings: {},
+      ignoredFields: ["tagList[].label", "tagList[].link"],
+      existingArray: [
+        {
+          id: "t1",
+          label: "Manual label",
+          link: "/custom/tag/",
+        },
+      ],
+      sourceData: {
+        items: [
+          { id: "t1", name: "Source name", slug: "source-slug" },
+        ],
+      },
+    }),
+    [
+      {
+        id: "t1",
+        name: "Source name",
+        slug: "source-slug",
+        label: "Manual label",
+        link: "/custom/tag/",
+      },
+    ],
+  );
+
   console.log("binding-engine.runtime.test.ts: OK");
 }
 
