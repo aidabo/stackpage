@@ -1613,6 +1613,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       "filter",
                       "order",
                       "fields",
+                      "visibility",
                     ].map((key) => (
                       <button
                         key={key}
