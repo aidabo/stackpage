@@ -60,6 +60,39 @@ function main() {
     [{ name: "Ada" }, { name: "Lin" }],
   );
 
+  assert.deepEqual(
+    resolveArrayWithElementBindings({
+      arrayProp: "users",
+      arrayBinding: {
+        sourceId: "authors-source",
+        path: "items",
+        targetType: "array",
+        selector: { type: "all" },
+      },
+      elementBindings: {
+        "users[].name": {
+          sourceId: "authors-source",
+          path: "items[].name",
+        },
+        "users[].image": {
+          sourceId: "authors-source",
+          path: "items[].profile_image",
+        },
+      },
+      ignoredFields: [],
+      sourceData: {
+        items: [
+          { id: "a1", name: "Ada", profile_image: "https://example.com/ada.jpg" },
+          { id: "a2", name: "Lin", profile_image: "https://example.com/lin.jpg" },
+        ],
+      },
+    }),
+    [
+      { name: "Ada", image: "https://example.com/ada.jpg" },
+      { name: "Lin", image: "https://example.com/lin.jpg" },
+    ],
+  );
+
   console.log("binding-engine.runtime.test.ts: OK");
 }
 
