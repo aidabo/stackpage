@@ -5,6 +5,7 @@ import {
   resolveArrayWithElementBindings,
   resolveBoundValue,
 } from "../src/lib/utils/bindingEngine";
+import { resolveDataBinding } from "../src/lib/components/useDataBinding";
 
 function main() {
   const sourceData = {
@@ -90,6 +91,48 @@ function main() {
     [
       { name: "Ada", image: "https://example.com/ada.jpg" },
       { name: "Lin", image: "https://example.com/lin.jpg" },
+    ],
+  );
+
+  assert.deepEqual(
+    resolveDataBinding(
+      {
+        tagList: [],
+        __bindings: {
+          tagList: {
+            sourceId: "host-tags-list",
+            path: "items",
+            targetType: "array",
+            selector: { type: "all" },
+          },
+          "tagList[].label": {
+            sourceId: "host-tags-list",
+            path: "items[].name",
+          },
+          "tagList[].slug": {
+            sourceId: "host-tags-list",
+            path: "items[].slug",
+          },
+        },
+      },
+      [
+        {
+          id: "saved-tags-source",
+          hostFunctionId: "host-tags-list",
+          data: {
+            source_id: "host-tags-list",
+            items: [
+              { name: "#estate-property", slug: "hash-estate-property" },
+            ],
+          },
+        },
+      ],
+    ).resolvedProps.tagList,
+    [
+      {
+        label: "#estate-property",
+        slug: "hash-estate-property",
+      },
     ],
   );
 

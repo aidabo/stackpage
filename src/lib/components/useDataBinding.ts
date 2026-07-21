@@ -15,6 +15,20 @@ export interface DataBindingResolution<T = any> {
   resolvedBindingKeys: string[];
 }
 
+/**
+ * Resolve a saved datasource by its persisted id first. Older pages and host
+ * integrations sometimes store the host function id (or the uniform response
+ * source_id) in __bindings, so keep those identifiers as compatibility
+ * fallbacks without weakening the exact-id path.
+ */
+function findDataSource(dataSources: any[], sourceId: string) {
+  return (
+    dataSources.find((ds) => ds.id === sourceId) ||
+    dataSources.find((ds) => ds.hostFunctionId === sourceId) ||
+    dataSources.find((ds) => ds.data?.source_id === sourceId)
+  );
+}
+
 export const useDataBinding = (props: any): DataBindingResolution<any> => {
   const { source } = useStackPage();
   return useMemo(
@@ -144,7 +158,7 @@ function resolveRegularBinding(
   }
 
   // Find data source
-  const dataSource = dataSources.find((ds) => ds.id === sourceId);
+  const dataSource = findDataSource(dataSources, sourceId);
   if (!dataSource) {
     debugWarn(
       `[useDataBinding] Data source ${sourceId} not found for ${propKey}`
@@ -200,7 +214,7 @@ function resolveArrayBinding(
   }
 
   // Find data source
-  const dataSource = dataSources.find((ds) => ds.id === sourceId);
+  const dataSource = findDataSource(dataSources, sourceId);
   if (!dataSource) {
     debugWarn(
       `[useDataBinding] Data source ${sourceId} not found for array ${arrayProp}`
