@@ -370,7 +370,7 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
         });
       }
 
-      const updatedProps = {
+      const updatedProps: Record<string, any> = {
         ...currentProps,
         __bindings: {
           ...(__bindings || {}),
@@ -380,6 +380,22 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
         __interactions: interactionRules,
         __schema: componentSchema,
       };
+
+      // Clear stale component sample values once when a new binding is applied.
+      // The shared resolver will fill schema defaults from the datasource; on
+      // later reloads, explicitly edited ignored fields are preserved.
+      (ignoredFields || []).forEach((prop) => {
+        const match = prop.match(/^(.+)\[\]\.(.+)$/);
+        if (!match) return;
+        const [, arrayProp, fieldName] = match;
+        if (!Array.isArray(updatedProps[arrayProp])) return;
+        updatedProps[arrayProp] = updatedProps[arrayProp].map((item: any) => {
+          if (!item || typeof item !== "object") return item;
+          const nextItem = { ...item };
+          delete nextItem[fieldName];
+          return nextItem;
+        });
+      });
 
       if (ignoredFields && ignoredFields.length > 0) {
         ignoredFields.forEach((prop) => {

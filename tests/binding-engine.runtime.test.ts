@@ -185,6 +185,21 @@ function main() {
         },
       },
       __ignoredMappings: ["tagList[].label", "tagList[].link"],
+      __schema: {
+        properties: {
+          tagList: {
+            items: {
+              properties: {
+                label: { "x-binding-default-from": "name" },
+                link: {
+                  "x-binding-default-from": "slug",
+                  "x-binding-default-template": "/tag/{value}/",
+                },
+              },
+            },
+          },
+        },
+      },
     },
     [
       {
@@ -203,6 +218,54 @@ function main() {
       slug: "source-slug",
       label: "Manual label",
       link: "/custom/tag/",
+    },
+  ]);
+
+  const defaultResolution = resolveDataBinding(
+    {
+      tagList: [{}],
+      __bindings: {
+        tagList: {
+          sourceId: "tags-source",
+          path: "items",
+          targetType: "array",
+          selector: { type: "all" },
+        },
+      },
+      __ignoredMappings: ["tagList[].label", "tagList[].link"],
+      __schema: {
+        properties: {
+          tagList: {
+            items: {
+              properties: {
+                label: { "x-binding-default-from": "name" },
+                link: {
+                  "x-binding-default-from": "slug",
+                  "x-binding-default-template": "/tag/{value}/",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    [
+      {
+        id: "tags-source",
+        data: {
+          items: [{ id: "t1", name: "#estate-property", slug: "hash-estate-property" }],
+        },
+      },
+    ],
+  );
+
+  assert.deepEqual(defaultResolution.resolvedProps.tagList, [
+    {
+      id: "t1",
+      name: "#estate-property",
+      slug: "hash-estate-property",
+      label: "#estate-property",
+      link: "/tag/hash-estate-property/",
     },
   ]);
 

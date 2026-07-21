@@ -101,7 +101,8 @@ export function resolveDataBinding(
       props.__ignoredMappings || [],
       dataSources,
       newProps,
-      resolution
+      resolution,
+      props.__schema
     );
   });
 
@@ -201,7 +202,8 @@ function resolveArrayBinding(
   ignoredFields: string[],
   dataSources: any[],
   resultProps: any,
-  resolution: DataBindingResolution<any>
+  resolution: DataBindingResolution<any>,
+  schema?: any
 ): void {
   const { sourceId, path } = arrayBinding;
 
@@ -237,6 +239,7 @@ function resolveArrayBinding(
       arrayBinding,
       elementBindings,
       ignoredFields,
+      schema,
       existingArray: Array.isArray(resultProps[arrayProp])
         ? resultProps[arrayProp]
         : [],

@@ -170,6 +170,7 @@ export function resolveArrayWithElementBindings(params: {
   arrayBinding: BindingInfo;
   elementBindings: Record<string, BindingInfo>;
   ignoredFields: string[];
+  schema?: any;
   existingArray?: any[];
   sourceData: any;
 }): any[] {
@@ -178,10 +179,36 @@ export function resolveArrayWithElementBindings(params: {
     arrayBinding,
     elementBindings,
     ignoredFields,
+    schema,
     existingArray = [],
     sourceData,
   } = params;
   const sourceArray = toArray(resolveBindingValue(sourceData, arrayBinding));
+  const itemSchema = schema?.properties?.[arrayProp]?.items?.properties || {};
+
+  const applySchemaDefaults = (item: any, sourceItem: any) => {
+    const resultItem = { ...item };
+    Object.entries(itemSchema).forEach(([fieldName, fieldSchema]: [string, any]) => {
+      const currentValue = get(resultItem, fieldName);
+      if (currentValue !== undefined && currentValue !== null && currentValue !== "") {
+        return;
+      }
+
+      const sourceField = fieldSchema?.["x-binding-default-from"];
+      if (!sourceField) return;
+      const sourceValue = get(sourceItem, sourceField);
+      if (sourceValue === undefined || sourceValue === null || sourceValue === "") {
+        return;
+      }
+
+      const template = fieldSchema?.["x-binding-default-template"];
+      const value = template
+        ? String(template).replace("{value}", String(sourceValue))
+        : sourceValue;
+      set(resultItem, fieldName, value);
+    });
+    return resultItem;
+  };
 
   const getExistingItem = (sourceItem: any, index: number) => {
     if (sourceItem?.id !== undefined && sourceItem?.id !== null) {
@@ -216,10 +243,10 @@ export function resolveArrayWithElementBindings(params: {
     }, {} as Record<string, BindingInfo>);
 
   if (Object.keys(arrayElementBindings).length === 0) {
-    return sourceArray.map((sourceItem, index) => ({
+    return sourceArray.map((sourceItem, index) => applySchemaDefaults({
       ...sourceItem,
       ...getIgnoredExistingFields(sourceItem, index),
-    }));
+    }, sourceItem));
   }
 
   return sourceArray.map((sourceItem, index) => {
@@ -249,6 +276,6 @@ export function resolveArrayWithElementBindings(params: {
       set(resultItem, fieldName, value);
     });
 
-    return resultItem;
+    return applySchemaDefaults(resultItem, sourceItem);
   });
 }
