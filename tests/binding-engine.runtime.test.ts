@@ -6,8 +6,81 @@ import {
   resolveBoundValue,
 } from "../src/lib/utils/bindingEngine";
 import { resolveDataBinding } from "../src/lib/components/useDataBinding";
+import { normalizeSchemaStringNulls } from "../src/lib/utils/schemaValueNormalization";
 
 function main() {
+  assert.deepEqual(
+    normalizeSchemaStringNulls(
+      {
+        preview_url: null,
+        resolution: null,
+        items: [{ title: null, page_count: null }],
+      },
+      {
+        type: "object",
+        properties: {
+          preview_url: { type: "string" },
+          resolution: { type: "object" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                page_count: { type: "number" },
+              },
+            },
+          },
+        },
+      },
+    ),
+    {
+      preview_url: "",
+      resolution: null,
+      items: [{ title: "", page_count: null }],
+    },
+  );
+
+  const nullableBindingResolution = resolveDataBinding(
+    {
+      editions: [],
+      __schema: {
+        type: "object",
+        properties: {
+          editions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                preview_url: { type: "string" },
+                page_count: { type: "number" },
+              },
+            },
+          },
+        },
+      },
+      __bindings: {
+        editions: {
+          sourceId: "gallery",
+          path: "items",
+          targetType: "array",
+          selector: { type: "all" },
+        },
+      },
+    },
+    [
+      {
+        id: "gallery",
+        data: {
+          items: [{ preview_url: null, page_count: null }],
+        },
+      },
+    ],
+  );
+  assert.deepEqual(nullableBindingResolution.resolvedProps.editions, [
+    { preview_url: "", page_count: null },
+  ]);
+
   const sourceData = {
     user: { id: "u1", name: "Ada" },
     users: [

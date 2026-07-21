@@ -19,6 +19,10 @@ This is the first vision / entry point for understanding StackPage page building
 
 On 2026-07-20, static labels and editor chrome in the shared stackpage components were routed through `StackI18nProvider`. Dynamic page data, schema names, event names, and runtime values remain untranslated.
 
+## Nullable datasource values
+
+StackPage normalizes `null` to an empty string only when the component schema declares the field as `string`. The normalization is recursive, so string fields inside array items (for example, a gallery item's `preview_url`) are also safe for the Properties editor and runtime component props. Nullable numbers, booleans, objects, and arrays are preserved as `null` because those values can have domain meaning.
+
 ## Quick map
 
 ```mermaid

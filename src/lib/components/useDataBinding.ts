@@ -6,6 +6,7 @@ import {
   resolveArrayWithElementBindings,
 } from "../utils/bindingEngine";
 import { debugLog, debugWarn } from "../utils/debug";
+import { normalizeSchemaStringNulls } from "../utils/schemaValueNormalization";
 
 export interface DataBindingResolution<T = any> {
   resolvedProps: T;
@@ -51,7 +52,7 @@ export function resolveDataBinding(
   // 1. If no bindings, return original props
   if (!props?.__bindings || Object.keys(props.__bindings).length === 0) {
     return {
-      resolvedProps: props || {},
+      resolvedProps: normalizeSchemaStringNulls(props || {}, props?.__schema),
       hasResolvedBindings: false,
       resolvedBindingCount: 0,
       totalBindingCount: 0,
@@ -106,6 +107,10 @@ export function resolveDataBinding(
     );
   });
 
+  resolution.resolvedProps = normalizeSchemaStringNulls(
+    resolution.resolvedProps,
+    props.__schema,
+  );
   resolution.hasResolvedBindings = resolution.resolvedBindingCount > 0;
   return resolution;
 }

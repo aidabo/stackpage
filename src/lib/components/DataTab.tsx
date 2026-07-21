@@ -33,6 +33,7 @@ import { validateBindingAgainstSchema } from "../utils/bindingValidation";
 import { useDataBinding } from "./useDataBinding";
 import { InteractionRule } from "../utils/componentCommunication";
 import { useT } from "./StackI18nProvider";
+import { normalizeSchemaStringNulls } from "../utils/schemaValueNormalization";
 
 
 const stackPageValidator = customizeValidator({
@@ -138,7 +139,7 @@ export const DataTab: React.FC<DataTabProps> = ({
 
   const coerceFormDataForSchema = useCallback((formData: any, currentSchema: any): any => {
     if (!formData || !currentSchema?.properties) return formData;
-    const coerced = { ...formData };
+    const coerced = normalizeSchemaStringNulls(formData, currentSchema);
     Object.entries(currentSchema.properties).forEach(([key, fieldSchema]: [string, any]) => {
       const value = coerced[key];
       if (fieldSchema?.type === "string" && Array.isArray(value)) {
