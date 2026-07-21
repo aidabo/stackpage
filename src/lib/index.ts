@@ -62,6 +62,7 @@ import {
   createStackPageWidgetLoadTracker,
 } from "./utils/componentCommunication";
 import { DataBindingResolution, resolveDataBinding } from "./components/useDataBinding";
+import { ColorPickerPopover } from "./components/ColorPickerPopover";
 import {
   DEFAULT_PAGE_STATE,
   DEFAULT_PAGE_STATE_KEYS,
@@ -110,6 +111,7 @@ export {
   createStackPageWidgetLoadTracker,
   type DataBindingResolution,
   resolveDataBinding,
+  ColorPickerPopover,
   DEFAULT_PAGE_STATE,
   DEFAULT_PAGE_STATE_KEYS,
   type PageState,

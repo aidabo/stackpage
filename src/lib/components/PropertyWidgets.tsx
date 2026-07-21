@@ -9,33 +9,7 @@ import {
   inferPropertySchema,
   isFileTypeField,
 } from "./PropertyTypeUtils";
-
-const COLOR_PRESETS = [
-  "#FFFFFF",
-  "#C0C0C0",
-  "#808080",
-  "#000000",
-  "#FF0000",
-  "#800000",
-  "#FFFF00",
-  "#808000",
-  "#00FF00",
-  "#008000",
-  "#00FFFF",
-  "#00FFFF",
-  "#008080",
-  "#0000FF",
-  "#000080",
-  "#FF00FF",
-  "#FF00FF",
-  "#800080",
-  "#FFA500",
-  "#A52A2A",
-  "#FFC0CB",
-  "#FFD700",
-  "#4B0082",
-  "#EE82EE",
-];
+import ColorPickerPopover from "./ColorPickerPopover";
 
 const toFileWidgetValue = (value: unknown): string =>
   typeof value === "string" ? value : "";
@@ -1122,39 +1096,12 @@ export const ArrayOfObjectsWidget = (props: any) => {
               />
             </div>
             {colorFieldOpen && (
-              <div className="absolute z-20 bg-white border border-gray-300 shadow-xl p-3 rounded-lg top-full left-0 w-72">
-                <input
-                  type="text"
-                  value={colorValue}
-                  onChange={(e) => onChange(e.target.value)}
-                  className="w-full mb-2 p-2 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="#0032FD"
-                />
-                <div className="grid grid-cols-6 gap-2 mb-3">
-                  {COLOR_PRESETS.map((color) => (
-                    <button
-                      type="button"
-                      key={color}
-                      style={{ backgroundColor: color }}
-                      className="w-8 h-8 rounded border border-gray-200"
-                      onClick={() => {
-                        onChange(color);
-                        setOpenColorField(null);
-                      }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-                <label className="relative block w-full py-2 rounded border border-gray-300 bg-gradient-to-r from-red-500 via-green-500 to-blue-500 text-white text-xs font-bold text-center cursor-pointer overflow-hidden">
-                  Custom Color
-                  <input
-                    type="color"
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                    value={colorValue}
-                    onChange={(e) => onChange(e.target.value)}
-                  />
-                </label>
-              </div>
+              <ColorPickerPopover
+                value={colorValue}
+                onChange={onChange}
+                onSelect={() => setOpenColorField(null)}
+                className="absolute z-20 top-full left-0"
+              />
             )}
           </div>
         );
@@ -1815,39 +1762,12 @@ export const CustomColorWidget = (props: any) => {
         />
       </div>
       {openPanel && (
-        <div className="absolute z-20 bg-white border border-gray-300 shadow-xl p-4 rounded-lg top-full left-0 w-80">
-          <input
-            type="text"
-            value={colorValue}
-            onChange={(e) => props.onChange(e.target.value)}
-            className="w-full mb-2 p-2 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="#0032FD"
-          />
-          <div className="grid grid-cols-6 gap-2 mb-3">
-            {COLOR_PRESETS.map((color) => (
-              <button
-                type="button"
-                key={color}
-                style={{ backgroundColor: color }}
-                className="w-10 h-10 rounded border border-gray-200"
-                onClick={() => {
-                  props.onChange(color);
-                  setOpenPanel(false);
-                }}
-                title={color}
-              />
-            ))}
-          </div>
-          <label className="relative block w-full py-2 rounded border border-gray-300 bg-gradient-to-r from-red-500 via-green-500 to-blue-500 text-white text-xs font-bold text-center cursor-pointer overflow-hidden">
-            Custom Color
-            <input
-              type="color"
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              value={colorValue}
-              onChange={(e) => props.onChange(e.target.value)}
-            />
-          </label>
-        </div>
+        <ColorPickerPopover
+          value={colorValue}
+          onChange={props.onChange}
+          onSelect={() => setOpenPanel(false)}
+          className="absolute z-20 top-full left-0"
+        />
       )}
     </div>
   );
