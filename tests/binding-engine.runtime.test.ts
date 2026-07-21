@@ -171,6 +171,41 @@ function main() {
     ],
   );
 
+  const pageLoadResolution = resolveDataBinding(
+    {
+      tagList: [
+        { id: "t1", label: "Manual label", link: "/custom/tag/" },
+      ],
+      __bindings: {
+        tagList: {
+          sourceId: "tags-source",
+          path: "items",
+          targetType: "array",
+          selector: { type: "all" },
+        },
+      },
+      __ignoredMappings: ["tagList[].label", "tagList[].link"],
+    },
+    [
+      {
+        id: "tags-source",
+        data: {
+          items: [{ id: "t1", name: "Source name", slug: "source-slug" }],
+        },
+      },
+    ],
+  );
+
+  assert.deepEqual(pageLoadResolution.resolvedProps.tagList, [
+    {
+      id: "t1",
+      name: "Source name",
+      slug: "source-slug",
+      label: "Manual label",
+      link: "/custom/tag/",
+    },
+  ]);
+
   console.log("binding-engine.runtime.test.ts: OK");
 }
 
