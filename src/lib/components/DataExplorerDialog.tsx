@@ -508,19 +508,61 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   const autoMapRecordToProps = (_record: any) => {
     const newMappings: Record<string, string> = { ...mappings };
     const newTransformers: Record<string, string> = { ...transformers };
+    let hasAutoMappedArray = false;
 
     mappableProps.forEach((prop) => {
       // Skip ignored fields
       if (ignoredFields.includes(prop)) return;
 
       // Get schema for this property
-      const propSchema = schema?.properties?.[prop];
+      const arrayBaseProp = prop.split("[].")[0];
+      const arrayFieldName = prop.includes("[].")
+        ? prop.split("[].").slice(1).join("[].")
+        : "";
+      const propSchema =
+        schema?.properties?.[prop] || schema?.properties?.[arrayBaseProp];
       const isArrayField = propSchema?.type === "array";
 
       // Try to find matching field in record
-      const field = dataFields.find((f) => {
-        const fieldName = f.split(".").pop() || "";
-        const isArrayElement = f.includes("[]");
+      const field = dataFields.find((candidateField: string) => {
+        const fieldName = candidateField.split(".").pop() || "";
+        const isArrayElement = candidateField.includes("[]");
+
+        // An array property can bind directly to a source array such as
+        // `items[]`, even when the component property is named `tagList` or
+        // `users`. If there is exactly one source array, it is the safe
+        // automatic choice.
+        if (isArrayField && !arrayFieldName) {
+          if (
+            candidateField.endsWith("[]") &&
+            !candidateField.includes("[].")
+          ) {
+            const sourceArrayName: string = candidateField.replace(/\[\]$/, "");
+            return (
+              sourceArrayName.toLowerCase() === prop.toLowerCase() ||
+              sourceArrayName.toLowerCase() === arrayBaseProp.toLowerCase() ||
+              dataFields.filter((candidate) =>
+                candidate.endsWith("[]") && !candidate.includes("[].")
+              ).length === 1
+            );
+          }
+          return false;
+        }
+
+        // Array item properties are mapped against the source item's fields.
+        // A schema may provide aliases for common source names (e.g. a
+        // component's `label` maps to Ghost's `name`).
+        if (arrayFieldName && isArrayElement) {
+          const itemSchema = propSchema?.items?.properties;
+          const fieldSchema = itemSchema?.[arrayFieldName];
+          const aliases = Array.isArray(fieldSchema?.["x-binding-aliases"])
+            ? fieldSchema["x-binding-aliases"]
+            : [];
+          const acceptedNames = [arrayFieldName, ...aliases].map((name) =>
+            String(name).toLowerCase()
+          );
+          return acceptedNames.includes(fieldName.toLowerCase());
+        }
 
         // For array fields, prefer array element fields
         if (isArrayField && isArrayElement) {
@@ -543,6 +585,9 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
       if (field) {
         newMappings[prop] = field;
+        if (isArrayField && !arrayFieldName) {
+          hasAutoMappedArray = true;
+        }
 
         // Auto-select transformer based on field type and schema
         if (propSchema) {
@@ -565,6 +610,10 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
       }
     });
 
+    if (hasAutoMappedArray) {
+      setBindingScope("all");
+    }
+
     setMappings(newMappings);
     setTransformers(newTransformers);
   };
@@ -581,7 +630,10 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
 
         // Determine selector based on binding scope and schema
         let selector;
-        if (targetType === "array" && (path === "$" || path === "$[]")) {
+        if (
+          targetType === "array" &&
+          (path === "$" || path === "$[]" || path.endsWith("[]"))
+        ) {
           // Root array binding should default to full list for convenience.
           selector = { type: "all" as const };
         } else if (bindingScope === "all" && targetType === "array") {
