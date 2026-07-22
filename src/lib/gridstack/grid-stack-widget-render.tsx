@@ -246,15 +246,9 @@ export function GridStackWidgetRenderer({
   const handleWidgetChange = (value: any) => {
     let updates: Record<string, any> = {};
 
-    // String payload convention: update the component's canonical text field.
-    // RichTextEditor uses `text` in its schema, while some generic widgets use
-    // `content`; writing every string to `content` leaves RichTextEditor.text
-    // unchanged and makes edits disappear on reload.
+    // String payload convention: update only content.
     if (typeof value === "string") {
-      const textField = Object.prototype.hasOwnProperty.call(rawProps, "text")
-        ? "text"
-        : "content";
-      updates = { [textField]: value };
+      updates = { content: value };
     }
     // Object payload convention:
     // 1) { field: "propName", value: any } -> update only one field.
