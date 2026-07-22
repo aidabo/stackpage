@@ -49,6 +49,7 @@ export const StackPageProvider: React.FC<StackPageProviderProps> = ({
     padding: "0px",
     background: "#ffffff",
     backgroundOpacity: 1,
+    backgroundImageOpacity: 1,
     backgroundTransparent: false,
     showMenubar: true,
   });

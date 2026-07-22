@@ -901,20 +901,29 @@ const StackPageContent = ({
     padding: attributes.padding,
   };
 
-  const gridStackRootStyle = useMemo(() => {
+  const pageBackgroundColor = useMemo(() => {
     const backgroundTransparent = Boolean(attributes.backgroundTransparent);
     const backgroundOpacity = clampOpacity(attributes.backgroundOpacity ?? 1);
-    return {
-      minHeight: "100%",
-      width: "100%",
-      backgroundColor: backgroundTransparent
-        ? "transparent"
-        : cssColorWithOpacity(attributes.background, backgroundOpacity),
-    };
+    return backgroundTransparent
+      ? "transparent"
+      : cssColorWithOpacity(attributes.background, backgroundOpacity);
   }, [
     attributes.background,
     attributes.backgroundOpacity,
     attributes.backgroundTransparent,
+  ]);
+
+  const gridStackRootStyle = useMemo(() => {
+    return {
+      minHeight: "100%",
+      width: "100%",
+      // Keep the root transparent when a page image is present so the
+      // independent image layer remains visible behind the widgets.
+      backgroundColor: attributes.image ? "transparent" : pageBackgroundColor,
+    };
+  }, [
+    attributes.image,
+    pageBackgroundColor,
   ]);
 
   const containerStyle =
@@ -1075,9 +1084,21 @@ const StackPageContent = ({
               <div className="bg-transparent rounded-lg shadow h-full flex flex-col">
                 <div
                   className={`flex-1 relative p-0 grid-stack-mode-${currentMode}`}
+                  style={{ backgroundColor: pageBackgroundColor }}
                 >
+                  {attributes.image && (
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 z-0 bg-center bg-cover bg-no-repeat pointer-events-none"
+                      style={{
+                        backgroundImage: `url("${attributes.image}")`,
+                        opacity: clampOpacity(attributes.backgroundImageOpacity ?? 1),
+                      }}
+                    />
+                  )}
                   {/* Render existing component instances */}
-                  <StackActions ref={stackActionsRef} />
+                  <div className="relative z-10 h-full">
+                    <StackActions ref={stackActionsRef} />
                   {/* When page load reset drop event binding for view or edit mode.  */}
                   <GridStackRenderProvider
                     setupExternalDropForGrid={setupExternalDropForGrid}
@@ -1097,6 +1118,7 @@ const StackPageContent = ({
                       currentMode={currentMode as any}
                     />
                   </GridStackRenderProvider>
+                  </div>
 
                   {/* Custom children content */}
                   {children}

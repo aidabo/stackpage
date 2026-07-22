@@ -23,6 +23,15 @@ On 2026-07-20, static labels and editor chrome in the shared stackpage component
 
 StackPage normalizes `null` to an empty string only when the component schema declares the field as `string`. The normalization is recursive, so string fields inside array items (for example, a gallery item's `preview_url`) are also safe for the Properties editor and runtime component props. Nullable numbers, booleans, objects, and arrays are preserved as `null` because those values can have domain meaning.
 
+## Page background image
+
+The Page tab stores the selected page image in `attributes.image`. The image is
+rendered as a separate layer behind the GridStack content in edit, preview, and
+view/build modes. `attributes.backgroundImageOpacity` controls only that image
+layer (0–1); `attributes.backgroundOpacity` continues to control the page
+background color. This separation prevents image transparency from making page
+components or editor controls transparent.
+
 ## Quick map
 
 ```mermaid

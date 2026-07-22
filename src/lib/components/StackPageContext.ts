@@ -36,6 +36,8 @@ export interface StackPageContextType {
     padding: string;
     background: string;
     backgroundOpacity?: number;
+    /** Opacity of the page background image layer, independent of content. */
+    backgroundImageOpacity?: number;
     backgroundTransparent?: boolean;
     showMenubar: boolean;
     // Removed lists and dataSources from here

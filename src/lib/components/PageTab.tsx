@@ -75,6 +75,10 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
     0,
     Math.min(1, Number(attributes.backgroundOpacity ?? 1) || 1)
   );
+  const backgroundImageOpacityPercent = Math.round(
+    Math.max(0, Math.min(1, Number(attributes.backgroundImageOpacity ?? 1))) * 100
+  );
+  const previewImageOpacity = backgroundImageOpacityPercent / 100;
   const previewBackground = Boolean(attributes.backgroundTransparent)
     ? "repeating-conic-gradient(#e5e7eb 0% 25%, #f9fafb 0% 50%) 50% / 16px 16px"
     : attributes.background || "#ffffff";
@@ -225,6 +229,35 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           </div>
         </div>
 
+        <div className="border-b border-gray-100 pb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Background Image Opacity
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={backgroundImageOpacityPercent}
+              disabled={!attributes.image}
+              onChange={(e) =>
+                handlePageAttributeChange(
+                  "backgroundImageOpacity",
+                  Number(e.target.value) / 100
+                )
+              }
+              className="flex-1"
+            />
+            <span className="text-sm text-gray-600 w-14 text-right">
+              {backgroundImageOpacityPercent}%
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Controls only the page image layer used behind the built page content.
+          </p>
+        </div>
+
         {/* Status Selection */}
         <div className="border-b border-gray-100 pb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -346,7 +379,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           </label>
           <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
             <div
-              className="rounded-lg border border-gray-200 overflow-hidden"
+              className="relative rounded-lg border border-gray-200 overflow-hidden"
               style={{
                 minHeight: 88,
                 background: previewBackground,
@@ -355,8 +388,17 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
                   : previewOpacity,
               }}
             >
+              {attributes.image && (
+                <div
+                  className="absolute inset-0 bg-center bg-cover bg-no-repeat"
+                  style={{
+                    backgroundImage: `url("${attributes.image}")`,
+                    opacity: previewImageOpacity,
+                  }}
+                />
+              )}
               <div
-                className="flex items-center justify-center min-h-[88px] text-sm font-medium text-gray-700"
+                className="relative flex items-center justify-center min-h-[88px] text-sm font-medium text-gray-700"
                 style={{
                   backdropFilter: "saturate(120%)",
                 }}
