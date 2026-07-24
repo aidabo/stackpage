@@ -1,4 +1,4 @@
-import { format, parse, isValid, parseISO } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 
 /* eslint-disable no-case-declarations */
 // PropertyWidgets.tsx
@@ -10,9 +10,38 @@ import {
   isFileTypeField,
 } from "./PropertyTypeUtils";
 import ColorPickerPopover from "./ColorPickerPopover";
+import { normalizeDateInputValue } from "../utils/dateValueNormalization";
 
 const toFileWidgetValue = (value: unknown): string =>
   typeof value === "string" ? value : "";
+
+const DOCUMENT_FILE_ACCEPT =
+  ".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx";
+
+const getFileWidgetConfig = (
+  schema: any,
+  name: string,
+  value: string,
+) => {
+  const mediaType = String(schema?.["x-media-type"] || "").toLowerCase();
+  if (mediaType === "image") {
+    return { fileType: "image", acceptTypes: "image/*" };
+  }
+  if (mediaType === "video") {
+    return { fileType: "video", acceptTypes: "video/*" };
+  }
+  if (mediaType === "audio") {
+    return { fileType: "audio", acceptTypes: "audio/*" };
+  }
+  if (mediaType === "document") {
+    return { fileType: "document", acceptTypes: DOCUMENT_FILE_ACCEPT };
+  }
+
+  return {
+    fileType: getFileType(name, value),
+    acceptTypes: getFileAccept(name, value),
+  };
+};
 
 const toEditorStringValue = (value: unknown): string => {
   if (value == null) return "";
@@ -214,6 +243,11 @@ export const FileWidget = (props: any) => {
 
         setCurrentValue(fileUrl);
         props.onChange(fileUrl); // Fallback to RJSF's onChange
+        props.onUploadComplete?.({
+          fileName: file.name,
+          fileUrl,
+          mimeType: file.type,
+        });
         setUploading(false);
         setUploadProgress(100);
       } catch (error) {
@@ -255,8 +289,11 @@ export const FileWidget = (props: any) => {
   };
 
   // Get file type for preview and accept attribute
-  const fileType = getFileType(props.name, currentValue);
-  const acceptTypes = getFileAccept(props.name, currentValue);
+  const { fileType, acceptTypes } = getFileWidgetConfig(
+    props.schema,
+    props.name,
+    currentValue,
+  );
 
   // Extract file name from URL for display
   const getDisplayFileName = () => {
@@ -902,8 +939,11 @@ export const ArrayOfObjectsWidget = (props: any) => {
     };
 
     const displayFileName = getDisplayFileName();
-    const fileType = getFileType(fileProps.name, currentValue);
-    const acceptTypes = getFileAccept(fileProps.name, currentValue);
+    const { fileType, acceptTypes } = getFileWidgetConfig(
+      fileProps.schema,
+      fileProps.name,
+      currentValue,
+    );
 
     return (
       <div className="space-y-3 w-full">
@@ -1090,7 +1130,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
         );
 
       case "color":
-        const colorValue = value || "#000000";
+        const colorValue = stringValue;
+        const colorPreviewValue = colorValue || "#000000";
         const colorFieldOpen = openColorField === key;
         return (
           <div className="space-y-2 relative">
@@ -1099,8 +1140,8 @@ export const ArrayOfObjectsWidget = (props: any) => {
                 type="button"
                 onClick={() => setOpenColorField(colorFieldOpen ? null : key)}
                 className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
-                style={{ backgroundColor: colorValue }}
-                title={colorValue}
+                style={{ backgroundColor: colorPreviewValue }}
+                title={colorValue || "No color"}
               />
               <input
                 type="text"
@@ -1115,6 +1156,7 @@ export const ArrayOfObjectsWidget = (props: any) => {
                 value={colorValue}
                 onChange={onChange}
                 onSelect={() => setOpenColorField(null)}
+                onClose={() => setOpenColorField(null)}
                 className="absolute z-20 top-full left-0"
               />
             )}
@@ -1607,78 +1649,30 @@ export const CustomNumberWidget = (props: any) => {
 };
 
 export const CustomDateWidget = (props: any) => {
-  // Common date formats to try parsing
-  const dateFormats = [
-    "yyyy-MM-dd", // ISO format
-    "yyyy/MM/dd", // YYYY/MM/DD
-    "MM/dd/yyyy", // MM/DD/YYYY
-    "dd/MM/yyyy", // DD/MM/YYYY
-    "yyyy年MM月dd日", // YYYY年MM月DD日
-    "MMM dd, yyyy", // Jan 01, 2024
-    "MMMM dd, yyyy", // January 01, 2024
-  ];
-
-  const formatDateForInput = (dateValue: any): string => {
-    if (!dateValue) return "";
-
-    let date: Date;
-
-    // If it's already a Date object
-    if (dateValue instanceof Date && isValid(dateValue)) {
-      date = dateValue;
-    }
-    // If it's a string, try to parse it
-    else if (typeof dateValue === "string") {
-      // Try ISO format first
-      date = parseISO(dateValue);
-
-      // If ISO parsing failed, try other formats
-      if (!isValid(date)) {
-        for (const formatStr of dateFormats) {
-          date = parse(dateValue, formatStr, new Date());
-          if (isValid(date)) break;
-        }
-      }
-
-      // If all parsing failed, try native Date constructor
-      if (!isValid(date)) {
-        date = new Date(dateValue);
-      }
-    }
-    // If it's a timestamp
-    else if (typeof dateValue === "number") {
-      date = new Date(dateValue);
-    } else {
-      return String(dateValue);
-    }
-
-    // Format for HTML date input (YYYY-MM-DD)
-    return isValid(date) ? format(date, "yyyy-MM-dd") : "";
-  };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     props.onChange(newValue);
   };
 
-  const currentValue = formatDateForInput(props.value);
+  const currentValue = normalizeDateInputValue(props.value);
+
+  React.useEffect(() => {
+    if (
+      currentValue &&
+      typeof props.value === "string" &&
+      currentValue !== props.value
+    ) {
+      props.onChange(currentValue);
+    }
+  }, [currentValue, props.onChange, props.value]);
 
   return (
-    <div className="space-y-2">
-      <input
-        type="date"
-        value={currentValue}
-        onChange={handleChange}
-        className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      />
-
-      {/* Show current formatted value for debugging */}
-      {props.value && currentValue && (
-        <div className="text-xs text-gray-500">
-          Displaying: {currentValue} | Original: {String(props.value)}
-        </div>
-      )}
-    </div>
+    <input
+      type="date"
+      value={currentValue}
+      onChange={handleChange}
+      className="w-full p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    />
   );
 };
 
@@ -1757,7 +1751,8 @@ export const CustomURLWidget = (props: any) => {
 
 export const CustomColorWidget = (props: any) => {
   const [openPanel, setOpenPanel] = React.useState(false);
-  const colorValue = props.value || "#000000";
+  const colorValue = props.value || "";
+  const colorPreviewValue = colorValue || "#000000";
   return (
     <div className="space-y-2 relative">
       <div className="flex space-x-3 items-center">
@@ -1765,8 +1760,8 @@ export const CustomColorWidget = (props: any) => {
           type="button"
           onClick={() => setOpenPanel((prev) => !prev)}
           className="w-16 h-16 border border-gray-300 rounded-lg cursor-pointer"
-          style={{ backgroundColor: colorValue }}
-          title={colorValue}
+          style={{ backgroundColor: colorPreviewValue }}
+          title={colorValue || "No color"}
         />
         <input
           type="text"
@@ -1781,6 +1776,7 @@ export const CustomColorWidget = (props: any) => {
           value={colorValue}
           onChange={props.onChange}
           onSelect={() => setOpenPanel(false)}
+          onClose={() => setOpenPanel(false)}
           className="absolute z-20 top-full left-0"
         />
       )}

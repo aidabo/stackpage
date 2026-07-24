@@ -425,10 +425,32 @@ export const DataTab: React.FC<DataTabProps> = ({
     FileWidget: (props: any) => (
       <FileWidget
         {...props}
+        onUploadComplete={({
+          fileName,
+          fileUrl,
+        }: {
+          fileName: string;
+          fileUrl: string;
+        }) => {
+          const fileNameProperty = String(
+            props.schema?.["x-upload-file-name-property"] || "",
+          ).trim();
+          if (!fileNameProperty) return;
+
+          onPropertyChange({
+            formData: {
+              ...formDataForEditor,
+              [props.name]: fileUrl,
+              [fileNameProperty]: fileName,
+            },
+          });
+        }}
         onFileUpload={
           onFileUpload
             ? (file: File) => {
-              const fileType = getFileType(props.name, props.value);
+              const detectedFileType = getFileType(props.name, props.value);
+              const fileType =
+                detectedFileType === "document" ? "file" : detectedFileType;
               const acceptTypes = getFileAccept(props.name, props.value);
               return onFileUpload(file, {
                 onProgress: (progress) => {

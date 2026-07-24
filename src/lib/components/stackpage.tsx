@@ -384,10 +384,14 @@ const StackPageContent = ({
   const [resetKey, setResetKey] = useState(0);
   const [initialOptions, setInitialOptions] =
     useState<GridStackOptions>(gridOptions);
+  const [loadedPageId, setLoadedPageId] = useState<string | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
   const stackActionsRef = useRef<StackActionsRef>(null);
 
   const [dropEvent, setDropEvent] = useState<GridStackDropEvent>();
   const [showGridInfo, setShowGridInfo] = useState(false);
+  const isPageLoading =
+    Boolean(pageid) && (loadedPageId !== pageid || isReloading);
 
   // Update currentMode when pageMode prop changes
   useEffect(() => {
@@ -599,13 +603,19 @@ const StackPageContent = ({
 
   const handleReload = useCallback(async () => {
     if (pageid) {
-      setPageProps((prev) => ({ ...prev, id: pageid })); // Trigger re-render
-      const gridOptions: any = await handleLoadLayout(pageid);
-      setInitialOptions(gridOptions);
-      // Force remount
-      setResetKey((prev) => prev + 1);
-      clearSelectedData();
-      console.log(`Reload layout: pageid ${pageid}, props id ${pageProps?.id}`);
+      setIsReloading(true);
+      try {
+        setPageProps((prev) => ({ ...prev, id: pageid })); // Trigger re-render
+        const gridOptions: any = await handleLoadLayout(pageid);
+        setInitialOptions(gridOptions);
+        // Force remount
+        setResetKey((prev) => prev + 1);
+        clearSelectedData();
+        console.log(`Reload layout: pageid ${pageid}, props id ${pageProps?.id}`);
+      } finally {
+        setLoadedPageId(pageid);
+        setIsReloading(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageid, handleLoadLayout]);
@@ -1109,14 +1119,30 @@ const StackPageContent = ({
                       applyEditMode(grid, currentMode === "edit");
                     }}
                   >
-                    <GridStackRender
-                      componentMap={getComponentMap(componentMapProvider)}
-                      showMenubar={
-                        currentMode !== "edit" ? false : attributes.showMenubar
-                      }
-                      onWidgetSelect={handleWidgetSelect}
-                      currentMode={currentMode as any}
-                    />
+                    {isPageLoading && currentMode !== "edit" ? (
+                      <div
+                        className="flex h-64 flex-col items-center justify-center gap-3 text-gray-500"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        <span
+                          className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"
+                          aria-hidden="true"
+                        />
+                        <span className="text-sm font-medium">
+                          {t("Loading...")}
+                        </span>
+                      </div>
+                    ) : (
+                      <GridStackRender
+                        componentMap={getComponentMap(componentMapProvider)}
+                        showMenubar={
+                          currentMode !== "edit" ? false : attributes.showMenubar
+                        }
+                        onWidgetSelect={handleWidgetSelect}
+                        currentMode={currentMode as any}
+                      />
+                    )}
                   </GridStackRenderProvider>
                   </div>
 

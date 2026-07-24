@@ -1,6 +1,7 @@
 import { FileUploadFn } from "..";
 import { useStackPage } from "./StackPageContext";
 import { useState, useRef } from "react";
+import ColorPickerPopover from "./ColorPickerPopover";
 
 interface PageTabProps {
   onFileUpload?: FileUploadFn;
@@ -11,6 +12,7 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
   const { attributes, setPageAttributes, source } = useStackPage();
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState<number>(0);
+  const [isBackgroundColorOpen, setIsBackgroundColorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePageAttributeChange = (
@@ -349,24 +351,41 @@ export const PageTab = ({ onFileUpload }: PageTabProps) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Background Color
           </label>
-          <div className="flex gap-4 items-center">
-            <input
-              type="color"
-              value={attributes.background}
-              onChange={(e) =>
-                handlePageAttributeChange("background", e.target.value)
-              }
-              className="w-16 h-16 border border-gray-300 rounded-lg cursor-pointer shadow-sm"
-            />
-            <input
-              type="text"
-              value={attributes.background}
-              onChange={(e) =>
-                handlePageAttributeChange("background", e.target.value)
-              }
-              className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="#ffffff, rgb(255,255,255), etc."
-            />
+          <div className="relative space-y-2">
+            <div className="flex gap-4 items-center">
+              <button
+                type="button"
+                onClick={() =>
+                  setIsBackgroundColorOpen((isOpen) => !isOpen)
+                }
+                className="w-16 h-16 shrink-0 border border-gray-300 rounded-lg cursor-pointer shadow-sm"
+                style={{
+                  backgroundColor: attributes.background || "#ffffff",
+                }}
+                aria-label="Open background color picker"
+                title={attributes.background || "#ffffff"}
+              />
+              <input
+                type="text"
+                value={attributes.background || ""}
+                onChange={(e) =>
+                  handlePageAttributeChange("background", e.target.value)
+                }
+                className="flex-1 p-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="#ffffff, rgb(255,255,255), etc."
+              />
+            </div>
+            {isBackgroundColorOpen && (
+              <ColorPickerPopover
+                value={attributes.background || ""}
+                onChange={(value) =>
+                  handlePageAttributeChange("background", value)
+                }
+                onSelect={() => setIsBackgroundColorOpen(false)}
+                onClose={() => setIsBackgroundColorOpen(false)}
+                className="absolute z-20 top-full left-0"
+              />
+            )}
           </div>
           <p className="text-xs text-gray-500 mt-1">
             Background color for the grid stack root

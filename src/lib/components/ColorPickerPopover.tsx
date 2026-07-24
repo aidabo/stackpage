@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 
 const COLOR_PRESETS = [
   "#FFFFFF", "#C0C0C0", "#808080", "#000000", "#FF0000", "#800000",
@@ -11,6 +11,7 @@ type ColorPickerPopoverProps = {
   value?: string;
   onChange: (value: string) => void;
   onSelect?: (value: string) => void;
+  onClose?: () => void;
   className?: string;
   style?: React.CSSProperties;
   onMouseDown?: React.MouseEventHandler<HTMLDivElement>;
@@ -22,15 +23,42 @@ export const ColorPickerPopover = ({
   value = "#000000",
   onChange,
   onSelect,
+  onClose,
   className = "",
   style,
   onMouseDown,
 }: ColorPickerPopoverProps) => {
-  const colorValue = value || "#000000";
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const colorValue = value ?? "";
   const nativeValue = isHexColor(colorValue) ? colorValue : "#000000";
+
+  useEffect(() => {
+    if (!onClose) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!popoverRef.current?.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
 
   return (
     <div
+      ref={popoverRef}
       className={`bg-white border border-gray-300 shadow-xl p-4 rounded-lg w-80 ${className}`}
       style={style}
       onMouseDown={(event) => {
@@ -38,9 +66,20 @@ export const ColorPickerPopover = ({
         event.stopPropagation();
       }}
     >
-      <label className="block mb-1 text-xs font-medium text-gray-600">
-        HEX color
-      </label>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-medium text-gray-600">HEX color</label>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="Close color picker"
+            title="Close"
+          >
+            ×
+          </button>
+        )}
+      </div>
       <input
         type="text"
         value={colorValue}
@@ -76,6 +115,16 @@ export const ColorPickerPopover = ({
           }}
         />
       </label>
+      <button
+        type="button"
+        className="w-full mt-2 py-2 rounded border border-gray-300 bg-white text-gray-700 text-xs font-medium hover:bg-gray-50"
+        onClick={() => {
+          onChange("");
+          onSelect?.("");
+        }}
+      >
+        Reset to no color
+      </button>
     </div>
   );
 };
