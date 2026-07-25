@@ -19,7 +19,7 @@ export interface ComponentDataType<T = object> {
 }
 
 function parseWidgetMeta(
-  meta: GridStackWidget
+  meta: GridStackWidget,
 ): ComponentDataType & { error: unknown } {
   let error = null;
   let name = "";
@@ -66,12 +66,14 @@ export function GridStackRender({
 
   return (
     <>
-      {/* Drop zone indicator when empty */}
-      {Array.from(_rawWidgetMetaMap.value.entries()).length === 0 && (
-        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 p-8 text-center">
-          <div className="text-4xl mb-4">📦</div>
-          <h3 className="text-lg font-medium mb-2">Drag Components Here</h3>
-          <p className="text-sm">
+      {/* Always-visible drag hint in edit mode — absolute background behind all widgets */}
+      {currentMode === "edit" && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-0 bg-blue-50/30 rounded">
+          <div className="text-6xl mb-4 opacity-30">📦</div>
+          <h3 className="text-xl font-semibold mb-2 text-gray-500 opacity-30">
+            Drag Components Here
+          </h3>
+          <p className="text-sm text-gray-400 opacity-50 text-center max-w-xs px-4">
             Drag components from the Components tab in the right panel to start
             building your layout
           </p>
@@ -84,7 +86,10 @@ export function GridStackRender({
         const widgetContainer = getWidgetContainer(id);
 
         if (widgetContainer) {
-          widgetContainer.setAttribute("data-component-name", name || "Unknown");
+          widgetContainer.setAttribute(
+            "data-component-name",
+            name || "Unknown",
+          );
         }
 
         // Use updated props from StackPageContext if available, otherwise use meta props
