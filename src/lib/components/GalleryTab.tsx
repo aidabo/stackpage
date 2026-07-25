@@ -1,6 +1,7 @@
 import { useState, useCallback, ReactNode } from "react";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { CustomActionFn } from "..";
+import { useStackPage } from "./StackPageContext";
 
 interface GalleryTabProps {
   onCustomAction?: CustomActionFn;
@@ -15,6 +16,7 @@ export const GalleryTab = ({
   const [results, setResults] = useState<ReactNode | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { selectedInstance, updateWidgetProps: spUpdateWidgetProps, widgetProps, getWidgetSnapshot } = useStackPage();
 
   const handleSearch = useCallback((e?: React.FormEvent) => {
     e?.preventDefault();
@@ -32,7 +34,26 @@ export const GalleryTab = ({
     setIsLoading(true);
     setError(null);
     try {
-      const result = onCustomAction("gallery", { query: nextQuery, onDragStart });
+      const actionData: any = { query: nextQuery, onDragStart };
+
+      // When a GalleryAssetGrid widget is selected, provide selection support
+      // so the host can populate it with checked items.
+      if (selectedInstance?.type === "GalleryAssetGrid") {
+        const widgetId = selectedInstance.id;
+        const baseProps = selectedInstance.props;
+        actionData.targetWidgetId = widgetId;
+        actionData.onItemsSelect = (newItems: any[]) => {
+          const liveProps = (widgetProps.get(widgetId) as Record<string, any>) || {};
+          const snapshot = getWidgetSnapshot(widgetId) || {};
+          const currentProps = { ...snapshot, ...baseProps, ...liveProps };
+          const existing = (currentProps.items as any[]) || [];
+          const existingKeys = new Set(existing.map((i: any) => i.id || i.storage_key));
+          const fresh = newItems.filter((i: any) => !existingKeys.has(i.id || i.storage_key));
+          spUpdateWidgetProps(widgetId, { ...currentProps, items: [...existing, ...fresh] });
+        };
+      }
+
+      const result = onCustomAction("gallery", actionData);
       setResults(<div key={`${nextQuery}-${Date.now()}`}>{result}</div>);
     } catch (err) {
       console.error("Gallery search error:", err);
@@ -40,7 +61,7 @@ export const GalleryTab = ({
     } finally {
       setIsLoading(false);
     }
-  }, [query, onCustomAction, onDragStart]);
+  }, [query, onCustomAction, onDragStart, selectedInstance, spUpdateWidgetProps, widgetProps, getWidgetSnapshot]);
 
   return (
     <div
@@ -74,6 +95,12 @@ export const GalleryTab = ({
           </button>
         </form>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+        {selectedInstance?.type === "GalleryAssetGrid" && (
+          <div className="mt-2 rounded bg-blue-50 px-3 py-1.5 text-xs text-blue-700 flex items-center gap-1.5">
+            <span>→</span>
+            <span>Adding to GalleryAssetGrid</span>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-auto p-4">
         {results ? (
