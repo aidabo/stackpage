@@ -16,7 +16,6 @@ import { JsonTab } from "./JsonTab";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { CustomActionFn, FileUploadFn } from "..";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
-import { get } from "../utils/get";
 import { InteractionRule } from "../utils/componentCommunication";
 
 const SchemaEditorDialogLazy = lazy(() =>
@@ -424,41 +423,6 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
     ]
   );
 
-  const handleBindRecord = useCallback(
-    (record: any, mappings: Record<string, string>, _dataSourceId: string) => {
-      const newProps: Record<string, any> = {
-        ...currentProps,
-        __interactions: interactionRules,
-        __schema: componentSchema,
-      };
-
-      Object.entries(mappings).forEach(([prop, path]) => {
-        if (path) {
-          const value = get(record, path);
-          if (value !== undefined) {
-            newProps[prop] = value;
-          }
-        }
-      });
-
-      if (selectedInstance) {
-        setSelectedInstance({
-          ...selectedInstance,
-          props: newProps,
-        });
-      }
-      updateProps(newProps);
-    },
-    [
-      componentSchema,
-      currentProps,
-      interactionRules,
-      selectedInstance,
-      setSelectedInstance,
-      updateProps,
-    ]
-  );
-
   const handleSaveInteractions = useCallback(
     (rules: InteractionRule[]) => {
       const updatedProps = {
@@ -713,7 +677,6 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
             onClose={() => setShowDataExplorer(false)}
             dataSources={source.dataSources || []}
             onApplyMappings={handleApplyMappings}
-            onBindRecord={handleBindRecord}
             onReleaseBindings={handleReleaseBindings}
             mappableProps={ArrayBindingUtils.extractMappableArrayFields(
               componentSchema
@@ -736,6 +699,12 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
                 : {}
             }
             currentBindings={__bindings}
+            initialDataSourceId={
+              __bindings
+                ? (Object.values(__bindings).find((b: any) => b?.sourceId) as any)
+                    ?.sourceId
+                : undefined
+            }
             schema={componentSchema}
             currentIgnoredFields={__ignoredMappings}
           />

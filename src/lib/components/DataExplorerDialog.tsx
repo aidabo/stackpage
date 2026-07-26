@@ -7,13 +7,9 @@ import React, {
 } from "react";
 import {
   XMarkIcon,
-  TableCellsIcon,
-  MapIcon,
   MagnifyingGlassIcon,
   CheckCircleIcon,
-  PlusIcon,
   CheckIcon,
-  ArrowRightIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
   CodeBracketSquareIcon,
@@ -21,7 +17,6 @@ import {
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
 } from "@heroicons/react/24/outline";
-import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSource } from "./types";
 import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { get } from "../utils/get";
@@ -50,11 +45,6 @@ interface DataExplorerDialogProps {
     ignoredFields?: string[]
   ) => void;
   onReleaseBindings?: () => void;
-  onBindRecord: (
-    record: any,
-    mappings: Record<string, string>,
-    dataSourceId: string
-  ) => void;
   mappableProps: string[];
   currentMappings: Record<string, string>;
   currentTransformers?: Record<string, string>;
@@ -69,7 +59,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   onClose,
   dataSources,
   onApplyMappings,
-  onBindRecord,
   onReleaseBindings,
   mappableProps,
   currentMappings = {},
@@ -79,17 +68,11 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
   schema,
   currentIgnoredFields,
 }) => {
-  const [activeTab, setActiveTab] = useState<"select" | "mapping">("select");
   const [mappings, setMappings] =
     useState<Record<string, string>>(currentMappings);
   const [ignoredFields, setIgnoredFields] = useState<string[]>(
     currentIgnoredFields || []
   );
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<
-    { id: number; key: string; value: string }[]
-  >([]);
-
   // Data Source State
   const [selectedDataSourceId, setSelectedDataSourceId] = useState<string>(
     initialDataSourceId || ""
@@ -301,6 +284,14 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     return previewData;
   }, [isArrayPreviewData, previewData, selectedRecord]);
 
+  const boundDataSource = useMemo(
+    () =>
+      initialDataSourceId
+        ? dataSources.find((ds) => ds.id === initialDataSourceId)
+        : undefined,
+    [initialDataSourceId, dataSources]
+  );
+
   useEffect(() => {
     if (ignoreAllRef.current) {
       ignoreAllRef.current.indeterminate = someIgnored;
@@ -463,161 +454,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     setIgnoredFields((prev) => prev.filter((field) => !mappableProps.includes(field)));
   };
 
-  // Handle record selection from VisualDataPreview
-  const handleSelectRecord = (record: any, index: number) => {
-    setSelectedRecord(record);
-    setSelectedRecordIndex(index);
-    setBindingScope("single");
-
-    // Add to selected items if not already there
-    if (!selectedItems.includes(index)) {
-      setSelectedItems([...selectedItems, index]);
-    }
-
-    // Auto-map record fields to component properties
-    autoMapRecordToProps(record);
-  };
-
-  // Handle multi-select toggle
-  const handleToggleSelection = (index: number) => {
-    setSelectedItems((prev) => {
-      if (prev.includes(index)) {
-        // Remove from selection
-        const newSelection = prev.filter((i) => i !== index);
-        if (newSelection.length > 0) {
-          // Update selected record to first in selection
-          setSelectedRecord(previewData[newSelection[0]]);
-          setSelectedRecordIndex(newSelection[0]);
-        } else {
-          setSelectedRecord(null);
-          setSelectedRecordIndex(null);
-        }
-        setBindingScope(newSelection.length > 1 ? "selected" : "single");
-        return newSelection;
-      } else {
-        // Add to selection
-        const newSelection = [...prev, index];
-        setSelectedRecord(previewData[index]);
-        setSelectedRecordIndex(index);
-        setBindingScope(newSelection.length > 1 ? "selected" : "single");
-        return newSelection;
-      }
-    });
-  };
-
-  const autoMapRecordToProps = (_record: any) => {
-    const newMappings: Record<string, string> = { ...mappings };
-    const newTransformers: Record<string, string> = { ...transformers };
-    let hasAutoMappedArray = false;
-
-    mappableProps.forEach((prop) => {
-      // Skip ignored fields
-      if (ignoredFields.includes(prop)) return;
-
-      // Get schema for this property
-      const arrayBaseProp = prop.split("[].")[0];
-      const arrayFieldName = prop.includes("[].")
-        ? prop.split("[].").slice(1).join("[].")
-        : "";
-      const propSchema =
-        schema?.properties?.[prop] || schema?.properties?.[arrayBaseProp];
-      const isArrayField = propSchema?.type === "array";
-
-      // Try to find matching field in record
-      const field = dataFields.find((candidateField: string) => {
-        const fieldName = candidateField.split(".").pop() || "";
-        const isArrayElement = candidateField.includes("[]");
-
-        // An array property can bind directly to a source array such as
-        // `items[]`, even when the component property is named `tagList` or
-        // `users`. If there is exactly one source array, it is the safe
-        // automatic choice.
-        if (isArrayField && !arrayFieldName) {
-          if (
-            candidateField.endsWith("[]") &&
-            !candidateField.includes("[].")
-          ) {
-            const sourceArrayName: string = candidateField.replace(/\[\]$/, "");
-            return (
-              sourceArrayName.toLowerCase() === prop.toLowerCase() ||
-              sourceArrayName.toLowerCase() === arrayBaseProp.toLowerCase() ||
-              dataFields.filter((candidate) =>
-                candidate.endsWith("[]") && !candidate.includes("[].")
-              ).length === 1
-            );
-          }
-          return false;
-        }
-
-        // Array item properties are mapped against the source item's fields.
-        // A schema may provide aliases for common source names (e.g. a
-        // component's `label` maps to Ghost's `name`).
-        if (arrayFieldName && isArrayElement) {
-          const itemSchema = propSchema?.items?.properties;
-          const fieldSchema = itemSchema?.[arrayFieldName];
-          const aliases = Array.isArray(fieldSchema?.["x-binding-aliases"])
-            ? fieldSchema["x-binding-aliases"]
-            : [];
-          const acceptedNames = [arrayFieldName, ...aliases].map((name) =>
-            String(name).toLowerCase()
-          );
-          return acceptedNames.includes(fieldName.toLowerCase());
-        }
-
-        // For array fields, prefer array element fields
-        if (isArrayField && isArrayElement) {
-          return (
-            fieldName.toLowerCase() === prop.toLowerCase() ||
-            prop.toLowerCase().includes(fieldName.toLowerCase()) ||
-            fieldName.toLowerCase().includes(prop.toLowerCase())
-          );
-        }
-
-        // For non-array fields, avoid array element fields
-        if (!isArrayField && isArrayElement) return false;
-
-        return (
-          fieldName.toLowerCase() === prop.toLowerCase() ||
-          prop.toLowerCase().includes(fieldName.toLowerCase()) ||
-          fieldName.toLowerCase().includes(prop.toLowerCase())
-        );
-      });
-
-      if (field) {
-        newMappings[prop] = field;
-        if (isArrayField && !arrayFieldName) {
-          hasAutoMappedArray = true;
-        }
-
-        // Auto-select transformer based on field type and schema
-        if (propSchema) {
-          const propType = propSchema.type;
-          let value = get(_record, field);
-
-          // For array element paths, get the first element's value
-          if (field.includes("[]") && Array.isArray(value)) {
-            value = value[0];
-          }
-
-          if (propType === "number" && typeof value !== "number") {
-            newTransformers[prop] = "number";
-          } else if (propType === "string" && typeof value !== "string") {
-            newTransformers[prop] = "string";
-          } else if (propType === "boolean" && typeof value !== "boolean") {
-            newTransformers[prop] = "boolean";
-          }
-        }
-      }
-    });
-
-    if (hasAutoMappedArray) {
-      setBindingScope("all");
-    }
-
-    setMappings(newMappings);
-    setTransformers(newTransformers);
-  };
-
   // Apply mappings and bind selected record
   const applyMappingsAndBind = () => {
     const newBindings: Record<string, any> = {};
@@ -778,48 +614,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
     }
 
     return <span className={display.className}>{display.text}</span>;
-  };
-
-  // Clear all filters
-  const clearFilters = () => {
-    setFilters([]);
-    setSearchTerm("");
-  };
-
-  // Add filter
-  const addFilter = () => {
-    setFilters([...filters, { id: Date.now(), key: "title", value: "" }]);
-  };
-
-  // Update filter
-  const updateFilter = (id: number, field: "key" | "value", value: string) => {
-    setFilters(
-      filters.map((f) => (f.id === id ? { ...f, [field]: value } : f))
-    );
-  };
-
-  // Remove filter
-  const removeFilter = (id: number) => {
-    setFilters(filters.filter((f) => f.id !== id));
-  };
-
-  // Select all records
-  const handleSelectAll = () => {
-    if (Array.isArray(previewData) && previewData.length > 0) {
-      const allIndices = previewData.map((_, index) => index);
-      setSelectedItems(allIndices);
-      setSelectedRecord(previewData[0]);
-      setSelectedRecordIndex(0);
-      setBindingScope("selected");
-    }
-  };
-
-  // Clear selection
-  const handleClearSelection = () => {
-    setSelectedItems([]);
-    setSelectedRecord(null);
-    setSelectedRecordIndex(null);
-    setBindingScope("single");
   };
 
   // Resize handlers
@@ -1046,6 +840,16 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                   />
                 </button>
               </div>
+
+              {/* Bound Data Source Info */}
+              {boundDataSource && (
+                <div className="mt-2 text-xs flex items-center gap-1">
+                  <span className="text-blue-600 font-medium">
+                    {boundDataSource.name}
+                  </span>
+                  <span className="text-gray-400">— bound datasource</span>
+                </div>
+              )}
             </div>
 
             {/* Status Info */}
@@ -1117,31 +921,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
             </div>
           )}
 
-          {/* Navigation Tabs */}
-          <div className="px-4 flex gap-1 bg-gray-50 border-t flex-shrink-0">
-            <button
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === "select"
-                  ? "border-blue-500 text-blue-600 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("select")}
-            >
-              <TableCellsIcon className="w-4 h-4" />
-              1. Select Record
-            </button>
-            <button
-              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-                activeTab === "mapping"
-                  ? "border-blue-500 text-blue-600 bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              onClick={() => setActiveTab("mapping")}
-            >
-              <MapIcon className="w-4 h-4" />
-              2. Map Fields
-            </button>
-          </div>
         </div>
 
         {/* CONTENT */}
@@ -1162,191 +941,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
               <MagnifyingGlassIcon className="w-16 h-16 mb-4 opacity-20" />
               <p>Select a data source to begin exploring</p>
             </div>
-          ) : activeTab === "select" ? (
-            <div className="h-full flex flex-col">
-              {/* Search and Filter Bar */}
-              <div className="p-3 bg-white border-b flex-shrink-0">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="relative flex-1">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="Search in data..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={() => setActiveTab("mapping")}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2 flex-shrink-0"
-                  >
-                    <ArrowRightIcon className="w-4 h-4" />
-                    Go to Mapping
-                  </button>
-                </div>
-
-                {/* Selection Controls */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-sm text-gray-600">
-                    {selectedItems.length > 0 ? (
-                      <span className="font-medium text-blue-600">
-                        {selectedItems.length} record(s) selected
-                      </span>
-                    ) : (
-                      <span>No records selected</span>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleSelectAll}
-                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded border border-blue-300"
-                      disabled={
-                        !Array.isArray(previewData) || previewData.length === 0
-                      }
-                    >
-                      Select All
-                    </button>
-                    <button
-                      onClick={handleClearSelection}
-                      className="px-3 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded border border-gray-300"
-                      disabled={selectedItems.length === 0}
-                    >
-                      Clear Selection
-                    </button>
-                  </div>
-                </div>
-
-                {isArrayPreviewData && previewData.length > 0 && (
-                  <div className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 mb-3">
-                    Record source:{" "}
-                    <span className="font-semibold text-gray-800">
-                      {selectedSummary}
-                    </span>
-                  </div>
-                )}
-
-                {/* Filters */}
-                {filters.length > 0 && (
-                  <div className="flex flex-wrap gap-2 items-center mb-2">
-                    <span className="text-sm font-medium text-gray-600">
-                      Filters:
-                    </span>
-                    {filters.map((filter) => (
-                      <div
-                        key={filter.id}
-                        className="flex items-center gap-1 bg-gray-100 border rounded px-2 py-1 text-xs"
-                      >
-                        <input
-                          type="text"
-                          className="w-24 bg-transparent border-none outline-none"
-                          placeholder="Field"
-                          value={filter.key}
-                          onChange={(e) =>
-                            updateFilter(filter.id, "key", e.target.value)
-                          }
-                        />
-                        <span className="text-gray-400">:</span>
-                        <input
-                          type="text"
-                          className="w-32 bg-transparent border-none outline-none"
-                          placeholder="Value"
-                          value={filter.value}
-                          onChange={(e) =>
-                            updateFilter(filter.id, "value", e.target.value)
-                          }
-                        />
-                        <button
-                          onClick={() => removeFilter(filter.id)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <XMarkIcon className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={addFilter}
-                      className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded border border-blue-200 flex items-center gap-1"
-                    >
-                      <PlusIcon className="w-3 h-3" />
-                      Add Filter
-                    </button>
-                    {filters.length > 0 && (
-                      <button
-                        onClick={clearFilters}
-                        className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded border border-gray-300"
-                      >
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Visual Preview */}
-              <div className="flex-1 overflow-hidden min-h-0">
-                <VisualDataPreview
-                  data={previewData}
-                  category={currentDS?.category}
-                  onBind={(path, _isArray) => {
-                    // Quick bind individual fields
-                    if (mappableProps.length > 0) {
-                      const prop =
-                        mappableProps.find((p) => !mappings[p]) ||
-                        mappableProps[0];
-                      if (prop) {
-                        updateMapping(prop, path);
-                        setActiveTab("mapping");
-                      }
-                    }
-                  }}
-                  onSelectRecord={handleSelectRecord}
-                  onToggleSelection={handleToggleSelection}
-                  searchTerm={searchTerm}
-                  filters={filters}
-                  selectedIndices={selectedItems}
-                />
-              </div>
-
-              {/* Quick Bind Button */}
-              {selectedRecord && (
-                <div className="p-3 border-t bg-white flex-shrink-0">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                      {selectedItems.length > 1 ? (
-                        <span>{selectedItems.length} records selected</span>
-                      ) : (
-                        <span>
-                          Record{" "}
-                          {selectedRecordIndex !== null
-                            ? `#${selectedRecordIndex + 1}`
-                            : ""}{" "}
-                          selected
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (selectedRecord) {
-                          onApplyMappings(mappings, selectedDataSourceId);
-                          onBindRecord(
-                            selectedRecord,
-                            mappings,
-                            selectedDataSourceId
-                          );
-                          onClose();
-                        }
-                      }}
-                      className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-medium rounded-lg shadow-sm flex items-center gap-2"
-                      disabled={!selectedDataSourceId}
-                    >
-                      <CheckCircleIcon className="w-4 h-4" />
-                      Bind Selected Record with Current Mappings
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           ) : (
             <div className="h-full flex min-w-0">
               {/* Left Panel - Field List */}
@@ -1363,9 +957,7 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                 <div className="flex-1 overflow-y-auto p-2 min-h-0">
                   {dataFields.length === 0 ? (
                     <div className="p-4 text-center text-gray-500 text-sm italic">
-                      No fields found or no record selected.
-                      <br />
-                      Go back to "Select Record" tab.
+                      No data fields available for the selected record.
                     </div>
                   ) : (
                     dataFields.map((field) => {
@@ -1729,12 +1321,6 @@ export const DataExplorerDialog: React.FC<DataExplorerDialogProps> = ({
                           Release All
                         </button>
                       )}
-                      <button
-                        onClick={() => setActiveTab("select")}
-                        className="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                      >
-                        Back
-                      </button>
                       <button
                         onClick={applyMappingsAndBind}
                         disabled={!canApplyMappings}
