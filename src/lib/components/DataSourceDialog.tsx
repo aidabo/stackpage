@@ -6,12 +6,10 @@ import {
   PlusIcon,
   TrashIcon,
   CodeBracketIcon,
-  TableCellsIcon,
   ArrowPathIcon,
   CpuChipIcon,
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { VisualDataPreview } from "./VisualDataPreview";
 import { DataSourceService } from "./DataSourceService";
 import {
   buildTestParams,
@@ -385,7 +383,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [activeTab, setActiveTab] = useState<"config" | "test">("config");
-  const [viewMode, setViewMode] = useState<"json" | "visual">("json");
 
   // 宿主数据源状态
   const [hostDataSources, setHostDataSources] = useState<
@@ -400,7 +397,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   const [hostNameTouched, setHostNameTouched] = useState(false);
 
   // 数据源类型
-  const [sourceType, setSourceType] = useState<DataSource["type"]>("api");
+  const [sourceType, setSourceType] = useState<DataSource["type"]>("host-function");
 
   // Wrapper key for array results
   const [wrapperKey, setWrapperKey] = useState<string>("");
@@ -510,7 +507,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
         resetForm();
       }
       setActiveTab("config");
-      setViewMode("json");
     }
   }, [isOpen, initialData]);
 
@@ -1075,9 +1071,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
 
       if (result.success) {
         setTestResult(result.data);
-        if (Array.isArray(result.data)) {
-          setViewMode("visual");
-        }
       } else {
         throw new Error(result.error);
       }
@@ -1152,21 +1145,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                     <button
                       type="button"
                       className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
-                        sourceType === "api"
-                          ? "border-blue-500 bg-blue-50 text-blue-600"
-                          : "border-gray-300 hover:border-blue-300"
-                      }`}
-                      onClick={() => setSourceType("api")}
-                    >
-                      <span className="text-base">🌐</span>
-                      <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
-                        API Source
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
                         sourceType === "host-function"
                           ? "border-green-500 bg-green-50 text-green-600"
                           : "border-gray-300 hover:border-green-300"
@@ -1176,6 +1154,21 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                       <CpuChipIcon className="w-4 h-4" />
                       <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
                         Host Source
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`min-w-0 p-1.5 border rounded-lg flex flex-col items-center justify-center transition-colors ${
+                        sourceType === "api"
+                          ? "border-blue-500 bg-blue-50 text-blue-600"
+                          : "border-gray-300 hover:border-blue-300"
+                      }`}
+                      onClick={() => setSourceType("api")}
+                    >
+                      <span className="text-base">🌐</span>
+                      <span className="mt-1 text-xs font-medium text-center leading-tight break-words">
+                        API Source
                       </span>
                     </button>
 
@@ -1966,26 +1959,9 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
               {testResult && (
                 <div className="flex justify-end">
                   <div className="flex bg-gray-100 rounded p-1 border">
-                    <button
-                      className={`px-3 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                        viewMode === "json"
-                          ? "bg-white text-blue-600 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                      onClick={() => setViewMode("json")}
-                    >
+                    <span className="px-3 py-1 text-xs font-medium text-gray-600 flex items-center gap-1">
                       <CodeBracketIcon className="w-3 h-3" /> JSON
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-xs font-medium rounded flex items-center gap-1 ${
-                        viewMode === "visual"
-                          ? "bg-white text-blue-600 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
-                      }`}
-                      onClick={() => setViewMode("visual")}
-                    >
-                      <TableCellsIcon className="w-3 h-3" /> Visual
-                    </button>
+                    </span>
                   </div>
                 </div>
               )}
@@ -1996,16 +1972,6 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                   <div className="flex items-center justify-center h-full text-gray-500 italic p-4">
                     Click "Test Data Source" to see the results
                   </div>
-                ) : viewMode === "visual" ? (
-                  <VisualDataPreview
-                    data={
-                      wrapperKey && Array.isArray(testResult)
-                        ? { [wrapperKey]: testResult }
-                        : testResult
-                    }
-                    category={config.category}
-                    onBind={() => console.log("Bind preview")}
-                  />
                 ) : (
                   <div className="bg-gray-900 text-gray-100 p-4 font-mono text-xs overflow-auto h-full w-full">
                     <pre>
