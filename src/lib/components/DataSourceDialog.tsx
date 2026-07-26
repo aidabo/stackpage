@@ -596,7 +596,7 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
     setTestResult(null);
     setSelectedHostSourceId("");
     setSelectedHostSource(null);
-    setSourceType("api");
+    setSourceType("host-function");
     setWrapperKey(""); // Reset wrapper key
     setHostNameTouched(false);
   };
