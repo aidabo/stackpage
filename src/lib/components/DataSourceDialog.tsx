@@ -1093,7 +1093,13 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   // 获取基础参数和高级参数
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black bg-opacity-50"
+      style={{
+        padding: "1rem",
+        paddingTop: `calc(1rem + var(--stackpage-top-spacing, 60px))`,
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
         {/* HEADER */}
         <div className="flex justify-between items-center p-4 border-b">
