@@ -17,6 +17,11 @@ import { generateSchemaFromCurrentProps } from "./PropertyTypeUtils";
 import { CustomActionFn, FileUploadFn } from "..";
 import { ArrayBindingUtils } from "../utils/ArrayBindingUtils";
 import { InteractionRule } from "../utils/componentCommunication";
+import {
+  ComponentPropsProvider,
+  getComponentProps,
+} from "./stackoptions";
+import { mergeComponentEditorProps } from "./componentPropsMerge";
 
 const SchemaEditorDialogLazy = lazy(() =>
   import("./SchemaEditorDialog").then((module) => ({
@@ -47,11 +52,15 @@ const DialogLoadingFallback = () => (
 interface PropertiesTabProps {
   onFileUpload?: FileUploadFn;
   onCustomAction?: CustomActionFn;
+  componentPropsProvider?: ComponentPropsProvider;
 }
 
 type PropertiesSubTab = "form" | "event" | "json";
 
-export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
+export const PropertiesTab = ({
+  onFileUpload,
+  componentPropsProvider,
+}: PropertiesTabProps) => {
   const {
     selectedInstance,
     selectedComponent,
@@ -91,7 +100,21 @@ export const PropertiesTab = ({ onFileUpload }: PropertiesTabProps) => {
   const componentType = selectedInstance?.type || selectedComponent;
   const currentInstanceProps = selectedInstance?.props || {};
   const updatedPropsFromContext = getProps() || {};
-  const currentProps = { ...currentInstanceProps, ...updatedPropsFromContext };
+  const providerProps = useMemo(
+    () =>
+      componentType
+        ? getComponentProps(componentPropsProvider)[componentType] || {}
+        : {},
+    [componentPropsProvider, componentType]
+  );
+  const currentProps = useMemo(
+    () =>
+      mergeComponentEditorProps(providerProps, {
+        ...currentInstanceProps,
+        ...updatedPropsFromContext,
+      }),
+    [providerProps, currentInstanceProps, updatedPropsFromContext]
+  );
 
   const {
     __schema,

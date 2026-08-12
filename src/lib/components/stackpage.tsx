@@ -1309,6 +1309,7 @@ const StackPageContent = ({
                         <PropertiesTabLazy
                           onFileUpload={onFileUpload}
                           onCustomAction={onCustomAction}
+                          componentPropsProvider={componentPropsProvider}
                         />
                       </Suspense>
                     </div>
