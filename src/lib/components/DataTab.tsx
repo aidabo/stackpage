@@ -34,6 +34,7 @@ import { useDataBinding } from "./useDataBinding";
 import { InteractionRule } from "../utils/componentCommunication";
 import { useT } from "./StackI18nProvider";
 import { normalizeSchemaStringNulls } from "../utils/schemaValueNormalization";
+import { isOptionalSchemaColor } from "../utils/schemaFormats";
 
 
 const stackPageValidator = customizeValidator({
@@ -43,6 +44,7 @@ const stackPageValidator = customizeValidator({
   // URI as an editor hint/widget selector and relaxes format validation here.
   customFormats: {
     uri: () => true,
+    color: isOptionalSchemaColor,
   },
 });
 
