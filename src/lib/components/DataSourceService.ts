@@ -109,7 +109,16 @@ export class DataSourceService {
       console.log(
         `[DataSourceService] Using direct fetchData for ${dataSource.name}`
       );
-      return await dataSource.fetchData(params || {});
+      // Newly added/edited host datasources retain a direct fetchData reference
+      // until the page is serialized and loaded again. Keep this editor path
+      // identical to the registry path below: resolved datasource parameters
+      // must reach the host function, with explicit call params taking priority.
+      // Otherwise reactive {{state.*}} bindings are silently discarded.
+      const allParams = {
+        ...(dataSource.parameters || {}),
+        ...(params || {}),
+      };
+      return await dataSource.fetchData(allParams);
     }
 
     // Look up in the registry by hostFunctionId

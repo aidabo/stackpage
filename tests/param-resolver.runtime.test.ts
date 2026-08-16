@@ -8,13 +8,15 @@ import {
   parseParamSource,
   buildParamValue,
 } from "../src/lib/utils/paramResolver";
+import { DataSourceService } from "../src/lib/components/DataSourceService";
 
-function main() {
+async function main() {
   const ctx = {
     query: { item: "p-123", group_id: "g1", empty: "" },
     state: {
       // nested (as setPageState writes)
       estate: { selectedPropertyId: "p-999" },
+      post: { search: { keyword: "news" } },
       // flat dot-key (as db.json fixtures store)
       "sales.pipeline.stage": "negotiation",
       count: 0,
@@ -167,7 +169,37 @@ function main() {
   const rt = parseParamSource(buildParamValue("state", "estate.selectedPropertyId"));
   assert.deepEqual(rt, { source: "state", path: "estate.selectedPropertyId" });
 
+  // The editor keeps a direct fetchData reference on newly configured host
+  // datasources. That path must receive resolved datasource parameters just like
+  // the registry-backed path used after a saved page is reloaded.
+  let receivedParams: Record<string, unknown> | undefined;
+  const directParameters = resolveParams(
+    {
+      keyword: "{{state.post.search.keyword}}",
+      page: 1,
+    },
+    ctx,
+  );
+  const directResult = await DataSourceService.fetchDataSourceData(
+    {
+      id: "direct-host-source",
+      name: "Direct host source",
+      type: "host-function",
+      parameters: directParameters,
+      fetchData: async (params) => {
+        receivedParams = params;
+        return [];
+      },
+    },
+    {page: 2},
+  );
+  assert.equal(directResult.success, true);
+  assert.deepEqual(receivedParams, {keyword: "news", page: 2});
+
   console.log("param-resolver.runtime.test.ts: OK");
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

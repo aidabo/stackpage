@@ -96,3 +96,5 @@ public/static/
 Thumbs.db
 dist/
 .types/
+.omc/
+.omx/

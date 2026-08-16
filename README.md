@@ -462,6 +462,38 @@ const getHostDataSources: GetHostDataSourcesFn = async () => [
 ];
 ```
 
+### Dynamic parameter lifecycle
+
+Datasource parameters may use `{{query.*}}`, `{{state.*}}`, and
+`{{params.*}}`. StackPage resolves these tokens before calling a host function;
+the host function receives concrete values and must not depend on StackPage page
+state or browser routing directly.
+
+```text
+saved parameters
+  -> resolveParams({query, state, params})
+  -> DataSourceService merge
+  -> HostDataSource.fetchData(concreteParams)
+  -> runtime data cache
+  -> __bindings
+  -> widget props
+```
+
+- `query` and route `params` resolve during page-load pre-fetch.
+- Initial `state` also resolves during page-load pre-fetch.
+- A changed `{{state.*}}` value triggers a debounced reactive re-fetch only
+  when its resolved parameter signature changed.
+- An emitted component event does not fetch by itself; it must write a state
+  path referenced by the datasource, or another explicit caller must fetch.
+- The Data Source dialog Test uses non-persisted Test values because live
+  URL/state/route context is unavailable there.
+- Newly edited datasources can use their in-memory direct `fetchData`; saved and
+  reloaded pages use `hostFunctionId` registry lookup. Both paths merge params as
+  `{...dataSource.parameters, ...callTimeParams}`, so explicit call-time/Test
+  values win.
+- `__bindings` map fetched results into widget props. They do not resolve or
+  trigger datasource parameters.
+
 ---
 
 ## Runtime widget API
