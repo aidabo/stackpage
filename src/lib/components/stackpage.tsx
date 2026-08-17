@@ -67,6 +67,7 @@ import {
   applyPrefetchedDataToSource,
   collectBindingSourceIdsFromLayout,
   stripRuntimeDataFromSource,
+  stripRuntimeBoundValuesFromLayout,
 } from "../utils/pagePersistence";
 import ExternalDragSourceContext from "./ExternalDragSourceContext";
 import { v4 as uuidv4 } from "uuid";
@@ -537,12 +538,11 @@ const StackPageContent = ({
               params: { pageid },
             };
 
-            for (const ds of persistedSource.dataSources) {
-              if (
-                requiredSourceIds.has(ds.id) &&
-                ds.type !== "static" /*&&
-                (ds as any).data === undefined*/
-              ) {
+            const requiredDataSources = persistedSource.dataSources.filter(
+              (ds) => requiredSourceIds.has(ds.id) && ds.type !== "static",
+            );
+            const fetchedUpdates = await Promise.all(
+              requiredDataSources.map(async (ds) => {
                 try {
                   console.log(
                     `[StackPage] Pre-fetching data for source: ${ds.name} (${ds.id})`,
@@ -559,15 +559,21 @@ const StackPageContent = ({
                     { ...ds, parameters: resolvedParams } as typeof ds,
                     {},
                   );
-                  updates.push({ id: ds.id, result });
+                  return { id: ds.id, result };
                 } catch (err) {
                   console.error(
                     `[StackPage] Failed to pre-fetch source ${ds.name}`,
                     err,
                   );
+                  return null;
                 }
-              }
-            }
+              }),
+            );
+            updates.push(
+              ...fetchedUpdates.filter(
+                (update): update is {id: string; result: any} => update !== null,
+              ),
+            );
 
             // 3. Update a runtime-only source cache with fetched data
             if (updates.length > 0) {
@@ -731,6 +737,9 @@ const StackPageContent = ({
     if (layout) {
       // Update the layout with the latest props from context
       layout = updateLayoutWithNewProps(layout, widgetProps);
+      // Bound values are runtime DataSource results. Persist only the binding
+      // definition; data is fetched and resolved again when the page loads.
+      layout = stripRuntimeBoundValuesFromLayout(layout);
     }
     const savedSource = stripRuntimeDataFromSource(source);
     const currentPageId = String(pageid || pageProps?.id || "").trim();
@@ -1126,7 +1135,7 @@ const StackPageContent = ({
                         aria-live="polite"
                       >
                         <span
-                          className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"
+                          className="stackpage-loading-spinner h-8 w-8 rounded-full border-4 border-gray-200 border-t-blue-600"
                           aria-hidden="true"
                         />
                         <span className="text-sm font-medium">

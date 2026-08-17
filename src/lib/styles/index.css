@@ -6,6 +6,22 @@
 /* Custom components layer */
 @layer components {}
 
+@keyframes stackpage-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.stackpage-loading-spinner {
+  animation: stackpage-loading-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stackpage-loading-spinner {
+    animation-duration: 2s;
+  }
+}
+
 /* @import 'tailwindcss/base'; */
 .grid-stack {
   background: rgba(240, 240, 240, 0.9);

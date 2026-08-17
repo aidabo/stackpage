@@ -8,6 +8,76 @@ export interface PrefetchedDataUpdate {
   result: any;
 }
 
+const getBoundPropRoot = (bindingKey: string) =>
+  String(bindingKey || "").split(/[.[]/, 1)[0];
+
+export function stripRuntimeBoundValuesFromProps(
+  props?: Record<string, any> | null,
+): Record<string, any> | undefined {
+  if (!props) return undefined;
+  const bindings = props.__bindings;
+  if (!bindings || typeof bindings !== "object" || Array.isArray(bindings)) {
+    return {...props};
+  }
+
+  const persisted = {...props};
+  Object.keys(bindings).forEach((bindingKey) => {
+    const rootKey = getBoundPropRoot(bindingKey);
+    if (rootKey && !rootKey.startsWith("__")) {
+      delete persisted[rootKey];
+    }
+  });
+  return persisted;
+}
+
+function stripRuntimeBoundValuesFromNode(node: GridStackWidget): GridStackWidget {
+  let persistedNode = {...node};
+  if (typeof node.content === "string") {
+    try {
+      const content = JSON.parse(node.content) as {
+        name?: string;
+        props?: Record<string, any>;
+      };
+      if (content && typeof content === "object" && !Array.isArray(content)) {
+        persistedNode.content = JSON.stringify({
+          ...content,
+          props: stripRuntimeBoundValuesFromProps(content.props) || {},
+        });
+      }
+    } catch {
+      // Preserve malformed content so the existing validation path can report it.
+    }
+  }
+
+  if (persistedNode.subGridOpts?.children?.length) {
+    persistedNode = {
+      ...persistedNode,
+      subGridOpts: {
+        ...persistedNode.subGridOpts,
+        children: persistedNode.subGridOpts.children.map((child) =>
+          stripRuntimeBoundValuesFromNode(child as GridStackWidget),
+        ),
+      },
+    };
+  }
+  return persistedNode;
+}
+
+export function stripRuntimeBoundValuesFromLayout(
+  layout: GridStackOptions | GridStackWidget[] | undefined,
+): GridStackOptions | GridStackWidget[] | undefined {
+  if (!layout) return layout;
+  if (Array.isArray(layout)) {
+    return layout.map((node) => stripRuntimeBoundValuesFromNode(node));
+  }
+  return {
+    ...layout,
+    children: layout.children?.map((node) =>
+      stripRuntimeBoundValuesFromNode(node as GridStackWidget),
+    ),
+  };
+}
+
 export function cloneSource(source?: SourceLike | null): SourceLike | undefined {
   if (!source) return undefined;
   const lists = Array.isArray(source.lists) ? source.lists : [];

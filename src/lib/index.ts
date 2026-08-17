@@ -72,6 +72,10 @@ import {
 } from "./utils/pageState";
 
 import "./styles/index.css";
+export {
+  stripRuntimeBoundValuesFromLayout,
+  stripRuntimeBoundValuesFromProps,
+} from "./utils/pagePersistence";
 
 export {
   StackPage,
