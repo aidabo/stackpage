@@ -14,6 +14,8 @@ export function TooltipButton({
     <div className="relative group">
       <button
         onClick={onClick}
+        title={tooltip}
+        aria-label={tooltip}
         className={`p-2 rounded-lg transition ${className}`}
       >
         {icon}

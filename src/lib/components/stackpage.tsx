@@ -15,6 +15,8 @@ import {
   ChevronRightIcon,
   TrashIcon,
   CloudArrowDownIcon,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   EyeIcon,
   BoltIcon,
   ArrowLeftCircleIcon,
@@ -783,6 +785,115 @@ const StackPageContent = ({
     }
   };
 
+  // Hidden file input used by the Import toolbar button.
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  // Whitelist a page to a PORTABLE export payload. Only layout/content fields
+  // are included. User info (created_by / updated_by) and site-specific
+  // identity (id / slug / public_path / group_id / tag / timestamps) are
+  // intentionally omitted so an exported page carries NO user information and
+  // can be imported on another site (e.g. a test site).
+  const toPortablePageExport = (page: any) => {
+    const p = page || {};
+    return {
+      __stackpage_export: 1,
+      version: 1,
+      exported_at: new Date().toISOString(),
+      page: {
+        type: p.type,
+        title: p.title,
+        excerpt: p.excerpt,
+        image: p.image,
+        status: p.status,
+        attributes: p.attributes ?? {},
+        pageState: p.pageState ?? {},
+        layout: p.layout ?? {},
+        source: p.source ?? { lists: [], dataSources: [] },
+      },
+    };
+  };
+
+  const handleExport = () => {
+    try {
+      const page = getCurrentPageProps() as any;
+      const payload = toPortablePageExport(page);
+      const base =
+        String(page?.title || page?.slug || page?.id || "page")
+          .trim()
+          .replace(/[^\w.-]+/g, "_")
+          .slice(0, 60) || "page";
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `stackpage-${base}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("[StackPage] export failed:", error);
+    }
+  };
+
+  const applyImportedPage = (incoming: any) => {
+    const importedAttributes =
+      incoming?.attributes && typeof incoming.attributes === "object"
+        ? incoming.attributes
+        : {};
+    const currentPageId = String(pageid || pageProps?.id || "").trim();
+    const nextTitle =
+      incoming?.title ?? importedAttributes.title ?? pageProps?.title;
+    const nextSource =
+      incoming?.source && typeof incoming.source === "object"
+        ? incoming.source
+        : { lists: [], dataSources: [] };
+    const nextLayout = incoming?.layout ?? {};
+
+    // Keep the CURRENT page identity — an imported file never carries an id,
+    // so Save writes to the page currently open on this site.
+    setPageProps((prev) => ({
+      ...prev,
+      id: currentPageId,
+      type: incoming?.type ?? importedAttributes.type ?? prev?.type,
+      title: nextTitle,
+      excerpt: incoming?.excerpt,
+      image: incoming?.image,
+      status: incoming?.status ?? importedAttributes.status ?? prev?.status,
+      attributes: importedAttributes,
+      pageState: incoming?.pageState ?? {},
+      layout: nextLayout,
+      source: nextSource,
+    }));
+    setTitle(nextTitle);
+    setPageTitle(nextTitle);
+    setPageAttributes(() => importedAttributes);
+    replacePageState(incoming?.pageState || {});
+    setSource(nextSource);
+    setInitialOptions(nextLayout as any);
+    // Force the grid to remount with the imported layout (same as reload).
+    setResetKey((prev) => prev + 1);
+    clearSelectedData();
+  };
+
+  const handleImportFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const incoming =
+        parsed && parsed.__stackpage_export ? parsed.page : parsed;
+      if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) {
+        throw new Error("Not a valid StackPage export file");
+      }
+      applyImportedPage(incoming);
+    } catch (error) {
+      console.error("[StackPage] import failed:", error);
+      alert(t("Import failed: the selected file is not a valid page export."));
+    }
+  };
+
   const handleTitleEdit = () => {
     setIsEditingTitle(true);
   };
@@ -1046,6 +1157,33 @@ const StackPageContent = ({
                   className="bg-green-600 hover:bg-green-700 text-white"
                   successMessage={t("Reloaded successfully")}
                   errorMessage={t("Failed to reload")}
+                />
+
+                {/* Export page JSON (portable, no user info) */}
+                <TooltipButton
+                  onClick={handleExport}
+                  icon={<ArrowDownTrayIcon className="stack-btn-icon" />}
+                  tooltip={t("Export page (JSON)")}
+                  className="bg-slate-600 hover:bg-slate-700 text-white"
+                />
+
+                {/* Import page JSON into the current editor */}
+                <TooltipButton
+                  onClick={() => importFileRef.current?.click()}
+                  icon={<ArrowUpTrayIcon className="stack-btn-icon" />}
+                  tooltip={t("Import page (JSON)")}
+                  className="bg-slate-600 hover:bg-slate-700 text-white"
+                />
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleImportFile(file);
+                    e.target.value = "";
+                  }}
                 />
 
                 {/* Clear */}

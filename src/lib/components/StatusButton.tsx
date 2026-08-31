@@ -43,6 +43,8 @@ export function StatusButton({
       <button
         onClick={handleClick}
         disabled={isLoading}
+        title={label}
+        aria-label={label}
         className={`p-2 rounded-lg transition flex items-center ${className} ${isLoading ? "opacity-70" : ""
           }`}
       >
@@ -51,7 +53,8 @@ export function StatusButton({
         ) : (
           <>
             {icon}
-            <span className="ml-1 text-sm sm:inline">{label}</span>
+            {/* Icon-only on mobile so the toolbar fits one row; label shows on sm+. */}
+            <span className="ml-1 text-sm hidden sm:inline">{label}</span>
           </>
         )}
       </button>
