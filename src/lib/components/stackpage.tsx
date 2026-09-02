@@ -1159,18 +1159,22 @@ const StackPageContent = ({
                   errorMessage={t("Failed to reload")}
                 />
 
-                {/* Export page JSON (portable, no user info) */}
+                {/* Export page JSON (portable, no user info). Up arrow = data
+                    leaving the app to a file; label shows on PC (sm+). */}
                 <TooltipButton
                   onClick={handleExport}
-                  icon={<ArrowDownTrayIcon className="stack-btn-icon" />}
+                  icon={<ArrowUpTrayIcon className="stack-btn-icon" />}
+                  label={t("Export")}
                   tooltip={t("Export page (JSON)")}
                   className="bg-slate-600 hover:bg-slate-700 text-white"
                 />
 
-                {/* Import page JSON into the current editor */}
+                {/* Import page JSON into the current editor. Down arrow = data
+                    coming into the app from a file; label shows on PC (sm+). */}
                 <TooltipButton
                   onClick={() => importFileRef.current?.click()}
-                  icon={<ArrowUpTrayIcon className="stack-btn-icon" />}
+                  icon={<ArrowDownTrayIcon className="stack-btn-icon" />}
+                  label={t("Import")}
                   tooltip={t("Import page (JSON)")}
                   className="bg-slate-600 hover:bg-slate-700 text-white"
                 />
