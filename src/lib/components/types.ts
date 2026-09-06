@@ -54,6 +54,8 @@ export interface BaseDataSource {
   // Parameter keys that MUST be provided (author sees them and the Test tab blocks
   // running until they have an effective/test value). e.g. ["property_id"].
   requiredParameters?: string[];
+  // Editor-facing explanation for each required parameter.
+  parameterDescriptions?: Record<string, string>;
   // NEW: Wrapper key for array results
   wrapperKey?: string;
   data?: any;

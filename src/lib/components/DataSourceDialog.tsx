@@ -138,6 +138,23 @@ const COMMON_HEADERS = [
   },
 ];
 
+function hostSourceAudience(source: HostFunctionDataSource): string {
+  const id = String(source.id || '').toLowerCase();
+  if (id.includes('member')) return 'Member';
+  if (id.includes('public')) return 'Public';
+  if (id.includes('session') || id.includes('auth') || id.includes('internal')) return 'Staff / Session';
+  return 'Host';
+}
+
+function hostSourceDisplayName(source: HostFunctionDataSource): string {
+  return `${source.name} · ${hostSourceAudience(source)}`;
+}
+
+function hostSourceGroupName(source: HostFunctionDataSource): string {
+  const category = String(source.category || "General").trim();
+  return category ? category.charAt(0).toUpperCase() + category.slice(1) : "General";
+}
+
 // 常用参数预定义
 const COMMON_PARAMS = [
   "page",
@@ -394,6 +411,16 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   const [selectedHostSourceId, setSelectedHostSourceId] = useState<string>(""); // 宿主函数ID
   const [selectedHostSource, setSelectedHostSource] =
     useState<HostFunctionDataSource | null>(null); // 宿主函数对象
+  const groupedHostSources = useMemo(() => {
+    const groups = new Map<string, HostFunctionDataSource[]>();
+    hostDataSources.forEach((source) => {
+      const group = hostSourceGroupName(source);
+      const current = groups.get(group) || [];
+      current.push(source);
+      groups.set(group, current);
+    });
+    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+  }, [hostDataSources]);
   const [hostNameTouched, setHostNameTouched] = useState(false);
 
   // 数据源类型
@@ -1231,11 +1258,14 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                         disabled={isLoadingHostSources}
                       >
                         <option value="">Select a host function...</option>
-                        {hostDataSources.map((source) => (
-                          <option key={source.id} value={source.id}>
-                            {source.name}
-                            {source.category ? ` (${source.category})` : ""}
-                          </option>
+                        {groupedHostSources.map(([group, sources]) => (
+                          <optgroup key={group} label={group}>
+                            {sources.map((source) => (
+                              <option key={source.id} value={source.id}>
+                                {hostSourceDisplayName(source)}
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
                       </select>
                       {isLoadingHostSources && (
@@ -1250,14 +1280,20 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-medium text-gray-900">
-                                {selectedHostSource.name}
+                                {hostSourceDisplayName(selectedHostSource)}
                               </h4>
                               {selectedHostSource.category && (
                                 <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
                                   {selectedHostSource.category}
                                 </span>
                               )}
+                              <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full border border-blue-200">
+                                {hostSourceAudience(selectedHostSource)}
+                              </span>
                             </div>
+                            <p className="text-xs text-gray-500 font-mono mb-2">
+                              id: {selectedHostSource.id}
+                            </p>
                             {selectedHostSource.description && (
                               <p className="text-sm text-gray-600 mb-2">
                                 {selectedHostSource.description}
@@ -1270,12 +1306,16 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                                     Required parameters:
                                   </span>
                                   {selectedHostSource.requiredParameters.map((rp) => (
-                                    <span
-                                      key={rp}
-                                      className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-mono"
-                                    >
-                                      {rp}
-                                    </span>
+                                    <div key={rp} className="w-full flex items-start gap-2">
+                                      <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 font-mono">
+                                        {rp}
+                                      </span>
+                                      {selectedHostSource.parameterDescriptions?.[rp] && (
+                                        <span className="text-gray-600">
+                                          {selectedHostSource.parameterDescriptions[rp]}
+                                        </span>
+                                      )}
+                                    </div>
                                   ))}
                                 </div>
                               )}
