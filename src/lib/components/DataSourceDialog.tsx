@@ -150,11 +150,6 @@ function hostSourceDisplayName(source: HostFunctionDataSource): string {
   return `${source.name} · ${hostSourceAudience(source)}`;
 }
 
-function hostSourceGroupName(source: HostFunctionDataSource): string {
-  const category = String(source.category || "General").trim();
-  return category ? category.charAt(0).toUpperCase() + category.slice(1) : "General";
-}
-
 // 常用参数预定义
 const COMMON_PARAMS = [
   "page",
@@ -411,16 +406,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
   const [selectedHostSourceId, setSelectedHostSourceId] = useState<string>(""); // 宿主函数ID
   const [selectedHostSource, setSelectedHostSource] =
     useState<HostFunctionDataSource | null>(null); // 宿主函数对象
-  const groupedHostSources = useMemo(() => {
-    const groups = new Map<string, HostFunctionDataSource[]>();
-    hostDataSources.forEach((source) => {
-      const group = hostSourceGroupName(source);
-      const current = groups.get(group) || [];
-      current.push(source);
-      groups.set(group, current);
-    });
-    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
-  }, [hostDataSources]);
+  const sortedHostSources = useMemo(
+    () => [...hostDataSources].sort((left, right) => hostSourceDisplayName(left).localeCompare(hostSourceDisplayName(right))),
+    [hostDataSources],
+  );
   const [hostNameTouched, setHostNameTouched] = useState(false);
 
   // 数据源类型
@@ -1258,14 +1247,10 @@ export const DataSourceDialog: React.FC<DataSourceDialogProps> = ({
                         disabled={isLoadingHostSources}
                       >
                         <option value="">Select a host function...</option>
-                        {groupedHostSources.map(([group, sources]) => (
-                          <optgroup key={group} label={group}>
-                            {sources.map((source) => (
-                              <option key={source.id} value={source.id}>
-                                {hostSourceDisplayName(source)}
-                              </option>
-                            ))}
-                          </optgroup>
+                        {sortedHostSources.map((source) => (
+                          <option key={source.id} value={source.id}>
+                            {hostSourceDisplayName(source)}
+                          </option>
                         ))}
                       </select>
                       {isLoadingHostSources && (
