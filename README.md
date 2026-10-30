@@ -1,584 +1,149 @@
 # StackPage
 
-StackPage is a React + TypeScript page builder library built on `gridstack.js`.
-It is designed for drag-and-drop page composition, schema-driven property editing,
-data binding, and page-level event wiring.
-
-## Contents
-
-- [At a glance](#at-a-glance)
-- [Why StackPage exists](#why-stackpage-exists)
-- [Highlights](#highlights)
-- [Event system](#event-system)
-- [How to build a page](#how-to-build-a-page)
-- [Lifecycle events plan](#lifecycle-events-plan)
-- [Architecture](#architecture)
-- [Demo pages](#demo-pages)
-- [Project layout](#project-layout)
-- [Getting started](#getting-started)
-- [Basic usage](#basic-usage)
-- [Host data sources](#host-data-sources)
-- [Runtime widget API](#runtime-widget-api)
-- [i18n](#i18n)
-- [Development notes](#development-notes)
-- [Exported types](#exported-types)
-- [Related docs](#related-docs)
-
-## At a glance
-
-| Area | What it provides |
-| --- | --- |
-| Layout | Drag-and-drop page composition with nested grid support |
-| Editing | Schema-driven property editor, JSON editor, and event editor |
-| Runtime | One contract for edit / preview / view modes |
-| State | Page state, widget props, and shared event bus |
-| Data | Host data sources, bindings, and runtime value resolution |
-| Events | Declarative interaction rules with request/response support |
-| Persistence | Schema-only saved pages plus runtime refetch behavior |
-| Recovery | README + event spec + demo data for easier session handoff |
-
-The library ships with:
-
-- editor / preview / view modes in one runtime
-- nested grid layouts
-- component catalog support
-- schema-based property editing
-- data source bindings
-- page state and interaction rules
-- runtime widget communication API
-- host data source support for reusable page-builder data
-- schema-only persistence for saved pages
-- demo pages, sample widgets, and local JSON demo data
-- runtime tests and build scripts
-- dedicated event-system documentation with diagrams
-
-## Why StackPage exists
-
-StackPage is meant to give you a practical page builder that can:
-
-- compose pages visually
-- bind content to data sources
-- keep page-level state in one place
-- let widgets communicate without custom glue code everywhere
-- support future AI-assisted page building without inventing a second page schema
-
-The core idea is:
-
-> configure page behavior with schema + bindings + interaction rules, then let the runtime execute it.
-
----
-
-## Highlights
-
-- **Drag-and-drop page composition**
-  - based on `gridstack.js`
-  - supports nested sub-grids
-
-- **One runtime for edit / preview / view**
-  - same component contract
-  - same widget communication API
-  - same page state model
-
-- **Schema-driven property editing**
-  - RJSF-based form editor
-  - JSON editor for advanced editing
-  - event definitions visible in the properties workflow
-
-- **Data binding**
-  - binding selectors: `id`, `ids`, `all`
-  - array mapping support
-  - runtime value resolution through the binding engine
-
-- **Page-level interaction rules**
-  - `set-prop`
-  - `set-shared-state`
-  - `emit-event`
-  - `emit-request`
-
-- **Runtime component communication**
-  - `__stackpage.emit(...)`
-  - `__stackpage.emitWithAck(...)`
-  - `__stackpage.subscribe(...)`
-  - `__stackpage.setPageState(...)`
-  - `__stackpage.getPageState(...)`
-
-- **Host data source support**
-  - host-side dynamic data sources
-  - reusable across page builder, AI, and future RAG
-
-- **Demo-friendly recovery surface**
-  - project README for quick orientation
-  - event-system spec with diagrams
-  - seeded demo DB and sample widgets
-
-## Project status
-
-StackPage is actively being used and extended in the monorepo.
-
-- current emphasis: page builder runtime, event rules, and shared data sources
-- docs emphasis: keep specs close to the code so a new session can recover quickly
-- demo emphasis: keep sample widgets simple, visible, and easy to verify
-
----
-
-## Event system
-
-StackPage uses a declarative interaction model.
-
-When a component emits an event, the runtime:
-
-1. matches the event against `__interactions`
-2. resolves the payload value
-3. performs the configured action
-4. optionally emits a follow-up event or request response
-
-This is a runtime rule executor, not AI-generated handler code.
-
-For the full event model, diagrams, and current/future boundaries, see:
-
-- [`docs/event-system-spec.md`](./docs/event-system-spec.md)
-- [`docs/page-builder-workflow-and-ai-plan.md`](./docs/page-builder-workflow-and-ai-plan.md)
-- [`docs/README.md`](./docs/README.md)
-
----
-
-## Lifecycle events plan
-
-Some initialization and load behavior is still hardcoded in components today.
-
-The next planned step is to move page/widget bootstrap logic into first-class lifecycle events exposed through `__stackpage`.
-
-Planned lifecycle events include:
-
-- `page:init`
-- `page:load`
-- `page:ready`
-- `widget:init`
-- `widget:load`
-- `widget:unmount`
-
-For the design plan and migration stages, see:
-
-- [`docs/lifecycle-events-and-stackpage-api-plan.md`](./docs/lifecycle-events-and-stackpage-api-plan.md)
-
-The lifecycle plan now includes a concrete rule schema for future `page:*` and `widget:*` bootstrap events.
-
-The same doc also includes a first implementation checklist for runtime emission points, UI authoring support, migration, and future AI suggestion flow.
-
----
-
-## How to build a page
-
-StackPage page building is currently a manual editor workflow.
-
-### Typical page-building flow
-
-1. define React widgets
-2. register them in `componentMapProvider`
-3. organize them in `componentCatalogProvider`
-4. seed initial props with `componentPropsProvider`
-5. render `<StackPage />`
-6. drag widgets onto the canvas
-7. edit properties, bindings, and events
-8. save the page
-
-### Page-building details
-
-- the page editor stores layout and configuration
-- runtime data is fetched again on load
-- interactions are declarative and rule-based
-- event execution comes from the runtime, not from AI-generated code
-
-### AI-assisted page completion plan
-
-AI-assisted page completion is **planned but not implemented yet**.
-
-The intended future flow is:
-
-1. the assistant inspects the current page
-2. it suggests widgets, props, bindings, and events
-3. the user reviews the draft
-4. the user applies the draft changes
-5. the user saves the page
-
-For the detailed plan and future stages, see:
-
-- [`docs/page-builder-workflow-and-ai-plan.md`](./docs/page-builder-workflow-and-ai-plan.md)
-
----
-
-## Architecture
-
-### Core runtime pieces
-
-- `StackPageProvider`
-  - page attributes
-  - selected widget
-  - widget props
-  - shared page state
-  - event bus
-
-- `GridStackRender` / `GridStackWidgetRenderer`
-  - renders layout items
-  - injects `__stackpage`
-  - routes widget events into runtime rules
-
-- `componentCommunication.ts`
-  - runtime API
-  - event bus
-  - interaction rule executor
-  - request/response support
-
-### Persistence model
-
-Saved page data keeps only the configuration needed to rebuild the page:
-
-- layout
-- page attributes
-- page state
-- source configuration
-- widget metadata
-
-Widget props may contain:
-
-- `__schema`
-- `__bindings`
-- `__ignoredMappings`
-- `__interactions`
-- `__schemaOptions`
-
-Runtime-fetched data is not treated as saved page content.
-
-### Host injection contracts
-
-Host applications provide:
-
-- `componentMapProvider`
-- `componentCatalogProvider`
-- `componentPropsProvider`
-- `getHostDataSources`
-
-This keeps StackPage reusable across different host apps while still letting the host define real business components and data sources.
-
----
-
-## Demo pages
-
-The repo includes demo content under `packages/stackpage/src/demo`.
-
-Notable samples include:
-
-- `Page State Bridge`
-  - shows page state sharing
-  - useful for testing synchronous vs asynchronous state updates
-
-- `Form control sampler`
-  - contains common form controls
-  - useful for testing input behavior
-
-- event-pattern demo pages
-  - select → detail
-  - search → results
-  - submit → confirm
-  - request → reply
-
-### Demo entry points
-
-The main demo page is seeded in `packages/stackpage/data/db.json` and can be
-loaded through the demo app / local JSON server flow.
-
-If you want to verify behavior visually, start with:
-
-- `Page State Bridge`
-  - page state sync and input focus behavior
-- `Form control sampler`
-  - common form controls and local form behavior
-- `Event Patterns Demo`
-  - four canonical event patterns in one layout
-
-The demo DB is stored in:
-
-- `packages/stackpage/data/db.json`
-
----
-
-## Project layout
-
-```text
-packages/stackpage/
-├─ src/
-│  ├─ demo/              # Demo pages and sample widgets
-│  └─ lib/               # StackPage runtime and editor library
-├─ docs/                 # Project docs and specs
-├─ tests/                # Runtime tests
-├─ data/db.json          # Demo page database
-├─ package.json
-└─ vite.config*.ts
+gridstack.js を土台にした、React のページビルダーのライブラリ。
+フロントエンド（`01-ghost-front`）が `packages/stackpage` へのリンクとして使い、ホスト（`apps/host`）は `yarn build:lib` でビルドした `dist/lib` を読む。
+
+## この文書の内容
+
+| 節 | 内容 |
+|---|---|
+| [役割と位置](#役割と位置) | 何をするライブラリか、ホストとの分担 |
+| [ホストとの約束](#ホストとの約束) | `StackPage` の props、HostDataSource、`__bindings`・`__schema` |
+| [イベント](#イベント) | `__stackpage` の API、`__interactions` のルール、lifecycle イベント |
+| [中の構成](#中の構成) | 主なフォルダとファイル |
+| [開発の手順](#開発の手順) | 入れる・ライブラリのビルド・テスト・デモの起動 |
+| [注意](#注意) | 壊しやすい所 |
+| [詳しい文書](#詳しい文書) | このリポジトリの docs と、ホスト側の文書 |
+
+## 役割と位置
+
+- ドラッグ＆ドロップでページのレイアウトを組み、部品の props を編集し、データソースの結果を props に結びつける。
+- 1 つの `<StackPage />` が `pageMode` で edit / preview / view の 3 つを受け持つ。
+- 部品（React コンポーネント）とデータの取得口はホストが渡す。StackPage はレイアウト・props の編集・バインディング・イベントの実行だけをする。
+- 保存するのはページの構成（レイアウト・ページの属性・データソースの設定・部品の props）だけで、データソースから取った値は保存しない。読み込むたびに取り直す。
+
+```mermaid
+flowchart LR
+  subgraph host["01-ghost-front/apps/host"]
+    P["ページ画面<br/>app/pages/**"]
+    DS["HostDataSource<br/>（Ghost のデータの取得口）"]
+    C["部品のマップ・カタログ・初期 props"]
+  end
+  subgraph sp["06-stackpage（dist/lib）"]
+    SP["StackPage"]
+  end
+  P --> SP
+  DS -- getHostDataSources --> SP
+  C -- componentMapProvider ほか --> SP
 ```
 
-### Important source areas
+## ホストとの約束
 
-- `src/lib/components/stackpage.tsx`
-- `src/lib/components/StackPageProvider.tsx`
-- `src/lib/gridstack/grid-stack-render.tsx`
-- `src/lib/gridstack/grid-stack-widget-render.tsx`
-- `src/lib/utils/componentCommunication.ts`
-- `src/lib/components/PropertiesTab.tsx`
-- `src/lib/components/DataTab.tsx`
-- `src/lib/components/JsonTab.tsx`
-- `src/lib/components/InteractionEditorDialog.tsx`
-- `src/demo/components/MyComponents.tsx`
+### `StackPage` の props
 
----
+定義は `src/lib/components/stackpage.tsx` の `StackPageProps`。主なもの:
 
-## Getting started
+| prop | 役割 |
+|---|---|
+| `pageid`・`pageMode` | ページの id と、`"edit" \| "preview" \| "view"` |
+| `onLoadLayout`・`onSaveLayout` | ページの読み込みと保存（ホストが API を呼ぶ） |
+| `componentMapProvider` | 部品名 → React コンポーネント |
+| `componentCatalogProvider` | 部品の一覧タブでの並べ方 |
+| `componentPropsProvider` | 部品を置いたときの初期 props（`__schema` を含めてよい） |
+| `getHostDataSources` | ホストのデータソース（`HostFunctionDataSource[]`）を返す |
+| `urlQuery` | URL の query。データソースの `{{query.*}}` に使う |
+| `i18n` | 画面の文言の翻訳（`StackI18n`） |
 
-This package is primarily used inside the monorepo.
+ホストから使える型と関数は `src/lib/index.ts` が書き出しているものだけ。CSS は `stackpage/styles`（`dist/lib/index.css`）で読む。
 
-### Install dependencies
+### HostDataSource
+
+- 型は `src/lib/components/types.ts` の `HostFunctionDataSource`（`type: "host-function"`、`fetchData(params)`、`hostFunctionId`）。
+- データソースの parameters には `{{query.*}}`・`{{state.*}}`・`{{params.*}}` を書ける。StackPage が先に値を解決し（`src/lib/utils/paramResolver.ts`）、`fetchData` には解決済みの値だけを渡す。ホストの関数はページの状態や URL を直接読まない。
+- 保存したページを読み直したときは関数が無いので、`hostFunctionId` でホストの関数を探して呼ぶ。
+- `{{state.*}}` が変わると、解決後の値が変わったときだけ 350ms 待って取り直す（`src/lib/components/useReactiveDataSources.ts`）。
+
+### 部品の props の予約キー
+
+| キー | 内容 |
+|---|---|
+| `__schema` | Properties タブ（RJSF）で編集する props の JSON Schema |
+| `__schemaOptions` | Properties タブで `__schema` と一緒に使う設定 |
+| `__bindings` | データソースの結果を props のどこに入れるか（`sourceId`・`path`・`selector`） |
+| `__ignoredMappings` | 自動の対応づけから外した項目 |
+| `__interactions` | イベントのルール（次の節） |
+
+保存の前に、`__bindings` で入った値は props から外す（`src/lib/utils/pagePersistence.ts` の `stripRuntimeBoundValuesFromLayout` / `stripRuntimeBoundValuesFromProps`）。
+
+部品とデータソースの書き方の決まり（`__schema` の書き方、`keyword` の名前など）はホスト側の
+[platform/stackpage.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/platform/stackpage.md) にある。
+
+## イベント
+
+部品は props で `__stackpage`（`StackPageRuntimeApi`、`src/lib/utils/componentCommunication.ts`）を受け取る。
+
+- `emit`・`emitWithAck`（返事を待つ）・`subscribe`・`unsubscribe`
+- `setState`・`getState`・`setPageState`・`getPageState`（ページの共有の状態）
+
+部品が出したイベントは、`__interactions` のルール（`InteractionRule`）と照らして実行する。動作は
+`set-prop`・`set-shared-state`・`emit-event`・`emit-request` の 4 つ。ルールの実行はランタイムが行い、部品ごとの処理は書かない。
+
+lifecycle イベントは `widget:init`・`widget:load`・`widget:unmount` を部品の描画（`src/lib/gridstack/grid-stack-widget-render.tsx`）が出す。
+`page:init`・`page:load`・`page:ready` は型と `createStackPagePageLifecycleTracker` があるだけで、ライブラリの中からは出していない。
+
+詳しくは [docs/event-system-spec.md](docs/event-system-spec.md) と、ホスト側の
+[platform/stackpage-event-guide.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/platform/stackpage-event-guide.md)。
+
+## 中の構成
+
+| 場所 | 内容 |
+|---|---|
+| `src/lib/` | ライブラリ本体。入口は `src/lib/index.ts` |
+| `src/lib/components/` | `stackpage.tsx`・`StackPageProvider.tsx`、編集のタブとダイアログ、`DataSourceService.ts`・`useDataBinding.ts` |
+| `src/lib/gridstack/` | gridstack の描画（`grid-stack-render.tsx`・`grid-stack-widget-render.tsx`） |
+| `src/lib/utils/` | バインディング（`bindingEngine.ts`）・イベント（`componentCommunication.ts`）・パラメータ・保存の処理 |
+| `src/demo/` | デモのアプリと見本の部品 |
+| `data/db.json` | デモのページのデータ（json-server が読む） |
+| `tests/` | ランタイムのテスト（`vite-node` で 1 ファイルずつ動かす） |
+| `docs/` | 仕様と計画の文書 |
+
+ビルドの出力は `dist/lib`（ライブラリ）と `dist/demo`（デモ）。`dist/` は git に入っていない。
+
+## 開発の手順
 
 ```bash
-yarn
+cd ~/work/legacy/06-stackpage
+yarn install
+yarn build:lib       # tsc の型検査のあと dist/lib を作る。ホストはこれを読む
+yarn test:runtime    # ランタイムのテストをまとめて動かす
 ```
 
-### Run the demo app
+- 1 つだけ動かすときは `yarn test:binding`・`yarn test:communication`・`yarn test:page-state` など（`package.json` の `test:*`）。
+  `tests/` には `test:runtime` に入っていないファイル（`page-persistence`・`runtime-api`・`schema-formats`・`schema-uri`）もあり、
+  それらは `npx vite-node tests/<file>` で動かす。
+- デモ: `yarn jsonserver`（`data/db.json` をポート 3500 で出す）と `yarn dev`（Vite）を別々に起動する。
+  Vite は `/api` を `http://localhost:3500` へ中継する（`vite.config.ts`）。
+- `yarn build` は `build:lib` と `build:demo` の両方をする。
 
-```bash
-yarn --cwd packages/stackpage dev
-```
+ホストと合わせて動かす手順は
+[06-business-libs-estate.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/development/06-business-libs-estate.md) と
+[04-frontend.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/development/04-frontend.md)。
 
-### Run the local JSON server for the demo DB
+## 注意
 
-```bash
-yarn --cwd packages/stackpage jsonserver
-```
+- ホストは `dist/lib` を読む。`src` を直したら `yarn build:lib` し直さないと、ホストには反映されない。
+- `src/lib/index.ts` の書き出しや `StackPageProps` を変えると、ホストの型検査やビルドが壊れる。変えたらホスト側も確かめる。
+- 保存済みのページの JSON（`__bindings`・`__interactions`・データソースの設定）はホストの DB に残っている。形を変えるときは古いページも読めるようにする。
+- デバッグの log は `localStorage.setItem("stackpage:debug", "1")` で出る（バインディングだけなら `stackpage:debug:binding`）。
 
-### Build the library
+## 詳しい文書
 
-```bash
-yarn --cwd packages/stackpage build:lib
-```
+- [docs/README.md](docs/README.md) — このリポジトリの docs の入口
+- [docs/event-system-spec.md](docs/event-system-spec.md) — イベントとルールの仕様
+- [docs/lifecycle-events-and-stackpage-api-plan.md](docs/lifecycle-events-and-stackpage-api-plan.md) — lifecycle イベントの計画
+- [docs/page-builder-workflow-and-ai-plan.md](docs/page-builder-workflow-and-ai-plan.md) — ページの組み方と、AI の補助の計画
+- ホスト側（jibunsee-react）:
+  [platform/stackpage.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/platform/stackpage.md)・
+  [01-workspace.md](https://github.com/aidabo/jibunsee-react/blob/main/docs/development/01-workspace.md)
 
-### Build the demo bundle
-
-```bash
-yarn --cwd packages/stackpage build:demo
-```
-
-### Run runtime tests
-
-```bash
-yarn --cwd packages/stackpage test:runtime
-```
-
-Individual runtime tests:
-
-- `yarn --cwd packages/stackpage test:binding`
-- `yarn --cwd packages/stackpage test:communication`
-- `yarn --cwd packages/stackpage test:page-state`
-
----
-
-## Basic usage
-
-```tsx
-import {
-  StackPage,
-  type ComponentMapProvider,
-  type ComponentCatalogProvider,
-  type ComponentPropsProvider,
-  type LoadLayoutFn,
-  type SaveLayoutFn,
-} from "stackpage";
-
-const componentMapProvider: ComponentMapProvider = () => ({
-  Hero: (props) => <div>{props.title}</div>,
-  CardList: (props) => <pre>{JSON.stringify(props.items, null, 2)}</pre>,
-});
-
-const componentCatalogProvider: ComponentCatalogProvider = () => ({
-  common: ["Hero"],
-  businesses: [
-    { id: "portal", label: "Portal", components: ["CardList"] },
-  ],
-});
-
-const componentPropsProvider: ComponentPropsProvider = () => ({
-  Hero: { title: "Hello" },
-  CardList: { items: [] },
-});
-
-const onLoadLayout: LoadLayoutFn = async (pageid) => {
-  return fetch(`/api/pages/${pageid}`).then((r) => r.json());
-};
-
-const onSaveLayout: SaveLayoutFn = async (pageProps) => {
-  await fetch(`/api/pages/${pageProps.id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(pageProps),
-  });
-};
-
-export default function Editor({ pageid }: { pageid: string }) {
-  return (
-    <StackPage
-      pageid={pageid}
-      pageMode="edit"
-      onLoadLayout={onLoadLayout}
-      onSaveLayout={onSaveLayout}
-      componentMapProvider={componentMapProvider}
-      componentCatalogProvider={componentCatalogProvider}
-      componentPropsProvider={componentPropsProvider}
-    />
-  );
-}
-```
-
----
-
-## Host data sources
-
-StackPage supports host-side dynamic data sources through `getHostDataSources`.
-
-Use this when the host app needs to expose reusable page-builder data:
-
-```ts
-import type { GetHostDataSourcesFn } from "stackpage";
-
-const getHostDataSources: GetHostDataSourcesFn = async () => [
-  {
-    id: "host-post-search",
-    type: "host-function",
-    name: "Post Search",
-    hostFunctionId: "post-search",
-    fetchData: async (params) => {
-      const q = params?.q ?? "";
-      return fetch(`/api/posts?q=${encodeURIComponent(q)}`).then((r) =>
-        r.json()
-      );
-    },
-  },
-];
-```
-
-### Dynamic parameter lifecycle
-
-Datasource parameters may use `{{query.*}}`, `{{state.*}}`, and
-`{{params.*}}`. StackPage resolves these tokens before calling a host function;
-the host function receives concrete values and must not depend on StackPage page
-state or browser routing directly.
-
-```text
-saved parameters
-  -> resolveParams({query, state, params})
-  -> DataSourceService merge
-  -> HostDataSource.fetchData(concreteParams)
-  -> runtime data cache
-  -> __bindings
-  -> widget props
-```
-
-- `query` and route `params` resolve during page-load pre-fetch.
-- Initial `state` also resolves during page-load pre-fetch.
-- A changed `{{state.*}}` value triggers a debounced reactive re-fetch only
-  when its resolved parameter signature changed.
-- An emitted component event does not fetch by itself; it must write a state
-  path referenced by the datasource, or another explicit caller must fetch.
-- The Data Source dialog Test uses non-persisted Test values because live
-  URL/state/route context is unavailable there.
-- Newly edited datasources can use their in-memory direct `fetchData`; saved and
-  reloaded pages use `hostFunctionId` registry lookup. Both paths merge params as
-  `{...dataSource.parameters, ...callTimeParams}`, so explicit call-time/Test
-  values win.
-- `__bindings` map fetched results into widget props. They do not resolve or
-  trigger datasource parameters.
-
----
-
-## Runtime widget API
-
-Rendered widgets receive `__stackpage`.
-
-### Available methods
-
-- `emit(eventName, payload?)`
-- `emitWithAck(eventName, payload?, { responseEvent?, timeoutMs? })`
-- `subscribe(eventName, handler)`
-- `unsubscribe(unsubscribeFn)`
-- `setState(path, value)`
-- `getState(path, defaultValue?)`
-- `setPageState(path, value)`
-- `getPageState(path, defaultValue?)`
-
-Use this API for custom widget behavior and pair it with declarative `__interactions` rules when you want the runtime to manage the wiring.
-
-### Included demo and docs assets
-
-To make the project easier to recover after a session interruption, the repo also includes:
-
-- `docs/event-system-spec.md`
-- demo widgets such as:
-  - `Page State Bridge`
-  - `Form control sampler`
-  - event-pattern samples for select/search/submit/request
-- `data/db.json` for local demo pages
-- runtime tests under `tests/`
-
----
-
-## i18n
-
-Pass an `i18n` prop from the host app:
-
-```tsx
-<StackPage
-  i18n={{
-    locale: "ja",
-    t: (text) => translate(text),
-  }}
-/>
-```
-
-Notes:
-
-- current extraction expects `t("string literal")` in render paths
-- using variables like `t(text)` makes automatic extraction harder
-
----
-
-## Development notes
-
-- Edit-heavy panels and dialogs are lazy-loaded for better view-mode performance.
-- Debug logs are browser-flag controlled:
-  - enable: `localStorage.setItem("stackpage:debug", "1")`
-  - disable: `localStorage.removeItem("stackpage:debug")`
-- The demo DB lives in `packages/stackpage/data/db.json`
-- Event rules are documented in `docs/event-system-spec.md`
-
----
-
-## Exported types
-
-Selected public types include:
-
-- `StackPageProps`
-- `PageProps`
-- `ComponentMapProvider`
-- `ComponentCatalogProvider`
-- `ComponentPropsProvider`
-- `GetHostDataSourcesFn`
-- `DataSource`
-- `HostFunctionDataSource`
-- `InteractionRule`
-- `StackPageRuntimeApi`
-- `StackPageEventAction`
-- `StackPageEventSubscription`
-
----
-
-## Related docs
-
-- `packages/stackpage/src/demo/components/MyComponents.tsx`
-- `packages/stackpage/src/lib/utils/componentCommunication.ts`
-- `packages/stackpage/src/lib/components/StackPageProvider.tsx`
+ライセンスは `package.json` のとおり MIT。
