@@ -111,6 +111,8 @@ lifecycle イベントは `widget:init`・`widget:load`・`widget:unmount` を�
 
 ## 開発の手順
 
+GhostとFrontendを含むEstate全体の構築・起動は、[ローカル全体環境ガイド](https://github.com/aidabo/jibunsee-react/blob/main/docs/development/00-local-full-stack.md)を参照してください。StackPageをFrontendで使うには、このlibraryの`dist/lib` buildが必要です。
+
 ```bash
 cd ~/work/legacy/06-stackpage
 yarn install
