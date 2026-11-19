@@ -294,6 +294,11 @@ export function ensureEditorDropZone(options: GridStackOptions | GridStackWidget
   return { ...baseOptions, minRow, children };
 }
 
+/**
+ * Remove editor-only minRow expansion before persistence. Existing children
+ * restore their initial minRow; new sub-grids retain the standard nested-grid
+ * default instead of losing minRow altogether.
+ */
 export function restorePersistedGridMinRows(
   layout: GridStackOptions | GridStackWidget[] | undefined,
   base: GridStackOptions | undefined,
@@ -304,7 +309,7 @@ export function restorePersistedGridMinRows(
     return layout.map((child) => {
       const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
       return child.subGridOpts
-        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.minRow) as any }
+        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.subGridOpts?.minRow) as any }
         : child;
     });
   }
@@ -320,7 +325,7 @@ export function restorePersistedGridMinRows(
   restored.children = (layout.children || []).map((child) => {
     const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
     return child.subGridOpts
-      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.minRow) as any }
+      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.subGridOpts?.minRow) as any }
       : child;
   });
   return restored;
