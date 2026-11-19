@@ -10,6 +10,7 @@ const standardValidator = customizeValidator();
  */
 export function isOptionalSchemaColor(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  if (value.trim() === "") return true;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "" || normalized === "transparent") return true;
   return standardValidator.isValid(colorSchema, value, colorSchema);
 }

@@ -279,6 +279,50 @@ const cssColorWithOpacity = (color: string, opacity: number) => {
   return normalizedColor;
 };
 
+const EDIT_DROP_ZONE_ROWS = 4;
+
+export function ensureEditorDropZone(options: GridStackOptions | GridStackWidget[]): GridStackOptions {
+  const children = Array.isArray(options) ? options : options?.children || [];
+  const baseOptions = Array.isArray(options) ? { ...gridOptions } : { ...options };
+  const maxBottom = children.reduce((bottom, child) => {
+    const y = Number(child?.y) || 0;
+    const h = Math.max(1, Number(child?.h) || 1);
+    return Math.max(bottom, y + h);
+  }, 0);
+  const configuredMinRow = Array.isArray(options) ? 0 : Number(options.minRow) || 0;
+  const minRow = Math.max(configuredMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
+  return { ...baseOptions, minRow, children };
+}
+
+export function restorePersistedGridMinRows(
+  layout: GridStackOptions | GridStackWidget[] | undefined,
+  base: GridStackOptions | undefined,
+): GridStackOptions | GridStackWidget[] | undefined {
+  if (!layout) return layout;
+  if (Array.isArray(layout)) {
+    return layout.map((child) => {
+      const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
+      return child.subGridOpts
+        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+        : child;
+    });
+  }
+
+  const restored: GridStackOptions = { ...layout };
+  if (base && Object.prototype.hasOwnProperty.call(base, "minRow")) {
+    restored.minRow = base.minRow;
+  } else {
+    delete restored.minRow;
+  }
+  restored.children = (layout.children || []).map((child) => {
+    const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
+    return child.subGridOpts
+      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+      : child;
+  });
+  return restored;
+}
+
 type EditorTabKey =
   | "components"
   | "properties"
@@ -463,6 +507,32 @@ const StackPageContent = ({
 
     grid.opts.acceptWidgets = editable;
     grid.opts.alwaysShowResizeHandle = editable ? true : false;
+
+    // Keep the editor-only bottom drop area on the live GridStack instance.
+    // Updating opts here avoids changing StackPageProvider's initialOptions,
+    // which would destroy and recreate the grid when switching modes.
+    const gridWithBaseMinRow = grid as GridStack & {
+      __stackpageBaseMinRow?: number;
+      __stackpageRefreshDropZone?: () => void;
+    };
+    const refreshDropZone = () => {
+      const baseMinRow = gridWithBaseMinRow.__stackpageBaseMinRow ?? (Number(grid.opts.minRow) || 0);
+      gridWithBaseMinRow.__stackpageBaseMinRow = baseMinRow;
+      const maxBottom = grid.engine.nodes.reduce(
+        (bottom, node) => Math.max(bottom, (Number(node.y) || 0) + Math.max(1, Number(node.h) || 1)),
+        0,
+      );
+      const editorMinRow = Math.max(baseMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
+      grid.updateOptions({ minRow: editable ? editorMinRow : baseMinRow });
+    };
+    if (!gridWithBaseMinRow.__stackpageRefreshDropZone) {
+      gridWithBaseMinRow.__stackpageRefreshDropZone = () => {
+        if (grid.opts.acceptWidgets) refreshDropZone();
+      };
+      grid.on("change", gridWithBaseMinRow.__stackpageRefreshDropZone);
+      grid.on("resizestop", gridWithBaseMinRow.__stackpageRefreshDropZone);
+    }
+    refreshDropZone();
 
     if (editable) {
       grid.setStatic(false);
@@ -742,6 +812,7 @@ const StackPageContent = ({
       // Bound values are runtime DataSource results. Persist only the binding
       // definition; data is fetched and resolved again when the page loads.
       layout = stripRuntimeBoundValuesFromLayout(layout);
+      layout = restorePersistedGridMinRows(layout, initialOptions);
     }
     const savedSource = stripRuntimeDataFromSource(source);
     const currentPageId = String(pageid || pageProps?.id || "").trim();
@@ -985,6 +1056,7 @@ const StackPageContent = ({
           // such as search result
           ...dropEvent.props,
         };
+        const targetGrid = stackActionsRef.current?._currentGridStack?.value as any;
         stackActionsRef.current.addWidget((_id) => ({
           ...dropEvent,
           sizeToContent: true,
@@ -992,7 +1064,8 @@ const StackPageContent = ({
             name: dropEvent.name,
             props: props,
           }),
-        }), (stackActionsRef.current?._currentGridStack?.value as any));
+        }), targetGrid);
+        if (targetGrid) applyEditMode(targetGrid, currentMode === "edit");
       } else {
         stackActionsRef.current.addSubGrid(
           (_id) => ({
@@ -1045,6 +1118,8 @@ const StackPageContent = ({
 
   const gridStackRootStyle = useMemo(() => {
     return {
+      // The live GridStack minRow is expanded in applyEditMode; keep CSS
+      // sizing mode-independent so switching edit/preview cannot reinitialize it.
       minHeight: "100%",
       width: "100%",
       // Keep the root transparent when a page image is present so the
@@ -1235,7 +1310,7 @@ const StackPageContent = ({
           {/* Main Content */}
           <div
             className={`flex-1 transition-all duration-200 
-              ${showEditor && currentMode === "edit"
+              ${currentMode === "edit"
                 ? "overflow-auto"
                 : "overflow-hidden"
               }`}
