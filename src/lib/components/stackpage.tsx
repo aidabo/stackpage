@@ -294,6 +294,35 @@ export function ensureEditorDropZone(options: GridStackOptions | GridStackWidget
   return { ...baseOptions, minRow, children };
 }
 
+export function restorePersistedGridMinRows(
+  layout: GridStackOptions | GridStackWidget[] | undefined,
+  base: GridStackOptions | undefined,
+): GridStackOptions | GridStackWidget[] | undefined {
+  if (!layout) return layout;
+  if (Array.isArray(layout)) {
+    return layout.map((child) => {
+      const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
+      return child.subGridOpts
+        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+        : child;
+    });
+  }
+
+  const restored: GridStackOptions = { ...layout };
+  if (base && Object.prototype.hasOwnProperty.call(base, "minRow")) {
+    restored.minRow = base.minRow;
+  } else {
+    delete restored.minRow;
+  }
+  restored.children = (layout.children || []).map((child) => {
+    const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
+    return child.subGridOpts
+      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+      : child;
+  });
+  return restored;
+}
+
 type EditorTabKey =
   | "components"
   | "properties"
@@ -482,15 +511,28 @@ const StackPageContent = ({
     // Keep the editor-only bottom drop area on the live GridStack instance.
     // Updating opts here avoids changing StackPageProvider's initialOptions,
     // which would destroy and recreate the grid when switching modes.
-    const gridWithBaseMinRow = grid as GridStack & { __stackpageBaseMinRow?: number };
-    const baseMinRow = gridWithBaseMinRow.__stackpageBaseMinRow ?? (Number(grid.opts.minRow) || 0);
-    gridWithBaseMinRow.__stackpageBaseMinRow = baseMinRow;
-    const maxBottom = grid.engine.nodes.reduce(
-      (bottom, node) => Math.max(bottom, (Number(node.y) || 0) + Math.max(1, Number(node.h) || 1)),
-      0,
-    );
-    const editorMinRow = Math.max(baseMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
-    grid.updateOptions({ minRow: editable ? editorMinRow : baseMinRow });
+    const gridWithBaseMinRow = grid as GridStack & {
+      __stackpageBaseMinRow?: number;
+      __stackpageRefreshDropZone?: () => void;
+    };
+    const refreshDropZone = () => {
+      const baseMinRow = gridWithBaseMinRow.__stackpageBaseMinRow ?? (Number(grid.opts.minRow) || 0);
+      gridWithBaseMinRow.__stackpageBaseMinRow = baseMinRow;
+      const maxBottom = grid.engine.nodes.reduce(
+        (bottom, node) => Math.max(bottom, (Number(node.y) || 0) + Math.max(1, Number(node.h) || 1)),
+        0,
+      );
+      const editorMinRow = Math.max(baseMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
+      grid.updateOptions({ minRow: editable ? editorMinRow : baseMinRow });
+    };
+    if (!gridWithBaseMinRow.__stackpageRefreshDropZone) {
+      gridWithBaseMinRow.__stackpageRefreshDropZone = () => {
+        if (grid.opts.acceptWidgets) refreshDropZone();
+      };
+      grid.on("change", gridWithBaseMinRow.__stackpageRefreshDropZone);
+      grid.on("resizestop", gridWithBaseMinRow.__stackpageRefreshDropZone);
+    }
+    refreshDropZone();
 
     if (editable) {
       grid.setStatic(false);
@@ -770,6 +812,7 @@ const StackPageContent = ({
       // Bound values are runtime DataSource results. Persist only the binding
       // definition; data is fetched and resolved again when the page loads.
       layout = stripRuntimeBoundValuesFromLayout(layout);
+      layout = restorePersistedGridMinRows(layout, initialOptions);
     }
     const savedSource = stripRuntimeDataFromSource(source);
     const currentPageId = String(pageid || pageProps?.id || "").trim();

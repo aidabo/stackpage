@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { gridOptions } from "../src/lib/components/stackoptions";
-import { ensureEditorDropZone } from "../src/lib/components/stackpage";
+import { ensureEditorDropZone, restorePersistedGridMinRows } from "../src/lib/components/stackpage";
 
 function main() {
   const layout = [{ id: "widget-1", content: "{}" }];
@@ -24,6 +24,12 @@ function main() {
     children: [{ id: "bottom", y: 12, h: 2 } as any],
   });
   assert.equal(fullOptions.minRow, 18);
+
+  const saved = restorePersistedGridMinRows(
+    { minRow: 18, children: [{ id: "bottom", y: 12, h: 2 } as any] },
+    { minRow: 10, children: [{ id: "bottom", y: 12, h: 2 } as any] },
+  ) as any;
+  assert.equal(saved.minRow, 10);
 
   console.log("preview-mode.runtime.test.ts: OK");
 }
