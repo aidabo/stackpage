@@ -294,16 +294,22 @@ export function ensureEditorDropZone(options: GridStackOptions | GridStackWidget
   return { ...baseOptions, minRow, children };
 }
 
+/**
+ * Remove editor-only minRow expansion before persistence. Existing children
+ * restore their initial minRow; new sub-grids retain the standard nested-grid
+ * default instead of losing minRow altogether.
+ */
 export function restorePersistedGridMinRows(
   layout: GridStackOptions | GridStackWidget[] | undefined,
   base: GridStackOptions | undefined,
+  fallbackMinRow?: number,
 ): GridStackOptions | GridStackWidget[] | undefined {
   if (!layout) return layout;
   if (Array.isArray(layout)) {
     return layout.map((child) => {
       const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
       return child.subGridOpts
-        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+        ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.subGridOpts?.minRow) as any }
         : child;
     });
   }
@@ -311,13 +317,15 @@ export function restorePersistedGridMinRows(
   const restored: GridStackOptions = { ...layout };
   if (base && Object.prototype.hasOwnProperty.call(base, "minRow")) {
     restored.minRow = base.minRow;
+  } else if (fallbackMinRow !== undefined) {
+    restored.minRow = fallbackMinRow;
   } else {
     delete restored.minRow;
   }
   restored.children = (layout.children || []).map((child) => {
     const baseChild = base?.children?.find((candidate) => candidate.id === child.id);
     return child.subGridOpts
-      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts) as any }
+      ? { ...child, subGridOpts: restorePersistedGridMinRows(child.subGridOpts, baseChild?.subGridOpts, baseChild ? undefined : subGridOptions.subGridOpts?.minRow) as any }
       : child;
   });
   return restored;
@@ -516,6 +524,7 @@ const StackPageContent = ({
       __stackpageRefreshDropZone?: () => void;
     };
     const refreshDropZone = () => {
+      const editableNow = Boolean(grid.opts.acceptWidgets);
       const baseMinRow = gridWithBaseMinRow.__stackpageBaseMinRow ?? (Number(grid.opts.minRow) || 0);
       gridWithBaseMinRow.__stackpageBaseMinRow = baseMinRow;
       const maxBottom = grid.engine.nodes.reduce(
@@ -523,12 +532,13 @@ const StackPageContent = ({
         0,
       );
       const editorMinRow = Math.max(baseMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
-      grid.updateOptions({ minRow: editable ? editorMinRow : baseMinRow });
+      const nextMinRow = editableNow ? editorMinRow : baseMinRow;
+      if (Number(grid.opts.minRow) !== nextMinRow) grid.updateOptions({ minRow: nextMinRow });
     };
     if (!gridWithBaseMinRow.__stackpageRefreshDropZone) {
-      gridWithBaseMinRow.__stackpageRefreshDropZone = () => {
-        if (grid.opts.acceptWidgets) refreshDropZone();
-      };
+      // Read live acceptWidgets so preview -> edit does not retain the first
+      // invocation's editable=false closure.
+      gridWithBaseMinRow.__stackpageRefreshDropZone = refreshDropZone;
       grid.on("change", gridWithBaseMinRow.__stackpageRefreshDropZone);
       grid.on("resizestop", gridWithBaseMinRow.__stackpageRefreshDropZone);
     }

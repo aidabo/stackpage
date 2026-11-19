@@ -31,6 +31,12 @@ function main() {
   ) as any;
   assert.equal(saved.minRow, 10);
 
+  const newSubGrid = restorePersistedGridMinRows(
+    { minRow: 10, children: [{ id: "new-subgrid", subGridOpts: { minRow: 14, children: [] } } as any] },
+    { minRow: 10, children: [] },
+  ) as any;
+  assert.equal(newSubGrid.children[0].subGridOpts.minRow, 6);
+
   console.log("preview-mode.runtime.test.ts: OK");
 }
 

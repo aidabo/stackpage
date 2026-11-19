@@ -26,6 +26,7 @@
     },
     "scripts": {
         "dev": "vite",
+        "test": "yarn test:runtime",
         "build": "yarn build:lib && yarn build:demo",
         "build:lib": "tsc -p tsconfig.lib.json && NODE_OPTIONS='--no-warnings' vite build --config vite.config.lib.ts",
         "build:demo": "NODE_OPTIONS='--no-warnings' vite build",
