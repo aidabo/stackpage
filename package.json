@@ -40,10 +40,11 @@
         "test:lifecycle": "vite-node tests/widget-lifecycle.runtime.test.ts && vite-node tests/widget-load.runtime.test.ts && vite-node tests/page-lifecycle.runtime.test.ts && vite-node tests/interaction-once.runtime.test.ts",
         "test:page-state": "vite-node tests/page-state.runtime.test.ts",
         "test:preview-mode": "vite-node tests/preview-mode.runtime.test.ts",
+        "test:schema-formats": "vite-node tests/schema-formats.runtime.test.ts",
         "test:fold-fixture": "vite-node tests/fold-post-demo.runtime.test.ts",
         "test:realestate-fixture": "vite-node tests/realestate-demo.runtime.test.ts",
         "test:media-fixture": "vite-node tests/media-location-demo.runtime.test.ts",
-        "test:runtime": "yarn test:binding && yarn test:param-resolver && yarn test:dynamic-params && yarn test:reactive-params && yarn test:page-interactions && yarn test:communication && yarn test:component-map && yarn test:shared-input && yarn test:preview-mode && yarn test:lifecycle && yarn test:page-state && yarn test:demo-fixture && yarn test:fold-fixture && yarn test:media-fixture && yarn test:realestate-fixture",
+        "test:runtime": "yarn test:binding && yarn test:param-resolver && yarn test:dynamic-params && yarn test:reactive-params && yarn test:page-interactions && yarn test:communication && yarn test:component-map && yarn test:shared-input && yarn test:preview-mode && yarn test:schema-formats && yarn test:lifecycle && yarn test:page-state && yarn test:demo-fixture && yarn test:fold-fixture && yarn test:media-fixture && yarn test:realestate-fixture",
         "test:demo-fixture": "vite-node tests/jsonserver-demo.runtime.test.ts",
         "jsonserver": "npx json-server --watch ./data/db.json --port 3500"
     },

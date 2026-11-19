@@ -4,7 +4,7 @@ import { ensureEditorDropZone } from "../src/lib/components/stackpage";
 
 function main() {
   const layout = [{ id: "widget-1", content: "{}" }];
-  const previewOptions = ensureEditorDropZone({ children: layout as any });
+  const previewOptions = ensureEditorDropZone({ minRow: 10, children: layout as any });
 
   assert.equal(previewOptions.children, layout);
   assert.equal(previewOptions.children?.length, 1);

@@ -281,15 +281,17 @@ const cssColorWithOpacity = (color: string, opacity: number) => {
 
 const EDIT_DROP_ZONE_ROWS = 4;
 
-export function ensureEditorDropZone(options: GridStackOptions): GridStackOptions {
+export function ensureEditorDropZone(options: GridStackOptions | GridStackWidget[]): GridStackOptions {
   const children = Array.isArray(options) ? options : options?.children || [];
+  const baseOptions = Array.isArray(options) ? { ...gridOptions } : { ...options };
   const maxBottom = children.reduce((bottom, child) => {
     const y = Number(child?.y) || 0;
     const h = Math.max(1, Number(child?.h) || 1);
     return Math.max(bottom, y + h);
   }, 0);
-  const minRow = Math.max(Number(options?.minRow) || 0, maxBottom + EDIT_DROP_ZONE_ROWS);
-  return { ...(options as GridStackOptions), minRow, children };
+  const configuredMinRow = Array.isArray(options) ? 0 : Number(options.minRow) || 0;
+  const minRow = Math.max(configuredMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
+  return { ...baseOptions, minRow, children };
 }
 
 type EditorTabKey =
@@ -476,6 +478,19 @@ const StackPageContent = ({
 
     grid.opts.acceptWidgets = editable;
     grid.opts.alwaysShowResizeHandle = editable ? true : false;
+
+    // Keep the editor-only bottom drop area on the live GridStack instance.
+    // Updating opts here avoids changing StackPageProvider's initialOptions,
+    // which would destroy and recreate the grid when switching modes.
+    const gridWithBaseMinRow = grid as GridStack & { __stackpageBaseMinRow?: number };
+    const baseMinRow = gridWithBaseMinRow.__stackpageBaseMinRow ?? (Number(grid.opts.minRow) || 0);
+    gridWithBaseMinRow.__stackpageBaseMinRow = baseMinRow;
+    const maxBottom = grid.engine.nodes.reduce(
+      (bottom, node) => Math.max(bottom, (Number(node.y) || 0) + Math.max(1, Number(node.h) || 1)),
+      0,
+    );
+    const editorMinRow = Math.max(baseMinRow, maxBottom + EDIT_DROP_ZONE_ROWS);
+    grid.updateOptions({ minRow: editable ? editorMinRow : baseMinRow });
 
     if (editable) {
       grid.setStatic(false);
@@ -998,6 +1013,7 @@ const StackPageContent = ({
           // such as search result
           ...dropEvent.props,
         };
+        const targetGrid = stackActionsRef.current?._currentGridStack?.value as any;
         stackActionsRef.current.addWidget((_id) => ({
           ...dropEvent,
           sizeToContent: true,
@@ -1005,7 +1021,8 @@ const StackPageContent = ({
             name: dropEvent.name,
             props: props,
           }),
-        }), (stackActionsRef.current?._currentGridStack?.value as any));
+        }), targetGrid);
+        if (targetGrid) applyEditMode(targetGrid, currentMode === "edit");
       } else {
         stackActionsRef.current.addSubGrid(
           (_id) => ({
@@ -1058,22 +1075,18 @@ const StackPageContent = ({
 
   const gridStackRootStyle = useMemo(() => {
     return {
-      minHeight: currentMode === "edit" ? "calc(100% + 4rem)" : "100%",
+      // The live GridStack minRow is expanded in applyEditMode; keep CSS
+      // sizing mode-independent so switching edit/preview cannot reinitialize it.
+      minHeight: "100%",
       width: "100%",
       // Keep the root transparent when a page image is present so the
       // independent image layer remains visible behind the widgets.
       backgroundColor: attributes.image ? "transparent" : pageBackgroundColor,
     };
   }, [
-    currentMode,
     attributes.image,
     pageBackgroundColor,
   ]);
-
-  const renderedGridOptions = useMemo(
-    () => (currentMode === "edit" ? ensureEditorDropZone(initialOptions) : initialOptions),
-    [currentMode, initialOptions],
-  );
 
   const containerStyle =
     currentMode === "edit"
@@ -1084,7 +1097,7 @@ const StackPageContent = ({
       : undefined;
 
   return (
-    <GridStackProvider key={resetKey} initialOptions={renderedGridOptions}>
+    <GridStackProvider key={resetKey} initialOptions={initialOptions}>
       <div
         className="text-black flex flex-col stack-page-container h-full min-h-0 bg-transparent"
         style={containerStyle}
