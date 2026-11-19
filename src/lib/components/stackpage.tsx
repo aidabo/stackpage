@@ -279,6 +279,19 @@ const cssColorWithOpacity = (color: string, opacity: number) => {
   return normalizedColor;
 };
 
+const EDIT_DROP_ZONE_ROWS = 4;
+
+export function ensureEditorDropZone(options: GridStackOptions): GridStackOptions {
+  const children = Array.isArray(options) ? options : options?.children || [];
+  const maxBottom = children.reduce((bottom, child) => {
+    const y = Number(child?.y) || 0;
+    const h = Math.max(1, Number(child?.h) || 1);
+    return Math.max(bottom, y + h);
+  }, 0);
+  const minRow = Math.max(Number(options?.minRow) || 0, maxBottom + EDIT_DROP_ZONE_ROWS);
+  return { ...(options as GridStackOptions), minRow, children };
+}
+
 type EditorTabKey =
   | "components"
   | "properties"
@@ -1045,16 +1058,22 @@ const StackPageContent = ({
 
   const gridStackRootStyle = useMemo(() => {
     return {
-      minHeight: "100%",
+      minHeight: currentMode === "edit" ? "calc(100% + 4rem)" : "100%",
       width: "100%",
       // Keep the root transparent when a page image is present so the
       // independent image layer remains visible behind the widgets.
       backgroundColor: attributes.image ? "transparent" : pageBackgroundColor,
     };
   }, [
+    currentMode,
     attributes.image,
     pageBackgroundColor,
   ]);
+
+  const renderedGridOptions = useMemo(
+    () => (currentMode === "edit" ? ensureEditorDropZone(initialOptions) : initialOptions),
+    [currentMode, initialOptions],
+  );
 
   const containerStyle =
     currentMode === "edit"
@@ -1065,7 +1084,7 @@ const StackPageContent = ({
       : undefined;
 
   return (
-    <GridStackProvider key={resetKey} initialOptions={initialOptions}>
+    <GridStackProvider key={resetKey} initialOptions={renderedGridOptions}>
       <div
         className="text-black flex flex-col stack-page-container h-full min-h-0 bg-transparent"
         style={containerStyle}
@@ -1235,7 +1254,7 @@ const StackPageContent = ({
           {/* Main Content */}
           <div
             className={`flex-1 transition-all duration-200 
-              ${showEditor && currentMode === "edit"
+              ${currentMode === "edit"
                 ? "overflow-auto"
                 : "overflow-hidden"
               }`}

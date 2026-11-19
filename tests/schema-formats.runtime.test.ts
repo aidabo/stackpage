@@ -27,6 +27,7 @@ assert.equal(
 
 assert.equal(isOptionalSchemaColor("#ffffff"), true);
 assert.equal(isOptionalSchemaColor("rgb(0, 0, 0)"), true);
+assert.equal(isOptionalSchemaColor("transparent"), true);
 assert.equal(isOptionalSchemaColor("not-a-color"), false);
 
 console.log("schema color format runtime tests passed");
